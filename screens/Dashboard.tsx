@@ -4,6 +4,7 @@ import { supabase } from '../src/lib/supabase';
 import { ScreenType, Appointment } from '../types';
 import { AppointmentModal } from '../components/AppointmentModal';
 import { useTheme, colors } from '../ThemeContext';
+import { isHoliday, getHoliday } from '../utils/holidays';
 
 interface DashboardProps {
   onNavigate: (screen: ScreenType) => void;
@@ -214,7 +215,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
 
       <div className="grid grid-cols-12 gap-6 px-6 lg:px-10 flex-1 min-h-0">
         {/* Unified Monthly Calendar Component */}
-        <div className="col-span-12 lg:col-span-8 xl:col-span-9 bg-[#141414] p-6 lg:p-8 rounded-2xl border border-gray-800/50 shadow-2xl flex flex-col min-h-0">
+        <div className="col-span-12 lg:col-span-8 xl:col-span-9 bg-white dark:bg-[#141414] p-6 lg:p-8 rounded-2xl border border-slate-200 dark:border-gray-800/50 shadow-2xl flex flex-col min-h-0">
 
 
           <div className="flex-1 flex flex-col">
@@ -243,14 +244,17 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                     className={`
                       aspect-auto p-2 rounded-xl border transition-all duration-300 flex flex-col gap-1 relative group flex-1 cursor-pointer
                       hover:scale-[1.02] hover:z-20
-                      ${isCurrentMonth ? 'bg-[#1e1e1e] border-gray-800/40 hover:border-primary/40 hover:shadow-[0_8px_30px_rgb(0,0,0,0.5)]' : 'bg-transparent border-transparent opacity-5 pointer-events-none'}
+                      ${isCurrentMonth ? 'bg-slate-50 dark:bg-[#1e1e1e] border-slate-100 dark:border-gray-800/40 hover:border-primary/40 hover:shadow-xl' : 'bg-transparent border-transparent opacity-5 pointer-events-none'}
                       ${isToday ? 'border-primary ring-1 ring-primary/20 shadow-[0_0_20px_-5px_var(--color-primary)] dark:shadow-[0_0_25px_-5px_var(--color-primary)]' : ''}
                     `}
                   >
                     <div className="flex justify-between items-center z-10 shrink-0">
-                      <span className={`text-[10px] font-black w-5 h-5 flex items-center justify-center rounded-md ${isToday ? 'bg-primary text-white shadow-lg' : 'text-gray-500 group-hover:text-white'}`}>
+                      <span className={`text-[10px] font-black w-5 h-5 flex items-center justify-center rounded-md ${isToday ? 'bg-primary text-white shadow-lg' : isHoliday(cellDate) ? 'bg-red-600 text-white' : 'text-gray-500 group-hover:text-slate-900 dark:group-hover:text-white'}`}>
                         {cellDate.getDate()}
                       </span>
+                      {isHoliday(cellDate) && (
+                        <span className="text-[8px] font-black uppercase text-red-500 truncate ml-1 opacity-80">{getHoliday(cellDate)?.name}</span>
+                      )}
                     </div>
 
                     <div className="space-y-1 overflow-y-auto nike-scroll flex-1 pr-1 min-h-0 max-h-[60px] lg:max-h-none">

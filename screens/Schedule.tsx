@@ -4,6 +4,7 @@ import { useResources, Resource } from '../ResourceContext';
 import { supabase } from '../src/lib/supabase';
 import { ScreenType, Appointment } from '../types';
 import { AppointmentModal } from '../components/AppointmentModal';
+import { isHoliday, getHoliday } from '../utils/holidays';
 import { ExecutionChecklistModal } from '../components/ExecutionChecklistModal';
 import { loadAdvancedTemplates, AdvancedChecklistTemplate } from '../components/TemplateBuilder';
 
@@ -356,16 +357,20 @@ const MonthView: React.FC<{
                 className={`
                 relative p-2 rounded-xl border transition-all cursor-pointer flex flex-col justify-between group overflow-hidden
                 ${dayObj.type === 'current'
-                    ? 'bg-white dark:bg-[#222] border-slate-100 dark:border-gray-800 hover:border-primary/50 hover:shadow-md'
+                    ? (isHoliday(dayObj.date) ? 'bg-red-50 dark:bg-red-900/10 border-red-100 dark:border-red-900/30' : 'bg-white dark:bg-[#222] border-slate-100 dark:border-gray-800')
                     : 'bg-slate-50/50 dark:bg-[#151515] border-transparent text-slate-400 dark:text-gray-600'
                   }
+                ${dayObj.type === 'current' ? 'hover:border-primary/50 hover:shadow-md' : ''}
                 ${dayObj.isToday ? 'ring-2 ring-primary ring-offset-2 dark:ring-offset-[#1a1a1a]' : ''}
               `}
               >
                 <div className="flex justify-between items-start">
-                  <span className={`text-sm font-bold w-7 h-7 flex items-center justify-center rounded-full ${dayObj.isToday ? 'bg-primary text-white' : 'text-slate-700 dark:text-gray-300 group-hover:bg-slate-100 dark:group-hover:bg-white/10'}`}>
+                  <span className={`text-sm font-bold w-7 h-7 flex items-center justify-center rounded-full ${dayObj.isToday ? 'bg-primary text-white' : isHoliday(dayObj.date) ? 'bg-red-600 text-white' : 'text-slate-700 dark:text-gray-300 group-hover:bg-slate-100 dark:group-hover:bg-white/10'}`}>
                     {dayObj.day}
                   </span>
+                  {dayObj.type === 'current' && isHoliday(dayObj.date) && (
+                    <span className="text-[10px] font-black text-red-600 dark:text-red-400 uppercase tracking-tighter truncate max-w-[50px]">{getHoliday(dayObj.date)?.name}</span>
+                  )}
                   {dayObj.type === 'current' && (
                     <button
                       onClick={(e) => {
@@ -550,6 +555,12 @@ const DayView: React.FC<{
             <div className="flex flex-col items-center px-2 min-w-[140px]">
               <span className="text-xs font-semibold text-primary uppercase tracking-wider">Visualizando</span>
               <span className="text-sm font-bold text-text-main dark:text-white capitalize">{formattedDate}</span>
+              {isHoliday(currentDate) && (
+                <div className="flex items-center gap-1 mt-0.5">
+                  <span className="size-2 rounded-full bg-red-500 animate-pulse"></span>
+                  <span className="text-[10px] font-black text-red-500 uppercase tracking-widest">{getHoliday(currentDate)?.name}</span>
+                </div>
+              )}
             </div>
           </div>
           <button
