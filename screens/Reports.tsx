@@ -58,7 +58,7 @@ export const Reports: React.FC = () => {
       setAllTransactions(mappedTxs);
 
       // KPIs
-      const paidTxs = txs.filter(t => t.status === 'paid' && t.type === 'invoice');
+      const paidTxs = txs.filter(t => t.status === 'paid' && t.type === 'income');
       const totalRevenue = paidTxs.reduce((acc, curr) => acc + curr.amount, 0);
       const ticketMedio = paidTxs.length > 0 ? totalRevenue / paidTxs.length : 0;
 
@@ -83,7 +83,9 @@ export const Reports: React.FC = () => {
       }
 
       paidTxs.forEach(t => {
-        const entry = last7Days.find(day => day.date === t.date);
+        // Use created_at for more reliable date matching with the labels
+        const tDateStr = new Date(t.created_at).toISOString().split('T')[0];
+        const entry = last7Days.find(day => day.date === tDateStr);
         if (entry) entry.current += t.amount;
       });
       setSalesData(last7Days);
