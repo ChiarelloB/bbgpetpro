@@ -78,6 +78,7 @@ const AppContent: React.FC = () => {
   const [communicationInitialContact, setCommunicationInitialContact] = useState<any>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
+  const [posInitialState, setPosInitialState] = useState<any>(null);
   const { showNotification } = useNotification();
   const { user, signOut } = useSecurity();
   const [userProfile, setUserProfile] = useState({
@@ -140,6 +141,11 @@ const AppContent: React.FC = () => {
     if (screen === 'communication') {
       setCommunicationInitialType(state?.type || 'client');
       setCommunicationInitialContact(state?.contact || null);
+    }
+    if (screen === 'pos') {
+      setPosInitialState(state || null);
+    } else {
+      setPosInitialState(null);
     }
     setCurrentScreen(screen);
     setIsMobileMenuOpen(false);
@@ -211,8 +217,8 @@ const AppContent: React.FC = () => {
       case 'dashboard': return <Dashboard onNavigate={handleNavigate} />;
       case 'userDashboard': return <UserDashboard onNavigate={handleNavigate} userProfile={userProfile} />;
       case 'schedule': return <Schedule onNavigate={handleNavigate} />;
-      case 'execution': return <Execution />;
-      case 'pos': return <POS />;
+      case 'execution': return <Execution onNavigate={handleNavigate} />;
+      case 'pos': return <POS initialState={posInitialState} />;
       case 'clients': return <Clients onNavigate={handleNavigate} />;
       case 'petProfile': return <PetProfile />;
       case 'inventory': return <Inventory />;

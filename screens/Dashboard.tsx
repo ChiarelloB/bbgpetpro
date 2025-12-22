@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { AreaChart, Area, XAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { useNotification } from '../NotificationContext';
 import { supabase } from '../src/lib/supabase';
 import { ScreenType, Appointment } from '../types';
@@ -29,7 +28,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
   const [reportContent, setReportContent] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [timeFilter, setTimeFilter] = useState('7 Dias');
-  const [chartData, setChartData] = useState<any[]>([]);
+  const [selectedCalendarDate, setSelectedCalendarDate] = useState(new Date());
+  const [monthAppointments, setMonthAppointments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({ revenue: 0, appointments: 0, newClients: 0 });
   const [todayAppointments, setTodayAppointments] = useState<AppointmentSnapshot[]>([]);
@@ -37,26 +37,28 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
 
   const fetchDashboardData = async () => {
     setLoading(true);
-    const today = new Date().toISOString().split('T')[0];
+    const now = new Date();
+    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-    const sevenDaysAgoStr = sevenDaysAgo.toISOString().split('T')[0];
+    const sevenDaysAgoStr = `${sevenDaysAgo.getFullYear()}-${String(sevenDaysAgo.getMonth() + 1).padStart(2, '0')}-${String(sevenDaysAgo.getDate()).padStart(2, '0')}`;
 
-    // 1. Fetch Today's Appointments
+    // 1. Fetch Today's Appointments with joins
     const { data: appts } = await supabase
       .from('appointments')
-      .select('*')
-      .eq('date', today)
+      .select('*, pets(name, img), clients(name)')
+      .gte('start_time', `${today}T00:00:00`)
+      .lte('start_time', `${today}T23:59:59`)
       .order('start_time', { ascending: true });
 
     setTodayAppointments((appts || []).map(a => ({
       id: a.id,
-      time: a.start_time.substring(0, 5),
-      client: a.client_name,
-      pet: a.pet_name,
+      time: a.start_time.includes('T') ? a.start_time.split('T')[1].substring(0, 5) : a.start_time.substring(0, 5),
+      client: (a as any).clients?.name || 'Cliente',
+      pet: (a as any).pets?.name || 'Pet',
       service: a.service,
       status: a.status,
-      avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(a.pet_name)}&background=random`
+      avatar: (a as any).pets?.img || `https://ui-avatars.com/api/?name=${encodeURIComponent((a as any).pets?.name || 'P')}&background=random`
     })));
 
     // 2. Fetch Stats
@@ -81,35 +83,34 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
       newClients: clientCount || 0
     });
 
-    // 3. Generate Chart Data (Simplified for now - Daily for last 7 days)
-    const last7DaysData = [];
-    for (let i = 6; i >= 0; i--) {
-      const d = new Date();
-      d.setDate(d.getDate() - i);
-      const dStr = d.toISOString().split('T')[0];
-      const dayLabel = d.toLocaleDateString('pt-BR', { weekday: 'short' });
-      last7DaysData.push({ name: dayLabel, value: 0, date: dStr });
-    }
+    // 3. Fetch Monthly Data for calendar view
+    const startOfMonth = new Date(selectedCalendarDate.getFullYear(), selectedCalendarDate.getMonth(), 1);
+    const endOfMonth = new Date(selectedCalendarDate.getFullYear(), selectedCalendarDate.getMonth() + 1, 0);
 
-    const { data: recentRevenue } = await supabase
-      .from('financial_transactions')
-      .select('amount, date')
-      .eq('type', 'invoice')
-      .eq('status', 'paid')
-      .gte('date', sevenDaysAgoStr);
+    const startStr = `${startOfMonth.getFullYear()}-${String(startOfMonth.getMonth() + 1).padStart(2, '0')}-01T00:00:00`;
+    const endStr = `${endOfMonth.getFullYear()}-${String(endOfMonth.getMonth() + 1).padStart(2, '0')}-${String(endOfMonth.getDate()).padStart(2, '0')}T23:59:59`;
 
-    (recentRevenue || []).forEach(tr => {
-      const entry = last7DaysData.find(item => item.date === tr.date);
-      if (entry) entry.value += tr.amount;
-    });
+    const { data: monthApptsData } = await supabase
+      .from('appointments')
+      .select('*, pets(name, img), clients(name)')
+      .gte('start_time', startStr)
+      .lte('start_time', endStr)
+      .order('start_time', { ascending: true });
 
-    setChartData(last7DaysData);
+    setMonthAppointments((monthApptsData || []).map(a => ({
+      id: a.id,
+      date: a.start_time.split('T')[0],
+      time: a.start_time.includes('T') ? a.start_time.split('T')[1].substring(0, 5) : a.start_time.substring(0, 5),
+      pet: (a as any).pets?.name || 'Pet',
+      status: a.status
+    })));
+
     setLoading(false);
   };
 
   useEffect(() => {
     fetchDashboardData();
-  }, [timeFilter]);
+  }, [timeFilter, selectedCalendarDate]);
 
   const handleAddAppointment = async (appt: any) => {
     const startTimestamp = `${appt.date}T${appt.startTime}:00`;
@@ -144,7 +145,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
     try {
       const { getGeminiModel } = await import('../src/lib/gemini');
       const model = getGeminiModel();
-      const prompt = `Analise estes dados de faturamento semanal: ${JSON.stringify(chartData)}. Forneça um resumo executivo curto em Markdown.`;
+      const prompt = `Analise estes agendamentos de hoje: ${JSON.stringify(todayAppointments)}. Forneça um resumo executivo curto em Markdown com recomendações operacionais.`;
       const result = await model.generateContent(prompt);
       setReportContent(result.response.text() || "Sem insights no momento.");
     } catch (error) {
@@ -155,7 +156,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
     }
   };
 
-  if (loading && chartData.length === 0) {
+  if (loading && todayAppointments.length === 0) {
     return (
       <div className="flex h-screen items-center justify-center">
         <div className="w-12 h-12 border-4 border-primary/30 border-t-primary rounded-full animate-spin"></div>
@@ -212,67 +213,71 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Performance Chart */}
-        <div className="lg:col-span-2 bg-white dark:bg-[#1a1a1a] p-8 rounded-3xl border border-slate-100 dark:border-gray-800 shadow-sm">
-          <div className="flex flex-col md:flex-row justify-between md:items-center gap-6 mb-10">
-            <div>
-              <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter">Fluxo de Receita</h3>
-              <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest mt-1">Últimos 7 dias de operação</p>
-            </div>
-            <div className="flex bg-slate-100 dark:bg-white/5 p-1 rounded-xl">
-              {['7 Dias', '30 Dias', 'Ano'].map((tab) => (
-                <button
-                  key={tab}
-                  onClick={() => setTimeFilter(tab)}
-                  className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${timeFilter === tab ? 'bg-white dark:bg-[#333] text-primary shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
-                >
-                  {tab}
-                </button>
+        {/* Unified Monthly Calendar Component */}
+        <div className="lg:col-span-2 bg-[#141414] p-8 rounded-3xl border border-gray-800/50 shadow-2xl flex flex-col min-h-[720px]">
+
+
+          <div className="flex-1 flex flex-col">
+            <div className="grid grid-cols-7 mb-6">
+              {['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB'].map(d => (
+                <div key={d} className="text-center text-[11px] font-black text-gray-500 tracking-[0.2em] uppercase">
+                  {d}
+                </div>
               ))}
             </div>
-          </div>
 
-          <div className="h-[350px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={chartData}>
-                <defs>
-                  <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor={primaryColor} stopOpacity={0.4} />
-                    <stop offset="95%" stopColor={primaryColor} stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid vertical={false} stroke="#e2e8f0" strokeDasharray="3 3" opacity={0.3} />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 900 }} dy={10} />
-                <Tooltip
-                  contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', backgroundColor: '#1a1a1a', color: '#fff', padding: '12px' }}
-                  cursor={{ stroke: primaryColor, strokeWidth: 1, strokeDasharray: '4 4' }}
-                />
-                <Area type="monotone" dataKey="value" stroke={primaryColor} strokeWidth={5} fillOpacity={1} fill="url(#colorValue)" animationDuration={1500} />
-              </AreaChart>
-            </ResponsiveContainer>
+            <div className="grid grid-cols-7 gap-3 flex-1 overflow-hidden">
+              {Array.from({ length: 42 }).map((_, i) => {
+                const startOfMonth = new Date(selectedCalendarDate.getFullYear(), selectedCalendarDate.getMonth(), 1);
+                const firstDay = startOfMonth.getDay();
+                const cellDate = new Date(selectedCalendarDate.getFullYear(), selectedCalendarDate.getMonth(), i - firstDay + 1);
+                const isToday = new Date().toDateString() === cellDate.toDateString();
+                const isCurrentMonth = cellDate.getMonth() === selectedCalendarDate.getMonth();
+                const cellDateStr = `${cellDate.getFullYear()}-${String(cellDate.getMonth() + 1).padStart(2, '0')}-${String(cellDate.getDate()).padStart(2, '0')}`;
+                const cellAppts = monthAppointments.filter(a => a.date === cellDateStr);
+
+                return (
+                  <div
+                    key={i}
+                    className={`
+                      min-h-[110px] p-3 rounded-2xl border transition-all flex flex-col gap-2 relative group
+                      ${isCurrentMonth ? 'bg-[#1e1e1e] border-gray-800/40 hover:border-primary/40' : 'bg-transparent border-transparent opacity-10 pointer-events-none'}
+                      ${isToday ? 'border-primary shadow-[0_0_20px_rgba(255,0,128,0.1)]' : ''}
+                    `}
+                  >
+                    <div className="flex justify-between items-center z-10">
+                      <span className={`text-[12px] font-black w-7 h-7 flex items-center justify-center rounded-lg ${isToday ? 'bg-primary text-white shadow-lg' : 'text-gray-400 group-hover:text-white'}`}>
+                        {cellDate.getDate()}
+                      </span>
+                    </div>
+
+                    <div className="space-y-1.5 overflow-y-auto custom-scrollbar flex-1 pr-1">
+                      {cellAppts.map((appt, idx) => (
+                        <div
+                          key={idx}
+                          className={`
+                            text-[9px] font-bold p-2 rounded-xl truncate tracking-tight flex items-center gap-2 border border-white/5
+                            ${appt.status === 'completed' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' :
+                              appt.status === 'in-progress' ? 'bg-amber-500/10 text-amber-500 border-amber-500/20 animate-pulse' :
+                                'bg-primary/10 text-primary border-primary/20'}
+                          `}
+                        >
+                          <span className="opacity-70 font-black">{appt.time}</span>
+                          <span className="uppercase truncate">- {appt.pet}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
 
-        {/* Side Controls & Agenda */}
-        <div className="space-y-6 flex flex-col h-full">
-          <div className="bg-white dark:bg-[#1a1a1a] p-8 rounded-3xl border border-slate-100 dark:border-gray-800 shadow-sm shrink-0">
-            <h3 className="text-xs font-black uppercase text-slate-900 dark:text-white tracking-widest mb-6 italic">Painel de Acesso</h3>
-            <div className="grid grid-cols-2 gap-4">
-              {[
-                { label: 'Tutores', icon: 'person_add', color: 'primary', screen: 'clients' },
-                { label: 'Estoque', icon: 'inventory_2', color: 'blue-500', screen: 'inventory' },
-                { label: 'Vendas', icon: 'receipt_long', color: 'emerald-500', screen: 'finance' },
-                { label: 'Notificar', icon: 'campaign', color: 'purple-500', screen: 'communication' }
-              ].map((act, i) => (
-                <button key={i} onClick={() => onNavigate(act.screen as any)} className="group p-4 rounded-2xl bg-slate-50 dark:bg-white/5 hover:bg-slate-100 dark:hover:bg-white/10 transition-all flex flex-col items-center gap-3 border border-transparent hover:border-slate-200 dark:hover:border-gray-700">
-                  <span className={`material-symbols-outlined text-${act.color} group-hover:scale-110 transition-transform`}>{act.icon}</span>
-                  <span className="text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-gray-400">{act.label}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="bg-white dark:bg-[#1a1a1a] p-8 rounded-3xl border border-slate-100 dark:border-gray-800 shadow-sm flex-1 flex flex-col overflow-hidden">
+        {/* Side Controls & Agenda Stack */}
+        <div className="space-y-6 flex flex-col">
+          {/* Top: Today's Appointments */}
+          <div className="bg-white dark:bg-[#1a1a1a] p-8 rounded-3xl border border-slate-100 dark:border-gray-800 shadow-sm flex flex-col min-h-[350px]">
             <div className="flex justify-between items-center mb-6">
               <div className="flex items-center gap-2">
                 <h3 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-widest italic">Missões de Hoje</h3>
@@ -281,7 +286,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
               <button onClick={() => onNavigate('schedule')} className="text-slate-400 hover:text-primary transition-colors"><span className="material-symbols-outlined text-[20px]">calendar_view_day</span></button>
             </div>
 
-            <div className="space-y-4 overflow-y-auto pr-2 custom-scrollbar flex-1">
+            <div className="space-y-4 overflow-y-auto pr-2 custom-scrollbar flex-1 max-h-[300px]">
               {todayAppointments.map((apt) => (
                 <div key={apt.id} className="group flex items-center gap-4 p-3 rounded-2xl hover:bg-slate-50 dark:hover:bg-white/5 transition-all border border-transparent hover:border-slate-100 dark:hover:border-gray-800">
                   <div className="relative shrink-0">
@@ -306,6 +311,59 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
             </div>
 
             <button onClick={() => onNavigate('schedule')} className="mt-6 w-full py-3 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-800 transition-all shadow-lg active:scale-95">Ver Todas as Missões</button>
+          </div>
+
+          {/* Middle: Side Controls (Painel de Acesso) */}
+          <div className="bg-white dark:bg-[#1a1a1a] p-8 rounded-3xl border border-slate-100 dark:border-gray-800 shadow-sm">
+            <h3 className="text-xs font-black uppercase text-slate-900 dark:text-white tracking-widest mb-6 italic">Painel de Acesso</h3>
+            <div className="grid grid-cols-2 gap-4">
+              {[
+                { label: 'Tutores', icon: 'person_add', color: 'primary', screen: 'clients' },
+                { label: 'Estoque', icon: 'inventory_2', color: 'blue-500', screen: 'inventory' },
+                { label: 'Vendas', icon: 'receipt_long', color: 'emerald-500', screen: 'finance' },
+                { label: 'Notificar', icon: 'campaign', color: 'purple-500', screen: 'communication' }
+              ].map((act, i) => (
+                <button key={i} onClick={() => onNavigate(act.screen as any)} className="group p-4 rounded-2xl bg-slate-50 dark:bg-white/5 hover:bg-slate-100 dark:hover:bg-white/10 transition-all flex flex-col items-center gap-3 border border-transparent hover:border-slate-200 dark:hover:border-gray-700">
+                  <span className={`material-symbols-outlined text-${act.color} group-hover:scale-110 transition-transform`}>{act.icon}</span>
+                  <span className="text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-gray-400">{act.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Bottom: Lançamentos */}
+          <div className="bg-gradient-to-br from-slate-900 to-primary/20 p-8 rounded-3xl border border-white/5 shadow-xl relative overflow-hidden transition-hover duration-300 hover:shadow-2xl hover:shadow-primary/10">
+            <div className="absolute top-0 right-0 p-6 opacity-10">
+              <span className="material-symbols-outlined text-6xl text-white">rocket_launch</span>
+            </div>
+            <div className="relative z-10">
+              <div className="flex items-center gap-2 mb-4">
+                <span className="px-3 py-1 bg-primary text-white text-[9px] font-black rounded-lg uppercase tracking-widest">Novo v3.7.0</span>
+                <h3 className="text-xs font-black text-white uppercase tracking-widest italic">Lançamentos</h3>
+              </div>
+              <div className="space-y-4 mb-6">
+                <div className="flex gap-3 items-start">
+                  <span className="material-symbols-outlined text-primary text-[20px]">check_circle</span>
+                  <div>
+                    <p className="text-white text-xs font-bold leading-tight">Gestão de Entrega</p>
+                    <p className="text-slate-400 text-[10px]">Novo modal para finalizar e pagar.</p>
+                  </div>
+                </div>
+                <div className="flex gap-3 items-start">
+                  <span className="material-symbols-outlined text-primary text-[20px]">print</span>
+                  <div>
+                    <p className="text-white text-xs font-bold leading-tight">Impressão de Recibo</p>
+                    <p className="text-slate-400 text-[10px]">Gere cupons profissionais na hora.</p>
+                  </div>
+                </div>
+              </div>
+              <button
+                onClick={() => onNavigate('roadmap')}
+                className="w-full py-2.5 bg-white/10 hover:bg-white/20 text-white border border-white/10 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all active:scale-95"
+              >
+                Ver Roadmap Completo
+              </button>
+            </div>
           </div>
         </div>
       </div>

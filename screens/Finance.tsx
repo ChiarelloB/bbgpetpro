@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNotification } from '../NotificationContext';
 import { getGeminiModel } from '../src/lib/gemini';
 import { supabase } from '../src/lib/supabase';
+import { AreaChart, Area, XAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
+import { colors, useTheme } from '../ThemeContext';
 
 interface Invoice {
     id: string;
@@ -175,7 +177,11 @@ export const Finance: React.FC = () => {
     const [isAIModalOpen, setIsAIModalOpen] = useState(false);
     const [aiAnalysis, setAiAnalysis] = useState('');
     const [isAnalyzing, setIsAnalyzing] = useState(false);
+    const [chartData, setChartData] = useState<any[]>([]);
+    const [timeFilter, setTimeFilter] = useState('7 Dias');
     const { showNotification } = useNotification();
+    const { accentColor } = useTheme();
+    const primaryColor = colors[accentColor]?.primary || colors.purple.primary;
 
     const fetchTransactions = async () => {
         setLoading(true);
@@ -228,9 +234,60 @@ export const Finance: React.FC = () => {
         setLoading(false);
     };
 
+    const fetchChartData = async () => {
+        const today = new Date();
+        const days = timeFilter === '7 Dias' ? 7 : timeFilter === '30 Dias' ? 30 : 365;
+        const startDate = new Date();
+        startDate.setDate(today.getDate() - days);
+        const startDateStr = startDate.toISOString().split('T')[0];
+
+        const chartPoints = [];
+        for (let i = days - 1; i >= 0; i--) {
+            const d = new Date();
+            d.setDate(today.getDate() - i);
+            const dStr = d.toISOString().split('T')[0];
+            const label = days === 365
+                ? d.toLocaleDateString('pt-BR', { month: 'short' })
+                : d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
+            chartPoints.push({ name: label, value: 0, date: dStr });
+        }
+
+        const { data: revenue } = await supabase
+            .from('financial_transactions')
+            .select('amount, date')
+            .eq('type', 'income')
+            .eq('status', 'paid')
+            .gte('date', startDateStr);
+
+        (revenue || []).forEach(tr => {
+            const entry = chartPoints.find(item => item.date === tr.date);
+            if (entry) entry.value += tr.amount;
+            else if (days === 365) {
+                // For year view, group by month
+                const month = new Date(tr.date).toLocaleDateString('pt-BR', { month: 'short' });
+                const monthEntry = chartPoints.find(item => item.name === month);
+                if (monthEntry) monthEntry.value += tr.amount;
+            }
+        });
+
+        // If year view, reduce points to unique months
+        if (days === 365) {
+            const monthlyData: any[] = [];
+            chartPoints.forEach(p => {
+                const existing = monthlyData.find(m => m.name === p.name);
+                if (existing) existing.value += p.value;
+                else monthlyData.push(p);
+            });
+            setChartData(monthlyData);
+        } else {
+            setChartData(chartPoints);
+        }
+    };
+
     useEffect(() => {
         fetchTransactions();
-    }, []);
+        fetchChartData();
+    }, [timeFilter]);
 
     const handleExport = () => {
         showNotification('Exportando dados para CSV...', 'info');
@@ -511,30 +568,74 @@ export const Finance: React.FC = () => {
                 </button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                <div className="bg-white dark:bg-[#1a1a1a] p-5 rounded-xl border border-slate-100 dark:border-gray-800 shadow-sm relative overflow-hidden group">
-                    <p className="text-slate-500 dark:text-gray-400 text-sm font-medium mb-1">Saldo Atual</p>
-                    <p className={`text-2xl font-bold tracking-tight ${balance >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                        R$ {balance.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                    </p>
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 mb-8">
+                {/* KPI Section */}
+                <div className="lg:col-span-1 grid grid-cols-1 gap-4">
+                    <div className="bg-white dark:bg-[#1a1a1a] p-5 rounded-xl border border-slate-100 dark:border-gray-800 shadow-sm relative overflow-hidden group">
+                        <p className="text-slate-500 dark:text-gray-400 text-sm font-medium mb-1">Saldo Atual</p>
+                        <p className={`text-2xl font-bold tracking-tight ${balance >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                            R$ {balance.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        </p>
+                    </div>
+                    <div className="bg-white dark:bg-[#1a1a1a] p-5 rounded-xl border border-slate-100 dark:border-gray-800 shadow-sm relative overflow-hidden group">
+                        <p className="text-slate-500 dark:text-gray-400 text-sm font-medium mb-1">Total Receitas</p>
+                        <p className="text-2xl font-bold text-emerald-500 tracking-tight">
+                            R$ {totalIncome.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        </p>
+                    </div>
+                    <div className="bg-white dark:bg-[#1a1a1a] p-5 rounded-xl border border-slate-100 dark:border-gray-800 shadow-sm relative overflow-hidden group">
+                        <p className="text-slate-500 dark:text-gray-400 text-sm font-medium mb-1">Total Despesas</p>
+                        <p className="text-2xl font-bold text-red-500 tracking-tight">
+                            R$ {totalExpenses.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        </p>
+                    </div>
+                    <div className="bg-white dark:bg-[#1a1a1a] p-5 rounded-xl border border-slate-100 dark:border-gray-800 shadow-sm relative overflow-hidden group">
+                        <p className="text-slate-500 dark:text-gray-400 text-sm font-medium mb-1">Pendentes</p>
+                        <p className="text-2xl font-bold text-amber-500 tracking-tight">
+                            {invoices.filter(i => i.status === 'pending').length} Faturas
+                        </p>
+                    </div>
                 </div>
-                <div className="bg-white dark:bg-[#1a1a1a] p-5 rounded-xl border border-slate-100 dark:border-gray-800 shadow-sm relative overflow-hidden group">
-                    <p className="text-slate-500 dark:text-gray-400 text-sm font-medium mb-1">Total Receitas</p>
-                    <p className="text-2xl font-bold text-emerald-500 tracking-tight">
-                        R$ {totalIncome.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                    </p>
-                </div>
-                <div className="bg-white dark:bg-[#1a1a1a] p-5 rounded-xl border border-slate-100 dark:border-gray-800 shadow-sm relative overflow-hidden group">
-                    <p className="text-slate-500 dark:text-gray-400 text-sm font-medium mb-1">Total Despesas</p>
-                    <p className="text-2xl font-bold text-red-500 tracking-tight">
-                        R$ {totalExpenses.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                    </p>
-                </div>
-                <div className="bg-white dark:bg-[#1a1a1a] p-5 rounded-xl border border-slate-100 dark:border-gray-800 shadow-sm relative overflow-hidden group">
-                    <p className="text-slate-500 dark:text-gray-400 text-sm font-medium mb-1">Pendentes</p>
-                    <p className="text-2xl font-bold text-amber-500 tracking-tight">
-                        {invoices.filter(i => i.status === 'pending').length} Faturas
-                    </p>
+
+                {/* Performance Chart Component */}
+                <div className="lg:col-span-3 bg-white dark:bg-[#1a1a1a] p-8 rounded-3xl border border-slate-100 dark:border-gray-800 shadow-sm">
+                    <div className="flex flex-col md:flex-row justify-between md:items-center gap-6 mb-10">
+                        <div>
+                            <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter text-emerald-600">Performance Financeira</h3>
+                            <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest mt-1">Fluxo de caixa das faturas pagas</p>
+                        </div>
+                        <div className="flex bg-slate-100 dark:bg-white/5 p-1 rounded-xl">
+                            {['7 Dias', '30 Dias', 'Ano'].map((tab) => (
+                                <button
+                                    key={tab}
+                                    onClick={() => setTimeFilter(tab)}
+                                    className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${timeFilter === tab ? 'bg-white dark:bg-[#333] text-primary shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+                                >
+                                    {tab}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="h-[250px] w-full">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <AreaChart data={chartData}>
+                                <defs>
+                                    <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="5%" stopColor={primaryColor} stopOpacity={0.4} />
+                                        <stop offset="95%" stopColor={primaryColor} stopOpacity={0} />
+                                    </linearGradient>
+                                </defs>
+                                <CartesianGrid vertical={false} stroke="#e2e8f0" strokeDasharray="3 3" opacity={0.3} />
+                                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 900 }} dy={10} />
+                                <Tooltip
+                                    contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', backgroundColor: '#1a1a1a', color: '#fff', padding: '12px' }}
+                                    cursor={{ stroke: primaryColor, strokeWidth: 1, strokeDasharray: '4 4' }}
+                                />
+                                <Area type="monotone" dataKey="value" stroke={primaryColor} strokeWidth={5} fillOpacity={1} fill="url(#colorValue)" animationDuration={1000} />
+                            </AreaChart>
+                        </ResponsiveContainer>
+                    </div>
                 </div>
             </div>
 

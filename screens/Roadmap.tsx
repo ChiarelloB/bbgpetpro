@@ -118,18 +118,18 @@ const roadmapData: RoadmapItem[] = [
     },
     {
         id: 5,
-        title: 'Logística & Controle de Qualidade',
-        description: 'Sistema de Táxi Pet com rastreamento em tempo real. Controle de qualidade avançado com checklists obrigatórios personalizáveis por serviço e validação por foto nas etapas finais.',
+        title: 'Logística & Gestão de Entrega',
+        description: 'Fluxo logístico completo. Sistema de entrega com conferência de valores, impressão de recibos profissionais e integração financeira imediata. Inclui também o rastreamento em tempo real (Táxi Pet).',
         status: 'Lançado',
-        date: 'Q3 2026',
+        date: 'Q3 2025',
         progress: 100,
-        icon: 'local_shipping',
-        tags: ['Maps', 'Quality Assurance'],
+        icon: 'check_circle',
+        tags: ['Entrega', 'Recibos', 'Financeiro'],
         features: [
-            { label: 'Rastreamento de Entregas', done: true },
-            { label: 'Checklists Configuráveis', done: true },
-            { label: 'Validação por Foto', done: true },
-            { label: 'Chat com Motorista', done: true }
+            { label: 'Modal de Entrega de Pet', done: true },
+            { label: 'Impressão de Recibos', done: true },
+            { label: 'Integração Financeira', done: true },
+            { label: 'Rastreamento Táxi Pet', done: true }
         ]
     },
     {
@@ -175,6 +175,21 @@ const roadmapData: RoadmapItem[] = [
 ];
 
 const changelogHistory: ChangelogEntry[] = [
+    {
+        version: 'v3.7.0',
+        date: '22 Dez 2025',
+        type: 'major',
+        title: 'Gestão de Entrega & Academy Update',
+        changes: [
+            'Lançamento do modal "Entregar Pet" com gestão de valores e pagamentos.',
+            'Integração automática com o Fluxo de Caixa ao finalizar entregas.',
+            'Sistema de Impressão de Recibos profissionais direto da Execução.',
+            'Melhoria visual nos botões de ação para status "Pronto".',
+            'Sincronização imediata de status de agendamento pós-entrega.',
+            'Atualização da BBG CRM Academy com tutoriais de IA e Checklist.',
+            'Correção de bug no fechamento automático de checklists.'
+        ]
+    },
     {
         version: 'v3.6.0',
         date: '21 Dez 2025',
@@ -508,6 +523,45 @@ const tutorialModules: TutorialModule[] = [
             'Exportação em massa de dados.',
             'Backup de segurança.'
         ]
+    },
+    {
+        id: 'ai_copilot',
+        title: 'IA Copilot & Inteligência',
+        icon: 'psychology',
+        color: 'bg-gradient-to-r from-purple-600 to-blue-600',
+        description: 'Potencialize sua produtividade com inteligência artificial generativa.',
+        steps: [
+            'Use o Copiloto Global para tirar dúvidas sobre o negócio.',
+            'Solicite resumos de históricos médicos e comportamentais.',
+            'Gere insights financeiros automáticos no Dashboard.',
+            'Receba sugestões de mensagens personalizadas para clientes.'
+        ]
+    },
+    {
+        id: 'pet_delivery',
+        title: 'Entregar Pet & Recibos',
+        icon: 'check_circle',
+        color: 'bg-emerald-600',
+        description: 'Finalize atendimentos com profissionalismo e transparência.',
+        steps: [
+            'Confirme os valores finais e forma de pagamento no modal.',
+            'Marque o pet como entregue para liberar espaço operacional.',
+            'Imprima o recibo profissional para o cliente na hora.',
+            'O sistema gera automaticamente o registro financeiro.'
+        ]
+    },
+    {
+        id: 'checklist_templates',
+        title: 'Templates de Checklist',
+        icon: 'rule',
+        color: 'bg-amber-600',
+        description: 'Padronize seus processos e garanta a excelência no atendimento.',
+        steps: [
+            'Crie modelos de checklist para cada tipo de serviço.',
+            'Defina campos obrigatórios e validação por foto.',
+            'Garanta que toda a equipe siga o mesmo padrão de qualidade.',
+            'Acompanhe o preenchimento em tempo real na execução.'
+        ]
     }
 ];
 
@@ -732,7 +786,7 @@ export const Roadmap: React.FC = () => {
                         <div className="flex gap-3">
                             <div className="flex flex-col items-end">
                                 <span className="text-xs font-bold text-text-muted uppercase tracking-widest mb-1">Versão Atual</span>
-                                <span className="text-2xl font-black italic text-primary">v3.5.0</span>
+                                <span className="text-2xl font-black italic text-primary">v3.7.0</span>
                             </div>
                         </div>
                     </div>

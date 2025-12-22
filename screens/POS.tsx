@@ -22,7 +22,7 @@ interface Product {
     image_url: string;
 }
 
-export const POS: React.FC = () => {
+export const POS: React.FC<{ initialState?: any }> = ({ initialState }) => {
     const [products, setProducts] = useState<Product[]>([]);
     const [clients, setClients] = useState<{ id: string, name: string }[]>([]);
     const [selectedClient, setSelectedClient] = useState<{ id: string, name: string } | null>(null);
@@ -84,6 +84,32 @@ export const POS: React.FC = () => {
     };
 
     useEffect(() => { fetchData(); }, []);
+
+    useEffect(() => {
+        if (initialState && products.length > 0 && clients.length > 0) {
+            console.log('Applying POS initial state:', initialState);
+
+            // 1. Set Client
+            if (initialState.client) {
+                const client = clients.find(c => c.id === initialState.client.id) || initialState.client;
+                setSelectedClient(client);
+            }
+
+            // 2. Add Item to Cart
+            if (initialState.item) {
+                const item = initialState.item;
+                setCart(prev => {
+                    const existing = prev.find(i => i.id === item.id);
+                    if (existing) return prev; // Avoid duplicates
+                    return [...prev, {
+                        ...item,
+                        qty: 1,
+                        image_url: item.image_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(item.name)}&background=8b5cf6&color=fff&size=200`
+                    }];
+                });
+            }
+        }
+    }, [initialState, products, clients]);
 
     const addToCart = (product: Product) => {
         setCart(prev => {

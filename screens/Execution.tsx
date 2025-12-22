@@ -31,6 +31,7 @@ interface ServiceTask {
   responsibleAvatar: string;
   category: string;
   petId: string;
+  clientId: string;
 }
 
 // --- Timeline Details Modal (for finished services) ---
@@ -548,12 +549,187 @@ const ChecklistModal: React.FC<{
 };
 
 
-export const Execution: React.FC = () => {
+const DeliveryModal: React.FC<{
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: (data: { amount: number, paymentMethod: string, status: string, sendWhatsApp: boolean }) => void;
+  task: ServiceTask;
+  initialPrice: number;
+}> = ({ isOpen, onClose, onConfirm, task, initialPrice }) => {
+  const [amount, setAmount] = useState(initialPrice);
+  const [paymentMethod, setPaymentMethod] = useState('PIX');
+  const [paymentStatus, setPaymentStatus] = useState('Pendente');
+  const [sendWhatsApp, setSendWhatsApp] = useState(true);
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={onClose}></div>
+      <div className="bg-white dark:bg-[#1a1a1a] rounded-3xl shadow-2xl w-full max-w-sm relative z-10 overflow-hidden border border-slate-100 dark:border-gray-800 animate-in zoom-in-95">
+        <button onClick={onClose} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors">
+          <span className="material-symbols-outlined">close</span>
+        </button>
+
+        <div className="p-6">
+          <h2 className="text-xl font-black text-emerald-600 dark:text-emerald-500 mb-6 font-display">Entregar Pet</h2>
+
+          {/* Profile Card */}
+          <div className="bg-slate-50 dark:bg-[#111] rounded-2xl p-4 flex items-center gap-4 mb-6 border border-slate-100 dark:border-gray-800">
+            <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center shadow-lg">
+              <span className="material-symbols-outlined text-white text-3xl">inventory_2</span>
+            </div>
+            <div>
+              <h3 className="font-extrabold text-slate-900 dark:text-white leading-none">{task.petName}</h3>
+              <p className="text-xs text-slate-500 dark:text-gray-400 mt-1">{task.ownerName}</p>
+              <div className="flex items-center gap-1 mt-2 text-[10px] text-slate-400 font-bold">
+                <span className="material-symbols-outlined text-xs">phone_iphone</span>
+                (11) 94841-3693
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <div>
+              <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1.5 ml-1">Valor Final do Serviço (R$)</label>
+              <input
+                type="number"
+                value={amount}
+                onChange={(e) => setAmount(Number(e.target.value))}
+                className="w-full h-12 rounded-xl border-2 border-slate-200 dark:border-gray-700 bg-white dark:bg-[#252525] text-slate-900 dark:text-white text-lg font-black px-4 focus:border-emerald-500 outline-none transition-colors"
+              />
+            </div>
+
+            <div>
+              <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1.5 ml-1">Forma de Pagamento</label>
+              <select
+                value={paymentMethod}
+                onChange={(e) => setPaymentMethod(e.target.value)}
+                className="w-full h-12 rounded-xl border-2 border-slate-200 dark:border-gray-700 bg-white dark:bg-[#252525] text-slate-900 dark:text-white text-sm font-bold px-4 focus:border-emerald-500 outline-none transition-colors"
+              >
+                <option>🗳️ PIX</option>
+                <option>💳 Cartão de Crédito</option>
+                <option>💳 Cartão de Débito</option>
+                <option>💵 Dinheiro</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1.5 ml-1">Status do Pagamento</label>
+              <select
+                value={paymentStatus}
+                onChange={(e) => setPaymentStatus(e.target.value)}
+                className="w-full h-12 rounded-xl border-2 border-slate-200 dark:border-gray-700 bg-white dark:bg-[#252525] text-slate-900 dark:text-white text-sm font-bold px-4 focus:border-emerald-500 outline-none transition-colors"
+              >
+                <option>⏳ Pendente</option>
+                <option>✅ Pago</option>
+              </select>
+            </div>
+
+            <div className="bg-yellow-50 dark:bg-yellow-900/10 rounded-2xl p-4 border border-yellow-100 dark:border-yellow-900/20">
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={sendWhatsApp}
+                  onChange={(e) => setSendWhatsApp(e.target.checked)}
+                  className="mt-1 w-5 h-5 rounded border-yellow-400 text-emerald-600 focus:ring-emerald-500"
+                />
+                <div className="space-y-1">
+                  <p className="text-xs font-bold text-slate-700 dark:text-yellow-100">Ao confirmar:</p>
+                  <ul className="text-[10px] text-slate-500 dark:text-yellow-100/60 space-y-0.5 list-disc pl-4">
+                    <li>Pet será marcado como entregue</li>
+                    <li>Fatura será gerada automaticamente no Financeiro</li>
+                    <li>Cliente receberá confirmação via WhatsApp</li>
+                  </ul>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <div className="mt-8 flex gap-3">
+            <button
+              onClick={onClose}
+              className="flex-1 h-12 rounded-2xl text-sm font-black uppercase tracking-wider text-slate-500 hover:bg-slate-100 dark:hover:bg-white/5 transition-colors"
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={() => onConfirm({ amount, paymentMethod, status: paymentStatus === '✅ Pago' ? 'paid' : 'pending', sendWhatsApp })}
+              className="flex-[1.5] h-12 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-black uppercase tracking-wider shadow-lg shadow-emerald-500/30 transition-all flex items-center justify-center gap-2 active:scale-95"
+            >
+              <span className="material-symbols-outlined text-[20px]">check_circle</span>
+              Confirmar Entrega
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const PrintReceipt: React.FC<{ task: ServiceTask, amount: number, paymentMethod: string }> = ({ task, amount, paymentMethod }) => {
+  return (
+    <div id="print-receipt" className="hidden print:block p-8 bg-white text-black font-mono text-sm leading-tight">
+      <div className="text-center mb-6">
+        <h1 className="text-xl font-black uppercase leading-none">BBG PET PRO</h1>
+        <p className="text-[10px] uppercase font-bold mt-1">Soluções Inteligentes para Pets</p>
+        <div className="border-b-2 border-dashed border-black my-4" />
+      </div>
+
+      <div className="space-y-2">
+        <div className="flex justify-between">
+          <span className="font-bold">DATA:</span>
+          <span>{new Date().toLocaleDateString('pt-BR')} {new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>
+        </div>
+        <div className="flex justify-between">
+          <span className="font-bold">PET:</span>
+          <span className="uppercase">{task.petName}</span>
+        </div>
+        <div className="flex justify-between">
+          <span className="font-bold">TUTOR:</span>
+          <span className="uppercase">{task.ownerName}</span>
+        </div>
+        <div className="flex justify-between">
+          <span className="font-bold">SERVIÇO:</span>
+          <span className="uppercase">{task.serviceType}</span>
+        </div>
+        <div className="flex justify-between">
+          <span className="font-bold">FORMA PGTO:</span>
+          <span className="uppercase">{paymentMethod}</span>
+        </div>
+      </div>
+
+      <div className="border-b-2 border-dashed border-black my-4" />
+
+      <div className="flex justify-between text-lg font-black">
+        <span>TOTAL:</span>
+        <span>R$ {amount.toFixed(2)}</span>
+      </div>
+
+      <div className="border-b-2 border-dashed border-black my-4" />
+
+      <div className="text-center italic mt-6 space-y-1">
+        <p>Obrigado pela confiança!</p>
+        <p className="text-[10px]">Cuide bem do seu amiguinho.</p>
+      </div>
+
+      <div className="mt-12 text-center text-[8px] opacity-30">
+        ID: {task.appointmentId}
+      </div>
+    </div>
+  );
+};
+
+
+export const Execution: React.FC<{ onNavigate?: (screen: any, state?: any) => void }> = ({ onNavigate }) => {
   const [tasks, setTasks] = useState<ServiceTask[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedTask, setSelectedTask] = useState<ServiceTask | null>(null);
   const [detailsTask, setDetailsTask] = useState<ServiceTask | null>(null);
   const [detailsPhoto, setDetailsPhoto] = useState<string | undefined>(undefined);
+  const [deliveryTask, setDeliveryTask] = useState<ServiceTask | null>(null);
+  const [initialPrice, setInitialPrice] = useState(0);
+  const [printData, setPrintData] = useState<{ amount: number, paymentMethod: string } | null>(null);
   const [categoryFilter, setCategoryFilter] = useState('TODOS');
   const { showNotification } = useNotification();
 
@@ -582,7 +758,7 @@ export const Execution: React.FC = () => {
     setLoading(true);
     const { data: appts, error } = await supabase
       .from('appointments')
-      .select('*, pets(id, name, breed, img), clients(name)')
+      .select('*, pets(id, name, breed, img), clients(id, name)')
       .order('start_time', { ascending: true });
 
     if (!error && appts) {
@@ -594,6 +770,7 @@ export const Execution: React.FC = () => {
           id: a.id,
           appointmentId: a.id,
           petId: a.pet_id,
+          clientId: a.client_id,
           petName: a.pets?.name || 'Pet',
           breed: a.pets?.breed || 'SRD',
           ownerName: a.clients?.name || 'Dono',
@@ -690,11 +867,92 @@ export const Execution: React.FC = () => {
       }
 
       showNotification(`${selectedTask.petName} avançou para ${selectedTask.steps[nextStep].label}!`, 'success');
-      fetchTasks();
-      setSelectedTask(null);
+
+      // If at step before "Retirada", get ready to open Delivery Modal
+      if (nextStatus === 'ready' && isLastStep) {
+        // Find the service to get its price
+        const { data: serviceData } = await supabase
+          .from('services')
+          .select('price_pequeno, price')
+          .eq('name', selectedTask.serviceType)
+          .single();
+
+        const price = serviceData?.price_pequeno || serviceData?.price || 0;
+        setInitialPrice(price);
+        setDeliveryTask(selectedTask);
+        setSelectedTask(null); // Close ChecklistModal
+        fetchTasks();
+      } else {
+        fetchTasks();
+        setSelectedTask(null);
+      }
     } catch (err: any) {
       console.error('Unexpected error:', err);
       showNotification(`Erro inesperado: ${err.message}`, 'error');
+    }
+  };
+
+  const handleOpenDelivery = async (task: ServiceTask) => {
+    // Find the service to get its price
+    const { data: serviceData } = await supabase
+      .from('services')
+      .select('price_pequeno, price')
+      .eq('name', task.serviceType)
+      .single();
+
+    const price = serviceData?.price_pequeno || serviceData?.price || 0;
+    setInitialPrice(price);
+    setDeliveryTask(task);
+  };
+
+  const handleConfirmDelivery = async (data: { amount: number, paymentMethod: string, status: string, sendWhatsApp: boolean }) => {
+    if (!deliveryTask) return;
+
+    try {
+      // 1. Update Appointment Status to 'finished'
+      const { error: apptError } = await supabase
+        .from('appointments')
+        .update({ status: 'finished' })
+        .eq('id', deliveryTask.appointmentId);
+
+      if (apptError) throw apptError;
+
+      // 2. Register Financial Transaction
+      const { error: txError } = await supabase
+        .from('financial_transactions')
+        .insert([{
+          type: 'income',
+          amount: data.amount,
+          description: `Serviço: ${deliveryTask.serviceType} - Pet: ${deliveryTask.petName}`,
+          status: data.status,
+          client_id: deliveryTask.clientId,
+          date: new Date().toISOString().split('T')[0]
+        }]);
+
+      if (txError) throw txError;
+
+      showNotification(`${deliveryTask.petName} entregue com sucesso!`, 'success');
+
+      // 3. Printing
+      setPrintData({ amount: data.amount, paymentMethod: data.paymentMethod });
+
+      // Wait a bit for state/DOM
+      setTimeout(() => {
+        const printContent = document.getElementById('print-receipt');
+        if (printContent) {
+          window.print();
+          setPrintData(null); // Clear after print
+        }
+      }, 500);
+
+      // Reset
+      setDeliveryTask(null);
+      setSelectedTask(null);
+      fetchTasks();
+
+    } catch (err: any) {
+      console.error('Error confirming delivery:', err);
+      showNotification(`Erro ao finalizar entrega: ${err.message}`, 'error');
     }
   };
 
@@ -731,8 +989,33 @@ export const Execution: React.FC = () => {
 
   return (
     <div className="flex-1 flex flex-col h-full bg-slate-50 dark:bg-[#111] overflow-hidden animate-in fade-in duration-500">
+      <style>{`
+        @media print {
+          body * { visibility: hidden; }
+          #print-receipt, #print-receipt * { visibility: visible; }
+          #print-receipt { 
+            position: absolute; 
+            left: 0; 
+            top: 0; 
+            width: 100%;
+            height: auto;
+          }
+        }
+      `}</style>
+
       {selectedTask && <ChecklistModal isOpen={!!selectedTask} onClose={() => setSelectedTask(null)} onConfirm={handleUpdateProgress} task={selectedTask} />}
       {detailsTask && <TimelineDetailsModal isOpen={!!detailsTask} onClose={() => { setDetailsTask(null); setDetailsPhoto(undefined); }} task={detailsTask} finalPhoto={detailsPhoto} />}
+      {deliveryTask && (
+        <DeliveryModal
+          isOpen={!!deliveryTask}
+          onClose={() => setDeliveryTask(null)}
+          onConfirm={handleConfirmDelivery}
+          task={deliveryTask}
+          initialPrice={initialPrice}
+        />
+      )}
+
+      {printData && deliveryTask && <PrintReceipt task={deliveryTask} amount={printData.amount} paymentMethod={printData.paymentMethod} />}
 
       {/* Header */}
       <header className="p-8 border-b border-gray-800">
@@ -848,13 +1131,22 @@ export const Execution: React.FC = () => {
                   </div>
                 </div>
                 <button
-                  onClick={() => task.status === 'finished' ? openDetailsModal(task) : setSelectedTask(task)}
-                  className={`px-6 py-3 ${task.status === 'finished' ? 'bg-gray-700 hover:bg-gray-600' : getButtonColor(task.category)} text-white text-sm font-black rounded-xl shadow-lg transition-all hover:scale-105 flex items-center gap-2`}
+                  onClick={() => {
+                    if (task.status === 'finished') openDetailsModal(task);
+                    else if (task.status === 'ready') handleOpenDelivery(task);
+                    else setSelectedTask(task);
+                  }}
+                  className={`px-6 py-3 ${task.status === 'finished' ? 'bg-gray-700 hover:bg-gray-600' : task.status === 'ready' ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-500/20' : getButtonColor(task.category)} text-white text-sm font-black rounded-xl shadow-lg transition-all hover:scale-105 flex items-center gap-2`}
                 >
                   {task.status === 'finished' ? (
                     <>
                       <span className="material-symbols-outlined text-[18px]">visibility</span>
                       VER DETALHES
+                    </>
+                  ) : task.status === 'ready' ? (
+                    <>
+                      <span className="material-symbols-outlined text-[20px]">inventory_2</span>
+                      ENTREGAR PET
                     </>
                   ) : (
                     <>
