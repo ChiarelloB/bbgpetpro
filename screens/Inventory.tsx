@@ -15,9 +15,19 @@ interface Product {
   validity: string;
   img: string;
   barcode: string;
+  unit_type: string;
   supplier: { name: string; type: string; lastBuy: string };
   movements: { type: 'in' | 'out'; qty: number; date: string; desc: string }[];
 }
+
+const UNIT_TYPES = [
+  { value: 'unidades', label: 'Unidades' },
+  { value: 'ml', label: 'Mililitros (ml)' },
+  { value: 'litros', label: 'Litros' },
+  { value: 'gramas', label: 'Gramas (g)' },
+  { value: 'kg', label: 'Quilogramas (kg)' },
+];
+
 
 // --- Product Modal (Create & Edit) ---
 const ProductModal: React.FC<{
@@ -30,8 +40,9 @@ const ProductModal: React.FC<{
 }> = ({ isOpen, onClose, onSave, initialData, title, saveLabel }) => {
   const { showNotification } = useNotification();
   const [formData, setFormData] = useState({
-    name: '', category: 'Rações', price: '', stock: 10, sku: '', img: ''
+    name: '', category: 'Rações', price: '', stock: 10, sku: '', img: '', unit_type: 'unidades'
   });
+
   const [uploadingImage, setUploadingImage] = useState(false);
 
   useEffect(() => {
@@ -42,11 +53,13 @@ const ProductModal: React.FC<{
         price: initialData.price.replace('R$ ', '').replace(',', '.'),
         stock: initialData.stock,
         sku: initialData.sku,
-        img: initialData.img || ''
+        img: initialData.img || '',
+        unit_type: initialData.unit_type || 'unidades'
       });
     } else {
-      setFormData({ name: '', category: 'Rações', price: '', stock: 10, sku: '', img: '' });
+      setFormData({ name: '', category: 'Rações', price: '', stock: 10, sku: '', img: '', unit_type: 'unidades' });
     }
+
   }, [initialData, isOpen]);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -165,6 +178,15 @@ const ProductModal: React.FC<{
               <input type="number" required value={formData.stock} onChange={e => setFormData({ ...formData, stock: parseInt(e.target.value) })} className="w-full rounded-xl border-slate-200 dark:border-gray-700 bg-white dark:bg-[#252525] dark:text-white text-sm" />
             </div>
           </div>
+          <div>
+            <label className="block text-xs font-bold uppercase text-slate-500 mb-1">Tipo de Unidade</label>
+            <select value={formData.unit_type} onChange={e => setFormData({ ...formData, unit_type: e.target.value })} className="w-full rounded-xl border-slate-200 dark:border-gray-700 bg-white dark:bg-[#252525] dark:text-white text-sm">
+              {UNIT_TYPES.map(u => (
+                <option key={u.value} value={u.value}>{u.label}</option>
+              ))}
+            </select>
+          </div>
+
           <div className="pt-4 flex gap-3">
             <button type="button" onClick={onClose} className="flex-1 py-3 text-sm font-bold text-slate-600 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-gray-800 rounded-xl">Cancelar</button>
             <button type="submit" className="flex-1 py-3 bg-primary text-white text-sm font-bold rounded-xl hover:bg-primary-hover shadow-lg">{saveLabel}</button>
@@ -210,6 +232,7 @@ export const Inventory: React.FC = () => {
         validity: (item as any).validity || '-',
         img: item.img || 'https://lh3.googleusercontent.com/aida-public/AB6AXuBvyHcgiB1pX8YR7CDk85jEQ4Scc68dpwnL57OG4DqD0zDZJ-ayYLLPSzU4xJyFhhi9vcrzWC14CyH1WrS_IrLlPqnJZcpsr7OrqIwiE81MiVq4pTdKg2b72mg3Jk4pcSTx-fqlBtwgD0yVWOV8CI4nBWiRl3yW5e6StmHkPasENoR7zCZ_H5dmnys_egKQgrPDR1L8lCzId89YeXfaA9ppAjXQh8FV1Ra96Ijio0-zChWqLJeB72RfhYI917eIeDamjBl4JU5J4QQ',
         barcode: (item as any).barcode || '-',
+        unit_type: (item as any).unit_type || 'unidades',
         supplier: { name: 'Fornecedor', type: 'F', lastBuy: '-' },
         movements: (item.inventory_movements || []).map((m: any) => ({
           type: m.type,
@@ -218,6 +241,7 @@ export const Inventory: React.FC = () => {
           desc: m.reason || 'Movimentação'
         })).sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime())
       }));
+
       setProducts(mapped);
       if (mapped.length > 0 && !selectedProductId) {
         setSelectedProductId(mapped[0].id);
@@ -241,9 +265,11 @@ export const Inventory: React.FC = () => {
         price: parseFloat(data.price),
         stock_quantity: data.stock,
         min_stock: 5,
-        img: data.img || null
+        img: data.img || null,
+        unit_type: data.unit_type || 'unidades'
       }])
       .select();
+
 
     if (error) {
       console.error('Error adding product:', error);
@@ -269,9 +295,11 @@ export const Inventory: React.FC = () => {
         category: data.category,
         price: parseFloat(data.price),
         stock_quantity: data.stock,
-        img: data.img || null
+        img: data.img || null,
+        unit_type: data.unit_type || 'unidades'
       })
       .eq('id', selectedProductId);
+
 
     if (error) {
       console.error('Error updating product:', error);
@@ -559,7 +587,8 @@ export const Inventory: React.FC = () => {
                         </div>
                       </td>
                       <td className="py-3 px-4 text-sm text-slate-600 dark:text-gray-400">{product.category}</td>
-                      <td className={`py-3 px-4 text-center font-bold ${product.status === 'out' ? 'text-slate-400' : product.status === 'low' ? 'text-orange-600 dark:text-orange-400' : 'text-slate-900 dark:text-white'}`}>{product.stock}</td>
+                      <td className={`py-3 px-4 text-center font-bold ${product.status === 'out' ? 'text-slate-400' : product.status === 'low' ? 'text-orange-600 dark:text-orange-400' : 'text-slate-900 dark:text-white'}`}>{product.stock} <span className="text-xs font-normal text-slate-400">{product.unit_type}</span></td>
+
                       <td className="py-3 px-4 text-center">
                         <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide ${product.status === 'normal' ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400' :
                           product.status === 'low' ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-400' :
@@ -616,7 +645,7 @@ export const Inventory: React.FC = () => {
                   <div className="bg-slate-50 dark:bg-[#111] p-4 rounded-xl border border-dashed border-slate-300 dark:border-gray-700">
                     <div className="flex items-center justify-between mb-4">
                       <span className="text-sm font-medium text-slate-600 dark:text-gray-400">Estoque Atual:</span>
-                      <span className="text-2xl font-black text-slate-900 dark:text-white">{selectedProduct.stock} <span className="text-xs font-normal text-slate-400">un</span></span>
+                      <span className="text-2xl font-black text-slate-900 dark:text-white">{selectedProduct.stock} <span className="text-xs font-normal text-slate-400">{selectedProduct.unit_type}</span></span>
                     </div>
                     <div className="flex gap-2">
                       <input

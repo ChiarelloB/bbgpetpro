@@ -4,6 +4,9 @@ import { useResources, Resource } from '../ResourceContext';
 import { supabase } from '../src/lib/supabase';
 import { ScreenType, Appointment } from '../types';
 import { AppointmentModal } from '../components/AppointmentModal';
+import { ExecutionChecklistModal } from '../components/ExecutionChecklistModal';
+import { loadAdvancedTemplates, AdvancedChecklistTemplate } from '../components/TemplateBuilder';
+
 
 const hours = [
   '05:00', '06:00', '07:00', '08:00', '09:00', '10:00', '11:00', '12:00',
@@ -652,6 +655,10 @@ export const Schedule: React.FC<{ onNavigate: (screen: ScreenType) => void }> = 
   const [view, setView] = useState<'month' | 'day'>('month');
   const [appointmentsList, setAppointmentsList] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [checklistModalOpen, setChecklistModalOpen] = useState(false);
+  const [selectedAppointmentForChecklist, setSelectedAppointmentForChecklist] = useState<Appointment | null>(null);
+  const [advancedTemplates] = useState<AdvancedChecklistTemplate[]>(loadAdvancedTemplates());
+
 
   const fetchAppointments = async () => {
     setLoading(true);
@@ -805,17 +812,31 @@ export const Schedule: React.FC<{ onNavigate: (screen: ScreenType) => void }> = 
   };
 
   const handleStartService = async (appt: Appointment) => {
+    // Show checklist modal first
+    setSelectedAppointmentForChecklist(appt);
+    setChecklistModalOpen(true);
+  };
+
+  const handleChecklistComplete = async (checklistData: Record<string, any>) => {
+    if (!selectedAppointmentForChecklist) return;
+
     const { error } = await supabase
       .from('appointments')
-      .update({ status: 'in-progress' })
-      .eq('id', appt.id);
+      .update({
+        status: 'in-progress',
+        checklist_data: checklistData
+      })
+      .eq('id', selectedAppointmentForChecklist.id);
 
     if (!error) {
       fetchAppointments();
-      showNotification(`Iniciando atendimento para ${appt.petName}...`, 'success');
+      showNotification(`Iniciando atendimento para ${selectedAppointmentForChecklist.petName}...`, 'success');
+      setChecklistModalOpen(false);
+      setSelectedAppointmentForChecklist(null);
       onNavigate('execution');
     }
   };
+
 
   if (loading && appointmentsList.length === 0) {
     return (
@@ -825,22 +846,34 @@ export const Schedule: React.FC<{ onNavigate: (screen: ScreenType) => void }> = 
     );
   }
 
-  return view === 'month' ? (
-    <MonthView
-      currentDate={currentDate}
-      onSelectDate={(date) => { setCurrentDate(date); setView('day'); }}
-      onAdd={handleAdd}
-      appointments={appointmentsList}
-    />
-  ) : (
-    <DayView
-      onBack={() => setView('month')}
-      currentDate={currentDate}
-      appointments={appointmentsList}
-      onAdd={handleAdd}
-      onUpdate={handleUpdate}
-      onDelete={handleDelete}
-      onStartService={handleStartService}
-    />
+  return (
+    <>
+      {view === 'month' ? (
+        <MonthView
+          currentDate={currentDate}
+          onSelectDate={(date) => { setCurrentDate(date); setView('day'); }}
+          onAdd={handleAdd}
+          appointments={appointmentsList}
+        />
+      ) : (
+        <DayView
+          onBack={() => setView('month')}
+          currentDate={currentDate}
+          appointments={appointmentsList}
+          onAdd={handleAdd}
+          onUpdate={handleUpdate}
+          onDelete={handleDelete}
+          onStartService={handleStartService}
+        />
+      )}
+      <ExecutionChecklistModal
+        isOpen={checklistModalOpen}
+        onClose={() => { setChecklistModalOpen(false); setSelectedAppointmentForChecklist(null); }}
+        onSave={handleChecklistComplete}
+        template={advancedTemplates.find(t => t.id === 'default_initial') || advancedTemplates[0] || null}
+        petName={selectedAppointmentForChecklist?.petName || ''}
+        title="Checklist de Início"
+      />
+    </>
   );
 };

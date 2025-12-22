@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNotification } from '../NotificationContext';
 import { supabase } from '../src/lib/supabase';
+import { loadAdvancedTemplates, AdvancedChecklistTemplate, TemplateSection, TemplateField } from '../components/TemplateBuilder';
+
 
 // --- Types ---
 type ServiceStage = 'waiting' | 'in-progress' | 'ready' | 'finished';
@@ -274,7 +276,7 @@ const TimelineDetailsModal: React.FC<{
 };
 
 
-// --- Checklist Modal ---
+// --- Checklist Modal with Advanced Template Support ---
 const ChecklistModal: React.FC<{
   isOpen: boolean;
   onClose: () => void;
@@ -282,25 +284,43 @@ const ChecklistModal: React.FC<{
   task: ServiceTask;
 }> = ({ isOpen, onClose, onConfirm, task }) => {
   const { showNotification } = useNotification();
-  const [checkedIds, setCheckedIds] = useState<string[]>(task.checkedItems || []);
   const [afterPhoto, setAfterPhoto] = useState<string>('');
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
+  const [formData, setFormData] = useState<Record<string, any>>({});
+  const [advancedTemplates] = useState<AdvancedChecklistTemplate[]>(loadAdvancedTemplates());
+
+  const isLastStep = task.currentStepIndex === task.steps.length - 2;
+  const stepIndex = task.currentStepIndex;
+
+  // Get appropriate template based on step
+  const currentTemplate = stepIndex === 0
+    ? advancedTemplates.find(t => t.id === 'default_initial')
+    : advancedTemplates.find(t => t.id === 'default_final');
 
   useEffect(() => {
-    if (isOpen) {
-      setCheckedIds(task.checkedItems || []);
+    if (isOpen && currentTemplate) {
+      setExpandedSections(new Set(currentTemplate.sections.map(s => s.id)));
+      setFormData({});
       setAfterPhoto('');
     }
-  }, [isOpen, task]);
+  }, [isOpen, currentTemplate]);
 
   if (!isOpen) return null;
 
-  const toggleCheck = (id: string) => {
-    setCheckedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
+  const toggleSection = (sectionId: string) => {
+    const newExpanded = new Set(expandedSections);
+    if (newExpanded.has(sectionId)) {
+      newExpanded.delete(sectionId);
+    } else {
+      newExpanded.add(sectionId);
+    }
+    setExpandedSections(newExpanded);
   };
 
-  const allChecked = task.checklist.every(item => checkedIds.includes(item.id));
-  const isLastStep = task.currentStepIndex === task.steps.length - 2; // Penultimate step (before "finished")
+  const updateField = (fieldId: string, value: any) => {
+    setFormData({ ...formData, [fieldId]: value });
+  };
 
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -316,7 +336,7 @@ const ChecklistModal: React.FC<{
 
       const { data } = supabase.storage.from('pets').getPublicUrl(fileName);
       setAfterPhoto(data.publicUrl);
-      showNotification('Foto carregada! Clique em Concluir para salvar.', 'success');
+      showNotification('Foto carregada!', 'success');
     } catch (error) {
       console.error('Upload error:', error);
       showNotification('Erro ao fazer upload da foto', 'error');
@@ -325,93 +345,208 @@ const ChecklistModal: React.FC<{
     }
   };
 
+  const renderField = (field: TemplateField) => {
+    switch (field.type) {
+      case 'checkbox':
+        return (
+          <label className="flex items-center gap-3 cursor-pointer group">
+            <input
+              type="checkbox"
+              checked={formData[field.id] || false}
+              onChange={(e) => updateField(field.id, e.target.checked)}
+              className="w-5 h-5 rounded border-slate-300 text-primary focus:ring-primary"
+            />
+            <span className="text-sm text-slate-700 dark:text-gray-300 group-hover:text-primary transition-colors">{field.label}</span>
+          </label>
+        );
+      case 'dropdown':
+        return (
+          <div>
+            <label className="block text-xs font-bold text-slate-500 dark:text-gray-400 mb-1">{field.label}</label>
+            <select
+              value={formData[field.id] || ''}
+              onChange={(e) => updateField(field.id, e.target.value)}
+              className="w-full h-10 rounded-lg border border-slate-200 dark:border-gray-600 bg-white dark:bg-[#252525] text-slate-700 dark:text-white text-sm px-3"
+            >
+              <option value="">Selecione</option>
+              {field.options?.map(opt => (
+                <option key={opt} value={opt}>{opt}</option>
+              ))}
+            </select>
+          </div>
+        );
+      case 'text':
+        return (
+          <div>
+            <label className="block text-xs font-bold text-slate-500 dark:text-gray-400 mb-1">{field.label}</label>
+            <input
+              type="text"
+              value={formData[field.id] || ''}
+              onChange={(e) => updateField(field.id, e.target.value)}
+              placeholder={field.placeholder}
+              className="w-full h-10 rounded-lg border border-slate-200 dark:border-gray-600 bg-white dark:bg-[#252525] text-slate-700 dark:text-white text-sm px-3"
+            />
+          </div>
+        );
+      case 'textarea':
+        return (
+          <div>
+            <label className="block text-xs font-bold text-slate-500 dark:text-gray-400 mb-1">{field.label}</label>
+            <textarea
+              value={formData[field.id] || ''}
+              onChange={(e) => updateField(field.id, e.target.value)}
+              placeholder={field.placeholder}
+              rows={3}
+              className="w-full rounded-lg border border-slate-200 dark:border-gray-600 bg-white dark:bg-[#252525] text-slate-700 dark:text-white text-sm p-3 resize-none"
+            />
+          </div>
+        );
+      case 'photo':
+        return (
+          <div>
+            <label className="block text-xs font-bold text-slate-500 dark:text-gray-400 mb-1">{field.label}</label>
+            <div className="border-2 border-dashed border-blue-200 dark:border-blue-900/50 bg-blue-50/50 dark:bg-blue-900/10 rounded-xl p-6 text-center cursor-pointer hover:bg-blue-100/50 dark:hover:bg-blue-900/20 transition-colors">
+              <span className="material-symbols-outlined text-2xl text-blue-400 mb-1">cloud_upload</span>
+              <p className="text-xs text-slate-500 dark:text-gray-400">Clique para adicionar fotos</p>
+            </div>
+          </div>
+        );
+      default:
+        return null;
+    }
+  };
+
+  const renderCheckboxGroup = (fields: TemplateField[]) => {
+    const checkboxFields = fields.filter(f => f.type === 'checkbox');
+    const otherFields = fields.filter(f => f.type !== 'checkbox');
+
+    return (
+      <>
+        {checkboxFields.length > 0 && (
+          <div className="grid grid-cols-2 gap-2 mb-3">
+            {checkboxFields.map(field => (
+              <div key={field.id}>{renderField(field)}</div>
+            ))}
+          </div>
+        )}
+        {otherFields.map(field => (
+          <div key={field.id} className="mb-3">{renderField(field)}</div>
+        ))}
+      </>
+    );
+  };
+
+  const stepTitle = stepIndex === 0 ? 'Checklist de Início' : 'Checklist de Finalização';
+
   return (
     <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={onClose}></div>
-      <div className="bg-white dark:bg-[#1a1a1a] rounded-2xl shadow-2xl w-full max-w-md relative z-10 p-8 border border-slate-100 dark:border-gray-800 animate-in zoom-in-95 max-h-[90vh] overflow-y-auto">
-        <h2 className="text-xl font-black text-slate-900 dark:text-white uppercase italic mb-2">Execução: {task.petName}</h2>
-        <p className="text-xs text-slate-500 dark:text-gray-400 mb-6 font-bold uppercase">{task.steps[task.currentStepIndex].label}</p>
+      <div className="bg-white dark:bg-[#1a1a1a] rounded-2xl shadow-2xl w-full max-w-md relative z-10 flex flex-col max-h-[90vh] border border-slate-100 dark:border-gray-800 animate-in zoom-in-95">
 
-        <div className="space-y-3 mb-6">
-          {task.checklist.map((item) => (
-            <label key={item.id} className="flex items-center gap-4 p-4 rounded-2xl hover:bg-slate-50 dark:hover:bg-white/5 cursor-pointer border border-transparent hover:border-slate-100 transition-all">
-              <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${checkedIds.includes(item.id) ? 'bg-primary border-primary text-white scale-110' : 'border-slate-200 dark:border-gray-700 bg-white dark:bg-[#222]'}`}>
-                {checkedIds.includes(item.id) && <span className="material-symbols-outlined text-sm font-bold">check</span>}
-              </div>
-              <input type="checkbox" className="hidden" checked={checkedIds.includes(item.id)} onChange={() => toggleCheck(item.id)} />
-              <span className={`text-sm font-black uppercase tracking-tight ${checkedIds.includes(item.id) ? 'text-slate-400 line-through' : 'text-slate-700 dark:text-gray-300'}`}>{item.text}</span>
-            </label>
-          ))}
-          {task.checklist.length === 0 && <p className="text-xs text-slate-400 text-center italic">Nenhum checklist configurado para este serviço.</p>}
+        {/* Header */}
+        <div className="p-5 border-b border-slate-100 dark:border-gray-800 flex justify-between items-start">
+          <div>
+            <h2 className="text-lg font-bold text-slate-900 dark:text-white">{stepTitle} - {task.petName}</h2>
+            <p className="text-xs text-slate-500 dark:text-gray-400 mt-1">Preencha as informações antes de avançar</p>
+          </div>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors">
+            <span className="material-symbols-outlined">close</span>
+          </button>
         </div>
 
-        {/* Photo Upload - Only on last step */}
-        {isLastStep && (
-          <div className="mb-6 p-4 border-2 border-dashed border-primary/30 rounded-2xl bg-primary/5">
-            <div className="flex items-center gap-2 mb-3">
-              <span className="material-symbols-outlined text-primary text-[20px]">photo_camera</span>
-              <h3 className="text-xs font-black uppercase text-primary">Foto do Resultado</h3>
-            </div>
-            <p className="text-xs text-slate-500 dark:text-gray-400 mb-4">Tire uma foto do resultado final para a galeria do pet!</p>
-
-            {afterPhoto ? (
-              <div className="relative">
-                <img src={afterPhoto} className="w-full h-48 object-cover rounded-xl mb-3" alt="Resultado" />
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto p-5 space-y-3">
+          {currentTemplate ? (
+            currentTemplate.sections.map((section) => (
+              <div key={section.id} className="bg-slate-50 dark:bg-[#111] rounded-xl overflow-hidden border border-slate-100 dark:border-gray-800">
                 <button
-                  type="button"
-                  onClick={() => setAfterPhoto('')}
-                  className="absolute top-2 right-2 w-8 h-8 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors shadow-lg"
+                  onClick={() => toggleSection(section.id)}
+                  className="w-full p-3 flex items-center justify-between hover:bg-slate-100 dark:hover:bg-white/5 transition-colors"
                 >
-                  <span className="material-symbols-outlined text-[18px]">close</span>
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+                      <span className="material-symbols-outlined text-lg">{section.icon}</span>
+                    </div>
+                    <span className="font-bold text-slate-900 dark:text-white text-sm">{section.title}</span>
+                  </div>
+                  <span className={`material-symbols-outlined text-slate-400 transition-transform ${expandedSections.has(section.id) ? 'rotate-180' : ''}`}>
+                    expand_more
+                  </span>
                 </button>
+                {expandedSections.has(section.id) && (
+                  <div className="p-3 pt-0">
+                    {renderCheckboxGroup(section.fields)}
+                  </div>
+                )}
               </div>
-            ) : (
-              <>
-                <input
-                  type="file"
-                  id="afterPhoto"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={handlePhotoUpload}
-                  disabled={uploadingPhoto}
-                />
-                <button
-                  type="button"
-                  onClick={() => document.getElementById('afterPhoto')?.click()}
-                  disabled={uploadingPhoto}
-                  className="w-full px-4 py-3 bg-primary text-white rounded-xl text-sm font-bold hover:bg-primary-hover transition-colors flex items-center justify-center gap-2"
-                >
-                  {uploadingPhoto ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      Carregando...
-                    </>
-                  ) : (
-                    <>
-                      <span className="material-symbols-outlined text-[18px]">add_a_photo</span>
-                      Adicionar Foto
-                    </>
-                  )}
-                </button>
-              </>
-            )}
-          </div>
-        )}
+            ))
+          ) : (
+            <div className="space-y-3">
+              {task.checklist.map((item) => (
+                <label key={item.id} className="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-white/5 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={formData[item.id] || false}
+                    onChange={(e) => updateField(item.id, e.target.checked)}
+                    className="w-5 h-5 rounded border-slate-300 text-primary focus:ring-primary"
+                  />
+                  <span className="text-sm text-slate-700 dark:text-gray-300">{item.text}</span>
+                </label>
+              ))}
+              {task.checklist.length === 0 && <p className="text-xs text-slate-400 text-center italic">Nenhum checklist configurado.</p>}
+            </div>
+          )}
 
-        <div className="flex gap-3">
-          <button onClick={onClose} className="flex-1 py-3 text-sm font-bold text-slate-500 rounded-xl hover:bg-slate-100">Fechar</button>
+          {/* Photo Upload - Only on last step */}
+          {isLastStep && (
+            <div className="p-4 border-2 border-dashed border-primary/30 rounded-xl bg-primary/5">
+              <div className="flex items-center gap-2 mb-3">
+                <span className="material-symbols-outlined text-primary text-lg">photo_camera</span>
+                <h3 className="text-xs font-black uppercase text-primary">Foto do Resultado</h3>
+              </div>
+              {afterPhoto ? (
+                <div className="relative">
+                  <img src={afterPhoto} className="w-full h-40 object-cover rounded-xl mb-2" alt="Resultado" />
+                  <button
+                    type="button"
+                    onClick={() => setAfterPhoto('')}
+                    className="absolute top-2 right-2 w-7 h-7 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors shadow-lg"
+                  >
+                    <span className="material-symbols-outlined text-sm">close</span>
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <input type="file" id="afterPhotoExec" accept="image/*" className="hidden" onChange={handlePhotoUpload} disabled={uploadingPhoto} />
+                  <button
+                    type="button"
+                    onClick={() => document.getElementById('afterPhotoExec')?.click()}
+                    disabled={uploadingPhoto}
+                    className="w-full px-4 py-2 bg-primary text-white rounded-xl text-sm font-bold hover:bg-primary-hover transition-colors flex items-center justify-center gap-2"
+                  >
+                    {uploadingPhoto ? 'Carregando...' : <><span className="material-symbols-outlined text-sm">add_a_photo</span> Adicionar Foto</>}
+                  </button>
+                </>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="p-5 border-t border-slate-100 dark:border-gray-800 flex gap-3">
+          <button onClick={onClose} className="flex-1 py-2.5 text-sm font-bold text-slate-500 rounded-xl hover:bg-slate-100 dark:hover:bg-white/5">Cancelar</button>
           <button
-            onClick={() => onConfirm(checkedIds, afterPhoto || undefined)}
-            disabled={(!allChecked && task.checklist.length > 0)}
-            className="flex-1 py-3 bg-primary text-white text-sm font-bold rounded-xl hover:bg-primary-hover shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+            onClick={() => onConfirm(Object.keys(formData).filter(k => formData[k] === true), afterPhoto || undefined)}
+            className="flex-1 py-2.5 bg-primary text-white text-sm font-bold rounded-xl hover:bg-primary-hover shadow-lg"
           >
-            {isLastStep ? 'Finalizar & Salvar Foto' : 'Próxima Etapa'}
+            {isLastStep ? 'Finalizar Serviço' : 'Salvar e Avançar'}
           </button>
         </div>
       </div>
     </div>
   );
 };
+
 
 export const Execution: React.FC = () => {
   const [tasks, setTasks] = useState<ServiceTask[]>([]);
