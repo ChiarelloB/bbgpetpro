@@ -402,7 +402,7 @@ const ChecklistModal: React.FC<{
           <button onClick={onClose} className="flex-1 py-3 text-sm font-bold text-slate-500 rounded-xl hover:bg-slate-100">Fechar</button>
           <button
             onClick={() => onConfirm(checkedIds, afterPhoto || undefined)}
-            disabled={(!allChecked && task.checklist.length > 0) || (isLastStep && !afterPhoto)}
+            disabled={(!allChecked && task.checklist.length > 0)}
             className="flex-1 py-3 bg-primary text-white text-sm font-bold rounded-xl hover:bg-primary-hover shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isLastStep ? 'Finalizar & Salvar Foto' : 'Próxima Etapa'}

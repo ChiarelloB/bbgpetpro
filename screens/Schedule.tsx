@@ -619,15 +619,22 @@ const DayView: React.FC<{
                     key={appt.id}
                     draggable="true"
                     onDragStart={(e) => handleDragStart(e, appt.id)}
-                    className={`absolute rounded-md p-2.5 cursor-move transition-all border-l-4 flex flex-col overflow-hidden shadow-sm ${getServiceColor(appt.service)}`}
+                    className={`absolute rounded-md p-2 cursor-move transition-all border-l-4 flex items-start gap-2 overflow-hidden shadow-sm ${getServiceColor(appt.service)}`}
                     style={appt.style}
                     onClick={() => setSelectedAppointment(appt)}
                   >
-                    <span className="text-[10px] font-bold opacity-80 mb-1">{appt.startTime}</span>
-                    <p className="font-bold text-sm leading-tight truncate">{appt.petName}</p>
-                    <p className="text-[10px] opacity-90 truncate">{appt.clientName}</p>
-                    <p className="text-[10px] mt-auto truncate opacity-70">{appt.service}</p>
+                    {(appt as any).petImg && (
+                      <img src={(appt as any).petImg} alt="" className="w-10 h-10 rounded-lg object-cover border-2 border-white/30 shrink-0" />
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <span className="text-[9px] font-bold opacity-70">{appt.startTime}</span>
+                      <p className="font-bold text-sm leading-tight truncate">{appt.petName}</p>
+                      <p className="text-[10px] opacity-80 truncate">{appt.clientName}</p>
+                      <p className="text-[9px] truncate opacity-60">{appt.service}</p>
+                    </div>
                   </div>
+
+
                 ))}
               </div>
             ))}
@@ -653,8 +660,9 @@ export const Schedule: React.FC<{ onNavigate: (screen: ScreenType) => void }> = 
       .select(`
         *,
         clients(name),
-        pets(name)
+        pets(name, img)
       `)
+
       .order('start_time', { ascending: true });
 
     if (error) {
@@ -678,6 +686,7 @@ export const Schedule: React.FC<{ onNavigate: (screen: ScreenType) => void }> = 
           resourceId: a.resource_id || '',
           clientName: a.clients?.name || 'Cliente sem nome',
           petName: a.pets?.name || 'Pet sem nome',
+          petImg: a.pets?.img || `https://ui-avatars.com/api/?name=${encodeURIComponent(a.pets?.name || 'P')}&background=random`,
           service: a.service,
           date: dateStr,
           startTime: timeStr,
@@ -686,6 +695,7 @@ export const Schedule: React.FC<{ onNavigate: (screen: ScreenType) => void }> = 
           notes: a.notes,
           professional: a.professional
         };
+
       }));
     }
     setLoading(false);

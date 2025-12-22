@@ -914,14 +914,30 @@ export const PetProfile: React.FC = () => {
                                         <div className="absolute right-[-20px] bottom-[-20px] opacity-20"><span className="material-symbols-outlined text-[150px]">vaccines</span></div>
                                         <div className="flex gap-2 mb-4 relative z-10">
                                             <span className="px-2 py-0.5 bg-white text-primary text-[10px] font-black uppercase rounded">Vacinação</span>
-                                            <span className="px-2 py-0.5 bg-red-500 text-white text-[10px] font-black uppercase rounded animate-pulse">Atenção</span>
+                                            {(() => {
+                                                const vaccines = medicalRecords.filter(r => r.type === 'vaccine');
+                                                const upcoming = vaccines.find(v => v.status === 'upcoming' || v.status === 'expiring');
+                                                if (upcoming) return <span className="px-2 py-0.5 bg-red-500 text-white text-[10px] font-black uppercase rounded animate-pulse">Atenção</span>;
+                                                if (vaccines.length > 0) return <span className="px-2 py-0.5 bg-emerald-400 text-white text-[10px] font-black uppercase rounded">Em Dia</span>;
+                                                return null;
+                                            })()}
                                         </div>
                                         <div>
                                             <h3 className="text-2xl font-black italic uppercase tracking-tight mb-2 relative z-10">Próxima Vacina</h3>
-                                            <p className="text-sm font-medium opacity-90 mb-6 relative z-10">A vacina V8 / V10 vence em 10/02/2026.</p>
+                                            <p className="text-sm font-medium opacity-90 mb-6 relative z-10">
+                                                {(() => {
+                                                    const vaccines = medicalRecords.filter(r => r.type === 'vaccine');
+                                                    // For now, let's look for records that might be "next" in notes or status. 
+                                                    // If no specific "next" field, show the status of the most recent one or a generic message.
+                                                    if (vaccines.length === 0) return "Nenhuma vacina registrada para este pet.";
+                                                    const latest = vaccines[0]; // Already sorted by date desc in fetchPetDetails
+                                                    return `Status: ${latest.title} aplicada em ${latest.date}. Mantenha o cronograma em dia!`;
+                                                })()}
+                                            </p>
                                         </div>
                                         <button onClick={() => setIsAddRecordOpen(true)} className="bg-white text-primary px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-opacity-90 transition-all shadow-lg relative z-10 w-fit">Atualizar Carteira</button>
                                     </div>
+
 
                                     <div className="bg-white dark:bg-[#1a1a1a] rounded-3xl p-6 border border-slate-100 dark:border-gray-800 shadow-sm">
                                         <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-6">Temperamento</h3>
@@ -932,7 +948,7 @@ export const PetProfile: React.FC = () => {
                                                 </span>
                                             ))}
                                         </div>
-                                        <p className="text-xs text-slate-500 dark:text-gray-400 italic leading-relaxed">"{selectedPet.notes || 'Rex adora brincar com outros cães, mas tem medo de tempestades.'}"</p>
+                                        <p className="text-xs text-slate-500 dark:text-gray-400 italic leading-relaxed">"{selectedPet.notes || `Informações sobre o comportamento de ${selectedPet.name} ainda não registradas.`}"</p>
                                     </div>
                                 </div>
 

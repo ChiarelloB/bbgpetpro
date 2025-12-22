@@ -89,7 +89,10 @@ export const AICopilot: React.FC = () => {
   };
 
   return (
-    <div className="fixed bottom-24 right-6 z-50 flex flex-col items-end pointer-events-none">
+    <div className="fixed bottom-0 right-0 z-50 flex flex-col items-end pointer-events-none">
+
+
+
       {/* Chat Window */}
       {isOpen && (
         <div className="pointer-events-auto bg-white dark:bg-[#1a1a1a] w-[350px] h-[500px] rounded-2xl shadow-2xl border border-slate-200 dark:border-gray-800 flex flex-col overflow-hidden animate-in slide-in-from-bottom-10 fade-in duration-300 mb-4">
@@ -167,13 +170,27 @@ export const AICopilot: React.FC = () => {
         </div>
       )}
 
-      {/* Launcher Button */}
+      {/* Launcher Button - Vertical Wave with Robot Icon */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="pointer-events-auto w-14 h-14 bg-primary text-white rounded-full shadow-xl hover:bg-primary-hover hover:scale-105 transition-all flex items-center justify-center"
+        className={`pointer-events-auto group relative overflow-visible transition-all duration-300 ${isOpen ? 'translate-x-20 opacity-0' : 'translate-x-0 opacity-100'}`}
       >
-        <span className="material-symbols-outlined text-3xl">smart_toy</span>
+        {/* Vertical Wave Shape */}
+        <div className="relative">
+          <svg width="45" height="70" viewBox="0 0 45 70" className="drop-shadow-lg">
+            <path
+              d="M45 0 C45 10 28 13 28 22 C28 31 42 35 42 44 C42 53 25 58 25 67 L25 70 L45 70 Z"
+              className="fill-primary"
+            />
+          </svg>
+          {/* Robot Icon on Wave */}
+          <div className="absolute top-1/2 -translate-y-1/2 -left-2 w-8 h-8 bg-white rounded-full shadow-lg flex items-center justify-center border-2 border-primary group-hover:scale-110 group-hover:-translate-x-1 transition-all">
+            <span className="material-symbols-outlined text-primary text-lg">smart_toy</span>
+          </div>
+        </div>
       </button>
     </div>
+
+
   );
 };
