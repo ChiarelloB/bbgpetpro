@@ -42,6 +42,7 @@ export const AppointmentModal: React.FC<AppointmentModalProps> = ({
         resourceId: '',
         date: new Date().toISOString().split('T')[0],
         startTime: '09:00',
+        duration: 60,
         notes: ''
     });
 
@@ -180,6 +181,7 @@ export const AppointmentModal: React.FC<AppointmentModalProps> = ({
                 resourceId: initialData.resourceId,
                 date: initialData.date,
                 startTime: initialData.startTime,
+                duration: initialData.duration || 60,
                 notes: initialData.notes || ''
             });
         } else {
@@ -202,7 +204,6 @@ export const AppointmentModal: React.FC<AppointmentModalProps> = ({
         e.preventDefault();
         onSave({
             ...formData,
-            duration: 60,
             status: initialData ? initialData.status : 'pending',
             useSubscription: useSubscription,
             subscriptionId: petSubscription?.id || null
@@ -371,7 +372,18 @@ export const AppointmentModal: React.FC<AppointmentModalProps> = ({
                                 className="w-full rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-[#2d3748] text-slate-900 dark:text-white focus:ring-primary focus:border-primary text-sm py-2.5 px-3"
                             />
                         </div>
-
+                        <div>
+                            <label className="block text-xs font-bold text-slate-500 dark:text-slate-300 mb-1.5 uppercase tracking-tighter">
+                                Duração (min)
+                            </label>
+                            <input
+                                type="number"
+                                required
+                                value={formData.duration}
+                                onChange={(e) => setFormData({ ...formData, duration: Number(e.target.value) })}
+                                className="w-full rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-[#2d3748] text-slate-900 dark:text-white focus:ring-primary focus:border-primary text-sm py-2.5 px-3"
+                            />
+                        </div>
                     </div>
 
                     <div>

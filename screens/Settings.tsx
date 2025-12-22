@@ -511,7 +511,233 @@ const ResourceModal: React.FC<{
     );
 }
 
+// Tenant Admin Tab Component
+interface Tenant {
+    id: string;
+    name: string;
+    slug: string;
+    invite_code: string | null;
+    logo_url: string | null;
+    primary_color: string;
+    created_at: string;
+}
+
+const TenantAdminTab: React.FC<{ showNotification: (msg: string, type: any) => void }> = ({ showNotification }) => {
+    const [tenants, setTenants] = useState<Tenant[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [editingTenant, setEditingTenant] = useState<Tenant | null>(null);
+    const [formData, setFormData] = useState({ name: '', slug: '', primary_color: '#FF6B00' });
+
+    const fetchTenants = async () => {
+        setLoading(true);
+        const { data, error } = await supabase.from('tenants').select('*').order('name');
+        if (!error && data) {
+            setTenants(data);
+        }
+        setLoading(false);
+    };
+
+    useEffect(() => {
+        fetchTenants();
+    }, []);
+
+    const handleOpenModal = (tenant?: Tenant) => {
+        if (tenant) {
+            setEditingTenant(tenant);
+            setFormData({ name: tenant.name, slug: tenant.slug, primary_color: tenant.primary_color });
+        } else {
+            setEditingTenant(null);
+            setFormData({ name: '', slug: '', primary_color: '#FF6B00' });
+        }
+        setIsModalOpen(true);
+    };
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        const slug = formData.slug || formData.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+
+        if (editingTenant) {
+            const { error } = await supabase
+                .from('tenants')
+                .update({ name: formData.name, slug, primary_color: formData.primary_color })
+                .eq('id', editingTenant.id);
+            if (!error) {
+                showNotification('Empresa atualizada com sucesso!', 'success');
+                fetchTenants();
+                setIsModalOpen(false);
+            } else {
+                showNotification('Erro ao atualizar: ' + error.message, 'error');
+            }
+        } else {
+            const { error } = await supabase
+                .from('tenants')
+                .insert([{ name: formData.name, slug, primary_color: formData.primary_color }]);
+            if (!error) {
+                showNotification('Nova empresa criada! Código de convite gerado automaticamente.', 'success');
+                fetchTenants();
+                setIsModalOpen(false);
+            } else {
+                showNotification('Erro ao criar: ' + error.message, 'error');
+            }
+        }
+    };
+
+    const handleCopyCode = (code: string) => {
+        navigator.clipboard.writeText(code);
+        showNotification('Código copiado para a área de transferência!', 'success');
+    };
+
+    const handleRegenerateCode = async (tenant: Tenant) => {
+        const newCode = tenant.slug.toLowerCase() + '-' + Math.floor(100000 + Math.random() * 900000);
+        const { error } = await supabase
+            .from('tenants')
+            .update({ invite_code: newCode })
+            .eq('id', tenant.id);
+        if (!error) {
+            showNotification('Novo código de convite gerado!', 'success');
+            fetchTenants();
+        } else {
+            showNotification('Erro ao gerar código: ' + error.message, 'error');
+        }
+    };
+
+    if (loading) {
+        return <div className="flex items-center justify-center py-20"><div className="w-8 h-8 border-4 border-primary/30 border-t-primary rounded-full animate-spin"></div></div>;
+    }
+
+    return (
+        <div className="animate-in slide-in-from-right-10 duration-500 max-w-5xl space-y-8">
+            <div className="flex justify-between items-start">
+                <div>
+                    <h3 className="text-xl font-black uppercase italic tracking-tighter text-slate-900 dark:text-white mb-2 flex items-center gap-3">
+                        <span className="material-symbols-outlined text-primary">domain</span>
+                        Gestão de Empresas (Multi-Tenant)
+                    </h3>
+                    <p className="text-sm text-slate-500 dark:text-gray-400">
+                        Gerencie as empresas que utilizam o CRM. Cada empresa tem dados isolados.
+                    </p>
+                </div>
+                <button
+                    onClick={() => handleOpenModal()}
+                    className="flex items-center gap-2 px-5 py-2.5 bg-primary text-white rounded-xl font-bold text-sm hover:bg-primary-hover shadow-lg shadow-primary/20 transition-all"
+                >
+                    <span className="material-symbols-outlined text-lg">add</span>
+                    Nova Empresa
+                </button>
+            </div>
+
+            <div className="grid gap-4">
+                {tenants.map(tenant => (
+                    <div key={tenant.id} className="bg-white dark:bg-[#1a1a1a] border border-slate-100 dark:border-gray-800 rounded-2xl p-6 flex items-center gap-6 hover:shadow-lg transition-all group">
+                        <div className="w-14 h-14 rounded-xl flex items-center justify-center text-white font-black text-xl" style={{ backgroundColor: tenant.primary_color }}>
+                            {tenant.name.charAt(0).toUpperCase()}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                            <h4 className="font-bold text-lg text-slate-900 dark:text-white truncate">{tenant.name}</h4>
+                            <p className="text-xs text-slate-400 dark:text-gray-500">Slug: {tenant.slug}</p>
+                        </div>
+                        <div className="flex flex-col items-end gap-1">
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Código de Convite</span>
+                            <div className="flex items-center gap-2">
+                                <code className="px-3 py-1.5 bg-slate-100 dark:bg-white/10 rounded-lg font-mono text-sm text-primary font-bold">
+                                    {tenant.invite_code || 'N/A'}
+                                </code>
+                                {tenant.invite_code && (
+                                    <button
+                                        onClick={() => handleCopyCode(tenant.invite_code!)}
+                                        className="p-1.5 hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg transition-colors"
+                                        title="Copiar código"
+                                    >
+                                        <span className="material-symbols-outlined text-lg text-slate-400">content_copy</span>
+                                    </button>
+                                )}
+                                <button
+                                    onClick={() => handleRegenerateCode(tenant)}
+                                    className="p-1.5 hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg transition-colors"
+                                    title="Gerar novo código"
+                                >
+                                    <span className="material-symbols-outlined text-lg text-slate-400">refresh</span>
+                                </button>
+                            </div>
+                        </div>
+                        <button
+                            onClick={() => handleOpenModal(tenant)}
+                            className="p-2 hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                        >
+                            <span className="material-symbols-outlined text-slate-400">edit</span>
+                        </button>
+                    </div>
+                ))}
+            </div>
+
+            {/* Modal */}
+            {isModalOpen && (
+                <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setIsModalOpen(false)}></div>
+                    <div className="bg-white dark:bg-[#1a1a1a] rounded-2xl shadow-2xl w-full max-w-md relative z-10 border border-slate-200 dark:border-gray-800 animate-in zoom-in-95 p-6">
+                        <div className="flex justify-between items-center mb-6">
+                            <h3 className="text-xl font-bold text-slate-900 dark:text-white">
+                                {editingTenant ? 'Editar Empresa' : 'Nova Empresa'}
+                            </h3>
+                            <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-white">
+                                <span className="material-symbols-outlined">close</span>
+                            </button>
+                        </div>
+                        <form onSubmit={handleSubmit} className="space-y-4">
+                            <div>
+                                <label className="block text-xs font-bold uppercase text-slate-500 mb-1">Nome da Empresa*</label>
+                                <input
+                                    required
+                                    type="text"
+                                    value={formData.name}
+                                    onChange={e => setFormData({ ...formData, name: e.target.value })}
+                                    className="w-full rounded-lg border-slate-200 dark:border-gray-700 bg-white dark:bg-[#222] dark:text-white shadow-sm outline-none px-3 py-2"
+                                    placeholder="Ex: Pet Shop Feliz"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold uppercase text-slate-500 mb-1">Slug (identificador único)</label>
+                                <input
+                                    type="text"
+                                    value={formData.slug}
+                                    onChange={e => setFormData({ ...formData, slug: e.target.value.toLowerCase().replace(/\s+/g, '-') })}
+                                    className="w-full rounded-lg border-slate-200 dark:border-gray-700 bg-white dark:bg-[#222] dark:text-white shadow-sm outline-none px-3 py-2"
+                                    placeholder="petshop-feliz (gerado automaticamente)"
+                                />
+                                <p className="text-[10px] text-slate-400 mt-1">Usado no código de convite. Se vazio, é gerado do nome.</p>
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold uppercase text-slate-500 mb-1">Cor Principal</label>
+                                <div className="flex items-center gap-3">
+                                    <input
+                                        type="color"
+                                        value={formData.primary_color}
+                                        onChange={e => setFormData({ ...formData, primary_color: e.target.value })}
+                                        className="w-12 h-10 rounded-lg cursor-pointer border-0"
+                                    />
+                                    <input
+                                        type="text"
+                                        value={formData.primary_color}
+                                        onChange={e => setFormData({ ...formData, primary_color: e.target.value })}
+                                        className="flex-1 rounded-lg border-slate-200 dark:border-gray-700 bg-white dark:bg-[#222] dark:text-white shadow-sm outline-none px-3 py-2"
+                                    />
+                                </div>
+                            </div>
+                            <div className="pt-2 flex gap-3">
+                                <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 py-2 text-sm font-bold text-slate-500 hover:bg-slate-100 dark:hover:bg-white/5 rounded-lg">Cancelar</button>
+                                <button type="submit" className="flex-1 py-2 bg-primary text-white font-bold rounded-lg hover:bg-primary-hover">Salvar</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
+
 export const Settings: React.FC<SettingsProps> = ({ userProfile, onUpdateProfile }) => {
+
     const {
         themeMode, setThemeMode,
         accentColor, setAccentColor,
@@ -521,7 +747,7 @@ export const Settings: React.FC<SettingsProps> = ({ userProfile, onUpdateProfile
     } = useTheme();
 
     const { showNotification } = useNotification();
-    const { dbPassword, setDbPassword } = useSecurity();
+    const { dbPassword, setDbPassword, tenant } = useSecurity();
     const { resources, addResource, updateResource, deleteResource, sizeSettings, updateSizeSettings } = useResources();
     const [activeTab, setActiveTab] = useState('Aparência');
 
@@ -980,6 +1206,7 @@ export const Settings: React.FC<SettingsProps> = ({ userProfile, onUpdateProfile
 
                 <div className="px-10 pb-32 space-y-20">
                     {activeTab === 'Aparência' && (
+
                         <div className="animate-in slide-in-from-right-10 duration-500 max-w-5xl space-y-20">
                             <div>
                                 <h3 className="text-xl font-black uppercase italic tracking-tighter text-slate-900 dark:text-white mb-8 flex items-center gap-4">
@@ -1699,13 +1926,33 @@ export const Settings: React.FC<SettingsProps> = ({ userProfile, onUpdateProfile
                             </div>
 
                             <form onSubmit={handleUpdatePassword} className="space-y-6">
-                                <div className="p-6 bg-primary/5 rounded-3xl border border-primary/10 flex items-center justify-between">
-                                    <div>
-                                        <p className="text-[10px] font-black uppercase tracking-widest text-primary mb-1">Código de Convite (Para Novos Usuários)</p>
-                                        <p className="text-2xl font-black italic tracking-tighter text-slate-900 dark:text-white uppercase">brunosraio</p>
+                                <div className="p-6 bg-primary/5 rounded-3xl border border-primary/10">
+                                    <div className="flex items-center justify-between mb-4">
+                                        <div>
+                                            <p className="text-[10px] font-black uppercase tracking-widest text-primary mb-1">Empresa</p>
+                                            <p className="text-lg font-black italic tracking-tighter text-slate-900 dark:text-white">{tenant?.name || 'Carregando...'}</p>
+                                        </div>
+                                        <div className="size-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
+                                            <span className="material-symbols-outlined font-black">domain</span>
+                                        </div>
                                     </div>
-                                    <div className="size-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
-                                        <span className="material-symbols-outlined font-black">badge</span>
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Código de Convite (Para Novos Usuários)</p>
+                                            <p className="text-2xl font-black italic tracking-tighter text-slate-900 dark:text-white uppercase">{tenant?.invite_code || '---'}</p>
+                                        </div>
+                                        <button
+                                            onClick={() => {
+                                                if (tenant?.invite_code) {
+                                                    navigator.clipboard.writeText(tenant.invite_code);
+                                                    showNotification('Código copiado!', 'success');
+                                                }
+                                            }}
+                                            className="size-12 rounded-2xl bg-slate-100 dark:bg-white/5 flex items-center justify-center text-slate-400 hover:bg-primary/10 hover:text-primary transition-colors"
+                                            title="Copiar código"
+                                        >
+                                            <span className="material-symbols-outlined">content_copy</span>
+                                        </button>
                                     </div>
                                 </div>
 

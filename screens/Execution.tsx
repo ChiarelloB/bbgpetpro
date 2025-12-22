@@ -24,6 +24,7 @@ interface ServiceTask {
   status: ServiceStage;
   currentStepIndex: number;
   steps: { label: string; key: string }[];
+  execution_started_at?: string;
   checklist: ChecklistItem[];
   checkedItems: string[]; // IDs of checked items
   notes: string;
@@ -32,6 +33,9 @@ interface ServiceTask {
   category: string;
   petId: string;
   clientId: string;
+  duration?: number;
+  checkin_checklist?: AdvancedChecklistTemplate;
+  checkout_checklist?: AdvancedChecklistTemplate;
 }
 
 // --- Timeline Details Modal (for finished services) ---
@@ -47,20 +51,21 @@ const TimelineDetailsModal: React.FC<{
 
   const stageConfig = [
     { icon: 'login', label: 'Check-in', gradient: 'from-sky-400 to-blue-500', bgLight: 'bg-sky-50 dark:bg-sky-900/20', textColor: 'text-sky-600 dark:text-sky-400', borderColor: 'border-sky-200 dark:border-sky-800' },
-    { icon: task.category === 'Banho & Tosa' ? 'shower' : 'handyman', label: task.category === 'Banho & Tosa' ? 'Banho' : 'Execução', gradient: 'from-violet-400 to-purple-500', bgLight: 'bg-violet-50 dark:bg-violet-900/20', textColor: 'text-violet-600 dark:text-violet-400', borderColor: 'border-violet-200 dark:border-violet-800' },
-    { icon: task.category === 'Banho & Tosa' ? 'content_cut' : 'task_alt', label: task.category === 'Banho & Tosa' ? 'Tosa' : 'Finalização', gradient: 'from-rose-400 to-pink-500', bgLight: 'bg-rose-50 dark:bg-rose-900/20', textColor: 'text-rose-600 dark:text-rose-400', borderColor: 'border-rose-200 dark:border-rose-800' },
-    { icon: 'sentiment_very_satisfied', label: 'Entrega', gradient: 'from-emerald-400 to-teal-500', bgLight: 'bg-emerald-50 dark:bg-emerald-900/20', textColor: 'text-emerald-600 dark:text-emerald-400', borderColor: 'border-emerald-200 dark:border-emerald-800' }
+    { icon: 'play_arrow', label: 'Execução', gradient: 'from-violet-400 to-purple-500', bgLight: 'bg-violet-50 dark:bg-violet-900/20', textColor: 'text-violet-600 dark:text-violet-400', borderColor: 'border-violet-200 dark:border-violet-800' },
+    { icon: 'check_circle', label: 'Finalizado', gradient: 'from-emerald-400 to-teal-500', bgLight: 'bg-emerald-50 dark:bg-emerald-900/20', textColor: 'text-emerald-600 dark:text-emerald-400', borderColor: 'border-emerald-200 dark:border-emerald-800' }
   ];
 
   // Distribute checklist items across steps (skip first step - check-in)
   const getChecklistForStep = (stepIndex: number) => {
     if (task.checklist.length === 0 || stepIndex === 0) return [];
-    const relevantSteps = 3; // banho, tosa, entrega
-    const itemsPerStep = Math.ceil(task.checklist.length / relevantSteps);
-    const adjustedIndex = stepIndex - 1;
-    const start = adjustedIndex * itemsPerStep;
-    return task.checklist.slice(start, start + itemsPerStep);
+    return task.checklist;
   };
+
+  const checkinRaw = task.checkedItems?.find(i => i.startsWith('CHECKIN:'));
+  const checkinData = checkinRaw ? JSON.parse(checkinRaw.replace('CHECKIN:', '')) : null;
+
+  const checkoutRaw = task.checkedItems?.find(i => i.startsWith('CHECKOUT:'));
+  const checkoutData = checkoutRaw ? JSON.parse(checkoutRaw.replace('CHECKOUT:', '')) : null;
 
   return (
     <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 animate-in fade-in duration-300">
@@ -128,6 +133,104 @@ const TimelineDetailsModal: React.FC<{
                           </span>
                         </div>
                       </div>
+
+                      {/* Check-in Details (Step 0) */}
+                      {idx === 0 && checkinData && (
+                        <div className="space-y-4 mb-3">
+                          {/* Render dynamic values if they exist, otherwise fallback to legacy */}
+                          {checkinData.dynamicValues ? (
+                            <div className="grid grid-cols-1 gap-2">
+                              {Object.entries(checkinData.dynamicValues).map(([key, value]) => (
+                                <div key={key} className="p-2 bg-white/50 dark:bg-black/20 rounded-lg flex justify-between items-center">
+                                  <span className="text-[10px] font-black text-slate-400 uppercase">{key.replace(/_/g, ' ')}</span>
+                                  <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300">
+                                    {typeof value === 'boolean' ? (value ? '✅ Sim' : '❌ Não') : value}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="grid grid-cols-2 gap-3">
+                              <div className="p-2 bg-white/50 dark:bg-black/20 rounded-lg">
+                                <p className="text-[9px] font-black text-slate-400 uppercase mb-1">Pertences</p>
+                                <div className="flex flex-wrap gap-1">
+                                  {Object.entries(checkinData.belongings || {}).map(([k, v]) => v && (
+                                    <span key={k} className="text-[9px] font-bold px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-300 rounded uppercase">
+                                      {k === 'outros' ? checkinData.belongings.outros : k}
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                              <div className="p-2 bg-white/50 dark:bg-black/20 rounded-lg">
+                                <p className="text-[9px] font-black text-slate-400 uppercase mb-1">Análise</p>
+                                <p className="text-[10px] font-bold text-slate-700 dark:text-slate-300">Pelo: {checkinData.analysis?.hairState || 'N/A'}</p>
+                                <p className="text-[10px] font-bold text-slate-700 dark:text-slate-300">Sujeira: {checkinData.analysis?.dirtLevel || 'N/A'}</p>
+                                {(checkinData.analysis?.parasites || checkinData.analysis?.wounds) && (
+                                  <div className="flex gap-1 mt-1">
+                                    {checkinData.analysis.parasites && <span className="text-[8px] bg-red-100 text-red-600 px-1 rounded font-black italic">! PARASITAS</span>}
+                                    {checkinData.analysis.wounds && <span className="text-[8px] bg-red-100 text-red-600 px-1 rounded font-black italic">! LESÕES</span>}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          )}
+                          {!checkinData.dynamicValues && (checkinData.grooming?.scissors || checkinData.grooming?.machine) && (
+                            <div className="p-2 bg-white/50 dark:bg-black/20 rounded-lg border-l-2 border-orange-400">
+                              <p className="text-[9px] font-black text-orange-500 uppercase mb-1 italic">Instruções de Tosa</p>
+                              {checkinData.grooming.scissors && <p className="text-[10px] text-slate-600 dark:text-slate-400 italic">Tesoura: {checkinData.grooming.scissors}</p>}
+                              {checkinData.grooming.machine && <p className="text-[10px] text-slate-600 dark:text-slate-400 italic">Máquina: {checkinData.grooming.machine}</p>}
+                            </div>
+                          )}
+                          {checkinData.photos?.length > 0 && (
+                            <div className="flex gap-1 mt-2 overflow-x-auto pb-1 nike-scroll">
+                              {checkinData.photos.map((url: string, i: number) => (
+                                <img key={i} src={url} className="w-10 h-10 rounded-lg object-cover flex-shrink-0" alt="" />
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Checkout Details (Step 2) */}
+                      {idx === 2 && checkoutData && (
+                        <div className="space-y-3 mb-3">
+                          {checkoutData.dynamicValues ? (
+                            <div className="grid grid-cols-1 gap-2">
+                              {Object.entries(checkoutData.dynamicValues).map(([key, value]) => (
+                                <div key={key} className="p-2 bg-white/50 dark:bg-black/20 rounded-lg flex justify-between items-center">
+                                  <span className="text-[10px] font-black text-slate-400 uppercase">{key.replace(/_/g, ' ')}</span>
+                                  <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300">
+                                    {typeof value === 'boolean' ? (value ? '✅ Sim' : '❌ Não') : value}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="grid grid-cols-2 gap-2">
+                              {Object.entries(checkoutData.quality || {}).map(([k, v]) => (
+                                <div key={k} className="flex items-center justify-between p-1.5 bg-white/40 dark:bg-black/10 rounded-lg">
+                                  <span className="text-[9px] font-bold text-slate-500 uppercase">{k}</span>
+                                  <span className={`text-[9px] font-black uppercase px-1 rounded ${v === 'Bom' ? 'text-emerald-500 bg-emerald-100' : 'text-red-500 bg-red-100'}`}>{v}</span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          {(checkoutData.generalNotes || checkoutData.behavior || checkoutData.recommendations) && (
+                            <div className="p-2 bg-white/50 dark:bg-black/20 rounded-lg space-y-1">
+                              {checkoutData.behavior && <p className="text-[10px] text-slate-600 dark:text-slate-400 italic"><strong>Comportamento:</strong> {checkoutData.behavior}</p>}
+                              {checkoutData.recommendations && <p className="text-[10px] text-slate-600 dark:text-slate-400 italic"><strong>Dicas:</strong> {checkoutData.recommendations}</p>}
+                              {checkoutData.generalNotes && <p className="text-[10px] text-slate-600 dark:text-slate-400 italic">"{checkoutData.generalNotes}"</p>}
+                            </div>
+                          )}
+                          {checkoutData.photos?.length > 0 && (
+                            <div className="flex gap-1 mt-2 overflow-x-auto pb-1 nike-scroll">
+                              {checkoutData.photos.map((url: string, i: number) => (
+                                <img key={i} src={url} className="w-10 h-10 rounded-lg object-cover flex-shrink-0" alt="" />
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
 
                       {/* Checklist items for this step */}
                       {stepChecklist.length > 0 && (
@@ -277,50 +380,430 @@ const TimelineDetailsModal: React.FC<{
 };
 
 
-// --- Checklist Modal with Advanced Template Support ---
-const ChecklistModal: React.FC<{
+
+// --- Advanced Check-in Modal ---
+const CheckinModal: React.FC<{
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: (checkedIds: string[], afterPhotoUrl?: string) => void;
+  onConfirm: (checkedIds: string[], checkinData?: any) => void;
   task: ServiceTask;
 }> = ({ isOpen, onClose, onConfirm, task }) => {
   const { showNotification } = useNotification();
-  const [afterPhoto, setAfterPhoto] = useState<string>('');
+  const [belongings, setBelongings] = useState({ coleira: false, guia: false, peitoral: false, brinquedo: false, outros: '' });
+  const [analysis, setAnalysis] = useState({ hairState: '', dirtLevel: '', parasites: false, wounds: false });
+  const [grooming, setGrooming] = useState({ scissors: '', machine: '', hygienicType: '' });
+  const [generalNotes, setGeneralNotes] = useState('');
+  const [photos, setPhotos] = useState<string[]>([]);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
-  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
-  const [formData, setFormData] = useState<Record<string, any>>({});
-  const [advancedTemplates] = useState<AdvancedChecklistTemplate[]>(loadAdvancedTemplates());
-
-  const isLastStep = task.currentStepIndex === task.steps.length - 2;
-  const stepIndex = task.currentStepIndex;
-
-  // Get appropriate template based on step
-  const currentTemplate = stepIndex === 0
-    ? advancedTemplates.find(t => t.id === 'default_initial')
-    : advancedTemplates.find(t => t.id === 'default_final');
+  const [dynamicValues, setDynamicValues] = useState<Record<string, any>>({});
 
   useEffect(() => {
-    if (isOpen && currentTemplate) {
-      setExpandedSections(new Set(currentTemplate.sections.map(s => s.id)));
-      setFormData({});
-      setAfterPhoto('');
+    if (task.checkin_checklist) {
+      const initialValues: Record<string, any> = {};
+      task.checkin_checklist.sections.forEach(section => {
+        section.fields.forEach(field => {
+          if (field.type === 'check' || field.type === 'checkbox') initialValues[field.id] = false;
+          else if (field.type === 'select' || field.type === 'dropdown') initialValues[field.id] = field.options?.[0] || '';
+          else initialValues[field.id] = '';
+        });
+      });
+      setDynamicValues(initialValues);
     }
-  }, [isOpen, currentTemplate]);
+  }, [task.checkin_checklist]);
 
   if (!isOpen) return null;
 
-  const toggleSection = (sectionId: string) => {
-    const newExpanded = new Set(expandedSections);
-    if (newExpanded.has(sectionId)) {
-      newExpanded.delete(sectionId);
-    } else {
-      newExpanded.add(sectionId);
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    if (photos.length + files.length > 5) {
+      showNotification('Máximo de 5 fotos permitido', 'error');
+      return;
     }
-    setExpandedSections(newExpanded);
+
+    setUploadingPhoto(true);
+    try {
+      const newPhotoUrls: string[] = [];
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${task.appointmentId}/checkin_${Date.now()}_${i}.${fileExt}`;
+        const filePath = `services/${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('service-photos')
+          .upload(filePath, file);
+
+        if (uploadError) throw uploadError;
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('service-photos')
+          .getPublicUrl(filePath);
+
+        newPhotoUrls.push(publicUrl);
+      }
+      setPhotos(prev => [...prev, ...newPhotoUrls]);
+      showNotification(`${files.length} foto(s) enviada(s)!`, 'success');
+    } catch (err: any) {
+      console.error('Error uploading photos:', err);
+      showNotification('Erro ao enviar fotos', 'error');
+    } finally {
+      setUploadingPhoto(false);
+    }
   };
 
-  const updateField = (fieldId: string, value: any) => {
-    setFormData({ ...formData, [fieldId]: value });
+  const handleSubmit = () => {
+    const checkinData = {
+      belongings,
+      analysis,
+      grooming,
+      generalNotes,
+      photos,
+      dynamicValues,
+      templateName: task.checkin_checklist?.name,
+      timestamp: new Date().toISOString()
+    };
+    onConfirm([], checkinData);
+  };
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-md animate-in fade-in duration-300">
+      <div className="bg-[#f3f4f6] dark:bg-[#1a1a1a] w-full max-w-2xl rounded-[32px] shadow-2xl overflow-hidden flex flex-col max-h-[90vh] border border-white/10">
+        {/* Header */}
+        <div className="px-8 py-6 bg-white dark:bg-[#222] border-b border-slate-200 dark:border-gray-800 flex justify-between items-center">
+          <div>
+            <h2 className="text-2xl font-black text-primary uppercase italic tracking-tight">Checklist de Início - {task.petName}</h2>
+            <p className="text-xs text-slate-400 font-bold uppercase mt-1">Preencha as informações antes de iniciar o serviço</p>
+          </div>
+          <button onClick={onClose} className="text-slate-400 hover:text-primary transition-colors">
+            <span className="material-symbols-outlined text-2xl">close</span>
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-8 space-y-6 nike-scroll">
+          {task.checkin_checklist ? (
+            // Dynamic Rendering from Template
+            task.checkin_checklist.sections.map((section) => (
+              <div key={section.id} className="bg-white dark:bg-[#222] p-6 rounded-2xl border border-slate-100 dark:border-gray-800 shadow-sm">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                    <span className="material-symbols-outlined text-primary">{section.icon || 'assignment'}</span>
+                  </div>
+                  <h3 className="font-black text-slate-800 dark:text-white uppercase text-sm tracking-wider">{section.title}</h3>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {section.fields.map((field) => (
+                    <div key={field.id} className={field.type === 'text' && !field.options?.length ? 'md:col-span-2' : ''}>
+                      <label className="block text-[10px] font-black text-slate-400 uppercase mb-2 ml-1">{field.label}</label>
+
+                      {field.type === 'text' && (
+                        <input
+                          type="text"
+                          value={dynamicValues[field.id] || ''}
+                          onChange={(e) => setDynamicValues(prev => ({ ...prev, [field.id]: e.target.value }))}
+                          className="w-full px-4 py-3 bg-slate-50 dark:bg-[#111] border-none rounded-xl text-sm focus:ring-2 focus:ring-primary/20"
+                          placeholder={field.placeholder}
+                        />
+                      )}
+
+                      {(field.type === 'check' || field.type === 'checkbox') && (
+                        <label className="flex items-center gap-3 p-3 rounded-xl border border-slate-100 dark:border-gray-800 hover:bg-slate-50 dark:hover:bg-white/5 cursor-pointer transition-all">
+                          <input
+                            type="checkbox"
+                            checked={!!dynamicValues[field.id]}
+                            onChange={(e) => setDynamicValues(prev => ({ ...prev, [field.id]: e.target.checked }))}
+                            className="w-5 h-5 rounded border-slate-300 text-primary focus:ring-primary"
+                          />
+                          <span className="text-sm font-bold text-slate-600 dark:text-slate-300">Confirmar</span>
+                        </label>
+                      )}
+
+                      {(field.type === 'select' || field.type === 'dropdown') && (
+                        <select
+                          value={dynamicValues[field.id] || ''}
+                          onChange={(e) => setDynamicValues(prev => ({ ...prev, [field.id]: e.target.value }))}
+                          className="w-full px-3 py-2 bg-slate-50 dark:bg-[#111] border border-slate-100 dark:border-gray-800 rounded-lg text-sm"
+                        >
+                          <option value="" disabled>Selecione...</option>
+                          {field.options?.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                        </select>
+                      )}
+
+                      {field.type === 'date' && (
+                        <input
+                          type="date"
+                          value={dynamicValues[field.id] || ''}
+                          onChange={(e) => setDynamicValues(prev => ({ ...prev, [field.id]: e.target.value }))}
+                          className="w-full px-4 py-3 bg-slate-50 dark:bg-[#111] border-none rounded-xl text-sm focus:ring-2 focus:ring-primary/20"
+                        />
+                      )}
+
+                      {field.type === 'textarea' && (
+                        <textarea
+                          value={dynamicValues[field.id] || ''}
+                          onChange={(e) => setDynamicValues(prev => ({ ...prev, [field.id]: e.target.value }))}
+                          placeholder={field.placeholder}
+                          className="w-full px-4 py-3 bg-slate-50 dark:bg-[#111] border-none rounded-xl text-sm focus:ring-2 focus:ring-primary/20 min-h-[100px] resize-none"
+                        />
+                      )}
+
+                      {field.type === 'photo' && (
+                        <div className="text-xs text-slate-400 italic">Fotos são adicionadas na seção abaixo</div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))
+          ) : (
+            // Legacy/Default Fallback Rendering
+            <>
+              {/* Section: Pertences */}
+              <div className="bg-white dark:bg-[#222] p-6 rounded-2xl border border-slate-100 dark:border-gray-800 shadow-sm">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center">
+                    <span className="material-symbols-outlined text-blue-500">inventory_2</span>
+                  </div>
+                  <h3 className="font-black text-slate-800 dark:text-white uppercase text-sm tracking-wider">Pertences do Cliente</h3>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 mb-4">
+                  {['coleira', 'guia', 'peitoral', 'brinquedo'].map((item) => (
+                    <label key={item} className="flex items-center gap-3 p-3 rounded-xl border border-slate-100 dark:border-gray-800 hover:bg-slate-50 dark:hover:bg-white/5 cursor-pointer transition-all">
+                      <input
+                        type="checkbox"
+                        checked={(belongings as any)[item]}
+                        onChange={(e) => setBelongings({ ...belongings, [item]: e.target.checked })}
+                        className="w-5 h-5 rounded border-slate-300 text-primary focus:ring-primary"
+                      />
+                      <span className="text-sm font-bold text-slate-600 dark:text-slate-300 capitalize">{item}</span>
+                    </label>
+                  ))}
+                </div>
+                <div>
+                  <label className="block text-[10px] font-black text-slate-400 uppercase mb-2 ml-1">Outros</label>
+                  <input
+                    type="text"
+                    value={belongings.outros}
+                    onChange={(e) => setBelongings({ ...belongings, outros: e.target.value })}
+                    placeholder="Descreva outros pertences..."
+                    className="w-full px-4 py-3 bg-slate-50 dark:bg-[#111] border-none rounded-xl text-sm focus:ring-2 focus:ring-primary/20"
+                  />
+                </div>
+              </div>
+
+              {/* Section: Análise Inicial */}
+              <div className="bg-white dark:bg-[#222] p-6 rounded-2xl border border-slate-100 dark:border-gray-800 shadow-sm">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-10 h-10 rounded-xl bg-purple-50 dark:bg-purple-900/30 flex items-center justify-center">
+                    <span className="material-symbols-outlined text-purple-500">analytics</span>
+                  </div>
+                  <h3 className="font-black text-slate-800 dark:text-white uppercase text-sm tracking-wider">Análise Inicial</h3>
+                </div>
+
+                <div className="grid grid-cols-2 gap-6 mb-6">
+                  <div>
+                    <label className="block text-[10px] font-black text-slate-400 uppercase mb-2 ml-1">Estado da Pelagem</label>
+                    <select
+                      value={analysis.hairState}
+                      onChange={(e) => setAnalysis({ ...analysis, hairState: e.target.value })}
+                      className="w-full px-3 py-2 bg-slate-50 dark:bg-[#111] border border-slate-100 dark:border-gray-800 rounded-lg text-sm"
+                    >
+                      <option value="">Selecione</option>
+                      <option value="Ótimo">Ótimo (Sem nós)</option>
+                      <option value="Bom">Bom (Nós leves)</option>
+                      <option value="Regular">Regular (Muitos nós)</option>
+                      <option value="Crítico">Crítico (Embolado)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black text-slate-400 uppercase mb-2 ml-1">Nível de Sujeira</label>
+                    <select
+                      value={analysis.dirtLevel}
+                      onChange={(e) => setAnalysis({ ...analysis, dirtLevel: e.target.value })}
+                      className="w-full px-3 py-2 bg-slate-50 dark:bg-[#111] border border-slate-100 dark:border-gray-800 rounded-lg text-sm"
+                    >
+                      <option value="">Selecione</option>
+                      <option value="Baixo">Baixo</option>
+                      <option value="Médio">Médio</option>
+                      <option value="Alto">Alto</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="flex gap-4">
+                  <label className="flex-1 flex items-center gap-3 p-4 rounded-xl border border-slate-100 dark:border-gray-800 hover:bg-red-50 dark:hover:bg-red-900/10 cursor-pointer transition-all">
+                    <input
+                      type="checkbox"
+                      checked={analysis.parasites}
+                      onChange={(e) => setAnalysis({ ...analysis, parasites: e.target.checked })}
+                      className="w-5 h-5 rounded border-slate-300 text-red-500 focus:ring-red-500"
+                    />
+                    <span className="text-sm font-bold text-slate-600 dark:text-slate-300">Parasitas Visíveis</span>
+                  </label>
+                  <label className="flex-1 flex items-center gap-3 p-4 rounded-xl border border-slate-100 dark:border-gray-800 hover:bg-red-50 dark:hover:bg-red-900/10 cursor-pointer transition-all">
+                    <input
+                      type="checkbox"
+                      checked={analysis.wounds}
+                      onChange={(e) => setAnalysis({ ...analysis, wounds: e.target.checked })}
+                      className="w-5 h-5 rounded border-slate-300 text-red-500 focus:ring-red-500"
+                    />
+                    <span className="text-sm font-bold text-slate-600 dark:text-slate-300">Feridas ou Lesões</span>
+                  </label>
+                </div>
+              </div>
+
+              {/* Section: Orientações para Tosa */}
+              <div className="bg-white dark:bg-[#222] p-6 rounded-2xl border border-slate-100 dark:border-gray-800 shadow-sm">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-10 h-10 rounded-xl bg-orange-50 dark:bg-orange-900/30 flex items-center justify-center">
+                    <span className="material-symbols-outlined text-orange-500">content_cut</span>
+                  </div>
+                  <h3 className="font-black text-slate-800 dark:text-white uppercase text-sm tracking-wider">Orientações para Tosa</h3>
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-[10px] font-black text-slate-400 uppercase mb-2 ml-1">Tosa a Tesoura</label>
+                    <textarea
+                      value={grooming.scissors}
+                      onChange={(e) => setGrooming({ ...grooming, scissors: e.target.value })}
+                      placeholder="Ex: Arredondar focinho, aparar patas..."
+                      className="w-full px-4 py-3 bg-slate-50 dark:bg-[#111] border-none rounded-xl text-sm focus:ring-2 focus:ring-primary/20 min-h-[80px]"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black text-slate-400 uppercase mb-2 ml-1">Tosa a Máquina</label>
+                    <input
+                      type="text"
+                      value={grooming.machine}
+                      onChange={(e) => setGrooming({ ...grooming, machine: e.target.value })}
+                      placeholder="Ex: Lâmina 7, corpo todo..."
+                      className="w-full px-4 py-3 bg-slate-50 dark:bg-[#111] border-none rounded-xl text-sm focus:ring-2 focus:ring-primary/20"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black text-slate-400 uppercase mb-2 ml-1">Tipo de Tosa Higiênica</label>
+                    <select
+                      value={grooming.hygienicType}
+                      onChange={(e) => setGrooming({ ...grooming, hygienicType: e.target.value })}
+                      className="w-full px-3 py-2 bg-slate-50 dark:bg-[#111] border border-slate-100 dark:border-gray-800 rounded-lg text-sm"
+                    >
+                      <option value="">Selecione</option>
+                      <option value="Completa">Completa</option>
+                      <option value="Parcial">Parcial</option>
+                      <option value="Apenas Patas">Apenas Patas</option>
+                      <option value="Apenas Rostinho">Apenas Rostinho</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Section: Observações Gerais */}
+              <div className="bg-white dark:bg-[#222] p-6 rounded-2xl border border-slate-100 dark:border-gray-800 shadow-sm">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center">
+                    <span className="material-symbols-outlined text-slate-500">description</span>
+                  </div>
+                  <h3 className="font-black text-slate-800 dark:text-white uppercase text-sm tracking-wider">Observações Gerais</h3>
+                </div>
+                <textarea
+                  value={generalNotes}
+                  onChange={(e) => setGeneralNotes(e.target.value)}
+                  placeholder="Ex: Nervoso, Calmo, Agressivo, Medo de barulho..."
+                  className="w-full px-4 py-3 bg-slate-50 dark:bg-[#111] border-none rounded-xl text-sm focus:ring-2 focus:ring-primary/20 min-h-[100px]"
+                />
+              </div>
+            </>
+          )}
+
+          {/* Photos are common to both dynamic and legacy UI */}
+          <div className="bg-white dark:bg-[#222] p-6 rounded-2xl border border-slate-100 dark:border-gray-800 shadow-sm">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-900/30 flex items-center justify-center">
+                <span className="material-symbols-outlined text-emerald-500">photo_camera</span>
+              </div>
+              <h3 className="font-black text-slate-800 dark:text-white uppercase text-sm tracking-wider">Fotos Antes (até 5)</h3>
+            </div>
+
+            <div className="grid grid-cols-5 gap-3">
+              {photos.map((url, idx) => (
+                <div key={idx} className="relative aspect-square rounded-xl overflow-hidden group">
+                  <img src={url} alt="" className="w-full h-full object-cover" />
+                  <button
+                    onClick={() => setPhotos(prev => prev.filter((_, i) => i !== idx))}
+                    className="absolute inset-0 bg-red-500/80 text-white opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                  >
+                    <span className="material-symbols-outlined">delete</span>
+                  </button>
+                </div>
+              ))}
+              {photos.length < 5 && (
+                <label className={`aspect-square rounded-xl border-2 border-dashed border-slate-200 dark:border-gray-800 flex flex-col items-center justify-center cursor-pointer hover:bg-slate-50 dark:hover:bg-white/5 transition-all ${uploadingPhoto ? 'animate-pulse pointer-events-none' : ''}`}>
+                  <input type="file" multiple accept="image/*" onChange={handlePhotoUpload} className="hidden" />
+                  <span className="material-symbols-outlined text-3xl text-slate-300 mb-1">upload</span>
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">Adicionar</span>
+                </label>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="p-8 bg-white dark:bg-[#222] border-t border-slate-200 dark:border-gray-800 flex gap-4 shrink-0">
+          <button onClick={onClose} className="flex-1 py-4 text-xs font-black uppercase text-slate-400 hover:text-slate-600 rounded-2xl transition-all">Cancelar</button>
+          <button
+            onClick={handleSubmit}
+            className="flex-2 py-4 px-12 bg-primary hover:bg-primary-hover text-white text-xs font-black uppercase rounded-2xl shadow-xl shadow-primary/20 transition-all active:scale-95 flex items-center justify-center gap-2"
+          >
+            <span className="material-symbols-outlined text-lg">play_arrow</span>
+            Salvar e Iniciar Serviço
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+
+// --- Advanced Checkout Modal ---
+const CheckoutModal: React.FC<{
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: (checkedIds: string[], checkoutData?: any) => void;
+  task: ServiceTask;
+}> = ({ isOpen, onClose, onConfirm, task }) => {
+  const { showNotification } = useNotification();
+  const [checkedItems, setCheckedItems] = useState<string[]>(task.checkedItems || []);
+  const [quality, setQuality] = useState({ eyes: 'Bom', skin: 'Bom', nails: 'Bom', mouth: 'Bom' });
+  const [behavior, setBehavior] = useState('');
+  const [recommendations, setRecommendations] = useState('');
+  const [generalNotes, setGeneralNotes] = useState('');
+  const [belongings, setBelongings] = useState({ coleira: false, guia: false, peitoral: false, brinquedo: false, outros: false });
+  const [belongingsConfirmed, setBelongingsConfirmed] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [photos, setPhotos] = useState<string[]>([]);
+  const [dynamicValues, setDynamicValues] = useState<Record<string, any>>({});
+
+  useEffect(() => {
+    if (task.checkout_checklist) {
+      const initialValues: Record<string, any> = {};
+      task.checkout_checklist.sections.forEach(section => {
+        section.fields.forEach(field => {
+          if (field.type === 'check' || field.type === 'checkbox') initialValues[field.id] = false;
+          else if (field.type === 'select' || field.type === 'dropdown') initialValues[field.id] = field.options?.[0] || '';
+          else initialValues[field.id] = '';
+        });
+      });
+      setDynamicValues(initialValues);
+    }
+  }, [task.checkout_checklist]);
+
+  if (!isOpen) return null;
+
+  const handleToggleItem = (id: string) => {
+    setCheckedItems(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
   };
 
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -330,14 +813,14 @@ const ChecklistModal: React.FC<{
     try {
       setUploadingPhoto(true);
       const fileExt = file.name.split('.').pop();
-      const fileName = `services/${task.appointmentId}/${Date.now()}.${fileExt}`;
+      const filePath = `services/${task.appointmentId}/checkout_${Date.now()}.${fileExt}`;
 
-      const { error: uploadError } = await supabase.storage.from('pets').upload(fileName, file);
+      const { error: uploadError } = await supabase.storage.from('service-photos').upload(filePath, file);
       if (uploadError) throw uploadError;
 
-      const { data } = supabase.storage.from('pets').getPublicUrl(fileName);
-      setAfterPhoto(data.publicUrl);
-      showNotification('Foto carregada!', 'success');
+      const { data: { publicUrl } } = supabase.storage.from('service-photos').getPublicUrl(filePath);
+      setPhotos(prev => [...prev, publicUrl]);
+      showNotification('Foto adicionada!', 'success');
     } catch (error) {
       console.error('Upload error:', error);
       showNotification('Erro ao fazer upload da foto', 'error');
@@ -346,201 +829,266 @@ const ChecklistModal: React.FC<{
     }
   };
 
-  const renderField = (field: TemplateField) => {
-    switch (field.type) {
-      case 'checkbox':
-        return (
-          <label className="flex items-center gap-3 cursor-pointer group">
-            <input
-              type="checkbox"
-              checked={formData[field.id] || false}
-              onChange={(e) => updateField(field.id, e.target.checked)}
-              className="w-5 h-5 rounded border-slate-300 text-primary focus:ring-primary"
-            />
-            <span className="text-sm text-slate-700 dark:text-gray-300 group-hover:text-primary transition-colors">{field.label}</span>
-          </label>
-        );
-      case 'dropdown':
-        return (
-          <div>
-            <label className="block text-xs font-bold text-slate-500 dark:text-gray-400 mb-1">{field.label}</label>
-            <select
-              value={formData[field.id] || ''}
-              onChange={(e) => updateField(field.id, e.target.value)}
-              className="w-full h-10 rounded-lg border border-slate-200 dark:border-gray-600 bg-white dark:bg-[#252525] text-slate-700 dark:text-white text-sm px-3"
-            >
-              <option value="">Selecione</option>
-              {field.options?.map(opt => (
-                <option key={opt} value={opt}>{opt}</option>
-              ))}
-            </select>
-          </div>
-        );
-      case 'text':
-        return (
-          <div>
-            <label className="block text-xs font-bold text-slate-500 dark:text-gray-400 mb-1">{field.label}</label>
-            <input
-              type="text"
-              value={formData[field.id] || ''}
-              onChange={(e) => updateField(field.id, e.target.value)}
-              placeholder={field.placeholder}
-              className="w-full h-10 rounded-lg border border-slate-200 dark:border-gray-600 bg-white dark:bg-[#252525] text-slate-700 dark:text-white text-sm px-3"
-            />
-          </div>
-        );
-      case 'textarea':
-        return (
-          <div>
-            <label className="block text-xs font-bold text-slate-500 dark:text-gray-400 mb-1">{field.label}</label>
-            <textarea
-              value={formData[field.id] || ''}
-              onChange={(e) => updateField(field.id, e.target.value)}
-              placeholder={field.placeholder}
-              rows={3}
-              className="w-full rounded-lg border border-slate-200 dark:border-gray-600 bg-white dark:bg-[#252525] text-slate-700 dark:text-white text-sm p-3 resize-none"
-            />
-          </div>
-        );
-      case 'photo':
-        return (
-          <div>
-            <label className="block text-xs font-bold text-slate-500 dark:text-gray-400 mb-1">{field.label}</label>
-            <div className="border-2 border-dashed border-blue-200 dark:border-blue-900/50 bg-blue-50/50 dark:bg-blue-900/10 rounded-xl p-6 text-center cursor-pointer hover:bg-blue-100/50 dark:hover:bg-blue-900/20 transition-colors">
-              <span className="material-symbols-outlined text-2xl text-blue-400 mb-1">cloud_upload</span>
-              <p className="text-xs text-slate-500 dark:text-gray-400">Clique para adicionar fotos</p>
-            </div>
-          </div>
-        );
-      default:
-        return null;
-    }
+  const handleSubmit = () => {
+    const checkoutData = {
+      quality,
+      behavior,
+      recommendations,
+      generalNotes,
+      belongings,
+      photos,
+      dynamicValues,
+      templateName: task.checkout_checklist?.name,
+      timestamp: new Date().toISOString()
+    };
+    onConfirm(checkedItems, checkoutData);
   };
-
-  const renderCheckboxGroup = (fields: TemplateField[]) => {
-    const checkboxFields = fields.filter(f => f.type === 'checkbox');
-    const otherFields = fields.filter(f => f.type !== 'checkbox');
-
-    return (
-      <>
-        {checkboxFields.length > 0 && (
-          <div className="grid grid-cols-2 gap-2 mb-3">
-            {checkboxFields.map(field => (
-              <div key={field.id}>{renderField(field)}</div>
-            ))}
-          </div>
-        )}
-        {otherFields.map(field => (
-          <div key={field.id} className="mb-3">{renderField(field)}</div>
-        ))}
-      </>
-    );
-  };
-
-  const stepTitle = stepIndex === 0 ? 'Checklist de Início' : 'Checklist de Finalização';
 
   return (
     <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={onClose}></div>
-      <div className="bg-white dark:bg-[#1a1a1a] rounded-2xl shadow-2xl w-full max-w-md relative z-10 flex flex-col max-h-[90vh] border border-slate-100 dark:border-gray-800 animate-in zoom-in-95">
+      <div className="bg-[#f0f2f5] dark:bg-[#111] rounded-[2rem] shadow-2xl w-full max-w-lg relative z-10 flex flex-col max-h-[90vh] overflow-hidden border border-white dark:border-gray-800 animate-in zoom-in-95">
 
         {/* Header */}
-        <div className="p-5 border-b border-slate-100 dark:border-gray-800 flex justify-between items-start">
+        <div className="p-6 bg-white dark:bg-[#1a1a1a] flex justify-between items-center shrink-0 border-b border-slate-100 dark:border-gray-800">
           <div>
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white">{stepTitle} - {task.petName}</h2>
-            <p className="text-xs text-slate-500 dark:text-gray-400 mt-1">Preencha as informações antes de avançar</p>
+            <h2 className="text-xl font-black text-emerald-600 dark:text-emerald-400 italic uppercase leading-none">Checkout - {task.petName}</h2>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Concluir Atendimento</p>
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors">
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 transition-colors">
             <span className="material-symbols-outlined">close</span>
           </button>
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-5 space-y-3">
-          {currentTemplate ? (
-            currentTemplate.sections.map((section) => (
-              <div key={section.id} className="bg-slate-50 dark:bg-[#111] rounded-xl overflow-hidden border border-slate-100 dark:border-gray-800">
-                <button
-                  onClick={() => toggleSection(section.id)}
-                  className="w-full p-3 flex items-center justify-between hover:bg-slate-100 dark:hover:bg-white/5 transition-colors"
-                >
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
-                      <span className="material-symbols-outlined text-lg">{section.icon}</span>
-                    </div>
-                    <span className="font-bold text-slate-900 dark:text-white text-sm">{section.title}</span>
+        <div className="flex-1 overflow-y-auto p-4 space-y-4 nike-scroll">
+
+          {/* Checklist de Itens */}
+          <section className="bg-white dark:bg-[#1a1a1a] rounded-2xl p-5 border border-slate-100 dark:border-gray-800 shadow-sm">
+            <div className="flex items-center gap-2 mb-4 text-emerald-500">
+              <span className="material-symbols-outlined text-xl">task_alt</span>
+              <h3 className="text-xs font-black uppercase italic">Serviços Realizados</h3>
+            </div>
+            <div className="grid grid-cols-1 gap-2">
+              {task.checklist.map(item => (
+                <label key={item.id} className="flex items-center gap-3 cursor-pointer group hover:bg-slate-50 dark:hover:bg-white/5 p-2 rounded-xl transition-all">
+                  <div
+                    onClick={() => handleToggleItem(item.id)}
+                    className={`w-5 h-5 rounded-md border-2 transition-all flex items-center justify-center ${checkedItems.includes(item.id) ? 'bg-emerald-500 border-emerald-500' : 'border-slate-300 dark:border-gray-700'}`}
+                  >
+                    {checkedItems.includes(item.id) && <span className="material-symbols-outlined text-white text-sm">check</span>}
                   </div>
-                  <span className={`material-symbols-outlined text-slate-400 transition-transform ${expandedSections.has(section.id) ? 'rotate-180' : ''}`}>
-                    expand_more
-                  </span>
-                </button>
-                {expandedSections.has(section.id) && (
-                  <div className="p-3 pt-0">
-                    {renderCheckboxGroup(section.fields)}
-                  </div>
-                )}
-              </div>
-            ))
-          ) : (
-            <div className="space-y-3">
-              {task.checklist.map((item) => (
-                <label key={item.id} className="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-white/5 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={formData[item.id] || false}
-                    onChange={(e) => updateField(item.id, e.target.checked)}
-                    className="w-5 h-5 rounded border-slate-300 text-primary focus:ring-primary"
-                  />
-                  <span className="text-sm text-slate-700 dark:text-gray-300">{item.text}</span>
+                  <span className="text-xs font-bold text-slate-600 dark:text-gray-400">{item.text}</span>
                 </label>
               ))}
-              {task.checklist.length === 0 && <p className="text-xs text-slate-400 text-center italic">Nenhum checklist configurado.</p>}
             </div>
+          </section>
+
+          {task.checkout_checklist ? (
+            // Dynamic Rendering
+            task.checkout_checklist.sections.map((section) => (
+              <section key={section.id} className="bg-white dark:bg-[#1a1a1a] rounded-2xl p-5 border border-slate-100 dark:border-gray-800 space-y-4 shadow-sm">
+                <div className="flex items-center gap-2 text-emerald-500">
+                  <span className="material-symbols-outlined text-xl">{section.icon || 'assignment'}</span>
+                  <h3 className="text-xs font-black uppercase italic">{section.title}</h3>
+                </div>
+
+                <div className="space-y-4">
+                  {section.fields.map((field) => (
+                    <div key={field.id} className="space-y-2">
+                      <p className="text-[10px] font-black uppercase text-slate-400">{field.label}</p>
+
+                      {field.type === 'text' && (
+                        <textarea
+                          value={dynamicValues[field.id] || ''}
+                          onChange={(e) => setDynamicValues(prev => ({ ...prev, [field.id]: e.target.value }))}
+                          className="w-full px-4 py-3 bg-slate-50 dark:bg-black/20 border border-slate-100 dark:border-white/5 rounded-xl text-xs focus:ring-2 focus:ring-emerald-500/20 min-h-[60px] outline-none"
+                          placeholder={field.placeholder}
+                        />
+                      )}
+
+                      {(field.type === 'check' || field.type === 'checkbox') && (
+                        <button
+                          onClick={() => setDynamicValues(prev => ({ ...prev, [field.id]: !prev[field.id] }))}
+                          className={`w-full py-2 rounded-xl text-xs font-black uppercase flex items-center justify-center gap-2 border-2 transition-all ${dynamicValues[field.id] ? 'bg-emerald-50 border-emerald-500 text-emerald-600' : 'bg-white dark:bg-[#252525] border-slate-100 dark:border-gray-800 text-slate-400'}`}
+                        >
+                          <span className="material-symbols-outlined text-sm">{dynamicValues[field.id] ? 'check_circle' : 'circle'}</span>
+                          {dynamicValues[field.id] ? 'Confirmado' : 'Pendente'}
+                        </button>
+                      )}
+
+                      {(field.type === 'select' || field.type === 'dropdown') && (
+                        <div className="flex gap-2 flex-wrap">
+                          {field.options?.map(opt => (
+                            <button
+                              key={opt}
+                              onClick={() => setDynamicValues(prev => ({ ...prev, [field.id]: opt }))}
+                              className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase border-2 transition-all ${dynamicValues[field.id] === opt ? 'bg-emerald-50 border-emerald-500 text-emerald-600' : 'bg-white dark:bg-[#252525] border-slate-100 dark:border-gray-800 text-slate-400'}`}
+                            >
+                              {opt}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+
+                      {field.type === 'date' && (
+                        <input
+                          type="date"
+                          value={dynamicValues[field.id] || ''}
+                          onChange={(e) => setDynamicValues(prev => ({ ...prev, [field.id]: e.target.value }))}
+                          className="w-full px-4 py-3 bg-slate-50 dark:bg-black/20 border border-slate-100 dark:border-white/5 rounded-xl text-xs focus:ring-2 focus:ring-emerald-500/20 shadow-none border-none outline-none"
+                        />
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </section>
+            ))
+          ) : (
+            // Legacy Rendering
+            <>
+              <section className="bg-white dark:bg-[#1a1a1a] rounded-2xl p-5 border border-slate-100 dark:border-gray-800 space-y-6 shadow-sm">
+                <div className="flex items-center gap-2 text-emerald-500">
+                  <span className="material-symbols-outlined text-xl">favorite</span>
+                  <h3 className="text-xs font-black uppercase italic">Saúde e Bem-estar</h3>
+                </div>
+
+                {[
+                  { id: 'eyes', label: 'Estado das Orelhas', icon: '👂' },
+                  { id: 'skin', label: 'Estado da Pele', icon: '🧴' },
+                  { id: 'nails', label: 'Estado das Unhas', icon: '💅' },
+                  { id: 'mouth', label: 'Estado da Boca', icon: '🦷' }
+                ].map(item => (
+                  <div key={item.id} className="space-y-2">
+                    <p className="text-[10px] font-black uppercase text-slate-400">{item.label}</p>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setQuality({ ...quality, [item.id as keyof typeof quality]: 'Bom' })}
+                        className={`flex-1 py-2 rounded-xl text-xs font-black uppercase flex items-center justify-center gap-2 border-2 transition-all ${quality[item.id as keyof typeof quality] === 'Bom' ? 'bg-emerald-50 border-emerald-500 text-emerald-600' : 'bg-white dark:bg-[#252525] border-slate-100 dark:border-gray-800 text-slate-400'}`}
+                      >
+                        <span className="material-symbols-outlined text-sm">thumb_up</span> Bom
+                      </button>
+                      <button
+                        onClick={() => setQuality({ ...quality, [item.id as keyof typeof quality]: 'Ruim' })}
+                        className={`flex-1 py-2 rounded-xl text-xs font-black uppercase flex items-center justify-center gap-2 border-2 transition-all ${quality[item.id as keyof typeof quality] === 'Ruim' ? 'bg-rose-50 border-rose-500 text-rose-600' : 'bg-white dark:bg-[#252525] border-slate-100 dark:border-gray-800 text-slate-400'}`}
+                      >
+                        <span className="material-symbols-outlined text-sm">thumb_down</span> Ruim
+                      </button>
+                      <button
+                        onClick={() => setQuality({ ...quality, [item.id as keyof typeof quality]: 'N/A' })}
+                        className={`w-10 flex items-center justify-center bg-white dark:bg-[#252525] border-2 rounded-xl text-slate-400 hover:bg-slate-50 transition-all ${quality[item.id as keyof typeof quality] === 'N/A' ? 'border-primary' : 'border-slate-100 dark:border-gray-800'}`}
+                      >
+                        <span className="material-symbols-outlined text-sm">close</span>
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </section>
+
+              <section className="bg-white dark:bg-[#1a1a1a] rounded-2xl p-5 border border-slate-100 dark:border-gray-800 space-y-4 shadow-sm">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase">Comportamento</label>
+                  <textarea
+                    value={behavior} onChange={e => setBehavior(e.target.value)}
+                    className="w-full bg-slate-50 dark:bg-[#252525] border border-slate-100 dark:border-gray-700 rounded-xl p-3 text-xs outline-none focus:ring-1 focus:ring-emerald-500 min-h-[60px]"
+                    placeholder="Relato do comportamento..."
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase">Recomendações</label>
+                  <textarea
+                    value={recommendations} onChange={e => setRecommendations(e.target.value)}
+                    className="w-full bg-slate-50 dark:bg-[#252525] border border-slate-100 dark:border-gray-700 rounded-xl p-3 text-xs outline-none focus:ring-1 focus:ring-emerald-500 min-h-[60px]"
+                    placeholder="Dicas para o tutor..."
+                  />
+                </div>
+              </section>
+            </>
           )}
 
-          {/* Photo Upload - Only on last step */}
-          {isLastStep && (
-            <div className="p-4 border-2 border-dashed border-primary/30 rounded-xl bg-primary/5">
-              <div className="flex items-center gap-2 mb-3">
-                <span className="material-symbols-outlined text-primary text-lg">photo_camera</span>
-                <h3 className="text-xs font-black uppercase text-primary">Foto do Resultado</h3>
-              </div>
-              {afterPhoto ? (
-                <div className="relative">
-                  <img src={afterPhoto} className="w-full h-40 object-cover rounded-xl mb-2" alt="Resultado" />
+          {/* Fotos (Common) */}
+          <section className="bg-white dark:bg-[#1a1a1a] rounded-2xl p-5 border border-slate-100 dark:border-gray-800 shadow-sm">
+            <div className="flex items-center gap-2 mb-4 text-emerald-500">
+              <span className="material-symbols-outlined text-xl">photo_camera</span>
+              <h3 className="text-xs font-black uppercase italic">Fotos do Serviço</h3>
+            </div>
+            <div className="flex gap-2 overflow-x-auto pb-2 nike-scroll">
+              {photos.map((url, i) => (
+                <div key={i} className="relative size-16 shrink-0 rounded-lg overflow-hidden border border-slate-200 shadow-sm">
+                  <img src={url} className="w-full h-full object-cover" alt="" />
                   <button
-                    type="button"
-                    onClick={() => setAfterPhoto('')}
-                    className="absolute top-2 right-2 w-7 h-7 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors shadow-lg"
+                    onClick={() => setPhotos(prev => prev.filter((_, idx) => idx !== i))}
+                    className="absolute top-0 right-0 bg-red-500 text-white size-5 rounded-bl-lg flex items-center justify-center shadow-lg"
                   >
-                    <span className="material-symbols-outlined text-sm">close</span>
+                    <span className="material-symbols-outlined text-[10px]">close</span>
                   </button>
                 </div>
-              ) : (
+              ))}
+              {photos.length < 10 && (
                 <>
-                  <input type="file" id="afterPhotoExec" accept="image/*" className="hidden" onChange={handlePhotoUpload} disabled={uploadingPhoto} />
+                  <input type="file" id="photo-checkout-final" className="hidden" accept="image/*" onChange={handlePhotoUpload} />
                   <button
-                    type="button"
-                    onClick={() => document.getElementById('afterPhotoExec')?.click()}
+                    onClick={() => document.getElementById('photo-checkout-final')?.click()}
                     disabled={uploadingPhoto}
-                    className="w-full px-4 py-2 bg-primary text-white rounded-xl text-sm font-bold hover:bg-primary-hover transition-colors flex items-center justify-center gap-2"
+                    className="size-16 shrink-0 rounded-lg bg-slate-50 dark:bg-black/20 border-2 border-dashed border-slate-200 dark:border-gray-800 flex items-center justify-center text-slate-400"
                   >
-                    {uploadingPhoto ? 'Carregando...' : <><span className="material-symbols-outlined text-sm">add_a_photo</span> Adicionar Foto</>}
+                    {uploadingPhoto ? (
+                      <div className="w-5 h-5 border-2 border-emerald-500 border-t-transparent animate-spin rounded-full"></div>
+                    ) : (
+                      <span className="material-symbols-outlined">add_a_photo</span>
+                    )}
                   </button>
                 </>
               )}
             </div>
-          )}
+          </section>
+
+          {/* Pertences (Common) */}
+          <section className="bg-white dark:bg-[#1a1a1a] rounded-2xl p-5 border border-slate-100 dark:border-gray-800 space-y-4 mb-4 shadow-sm">
+            <div className="flex items-center gap-2 text-emerald-500">
+              <span className="material-symbols-outlined text-xl">inventory_2</span>
+              <h3 className="text-xs font-black uppercase italic">Pertences</h3>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              {[
+                { id: 'coleira', label: 'Coleira' },
+                { id: 'guia', label: 'Guia' },
+                { id: 'peitoral', label: 'Peitoral' },
+                { id: 'brinquedo', label: 'Brinquedo' },
+                { id: 'outros', label: 'Outros' }
+              ].map(p => (
+                <button
+                  key={p.id}
+                  onClick={() => setBelongings({ ...belongings, [p.id as keyof typeof belongings]: !belongings[p.id as keyof typeof belongings] })}
+                  className={`flex items-center gap-2 p-2 rounded-xl border-2 transition-all text-left ${belongings[p.id as keyof typeof belongings] ? 'bg-emerald-50 border-emerald-500 text-emerald-600' : 'bg-slate-50 dark:bg-[#111] border-transparent text-slate-400'}`}
+                >
+                  <span className="material-symbols-outlined text-sm">{belongings[p.id as keyof typeof belongings] ? 'check_circle' : 'circle'}</span>
+                  <span className="text-[10px] font-bold uppercase">{p.label}</span>
+                </button>
+              ))}
+            </div>
+            <label className="flex items-center gap-3 p-4 bg-emerald-50/50 dark:bg-emerald-900/10 rounded-2xl border border-emerald-100 dark:border-emerald-800 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={belongingsConfirmed}
+                onChange={e => setBelongingsConfirmed(e.target.checked)}
+                className="w-5 h-5 rounded border-emerald-300 text-emerald-500 focus:ring-emerald-500"
+              />
+              <span className="text-[10px] font-black uppercase text-emerald-700 dark:text-emerald-400">Confirmo que todos os pertences foram devolvidos ao cliente</span>
+            </label>
+          </section>
+
         </div>
 
         {/* Footer */}
-        <div className="p-5 border-t border-slate-100 dark:border-gray-800 flex gap-3">
-          <button onClick={onClose} className="flex-1 py-2.5 text-sm font-bold text-slate-500 rounded-xl hover:bg-slate-100 dark:hover:bg-white/5">Cancelar</button>
+        <div className="p-6 bg-white dark:bg-[#1a1a1a] border-t border-slate-100 dark:border-gray-800 flex gap-3 shrink-0 shadow-lg">
+          <button onClick={onClose} className="flex-1 py-4 text-xs font-black uppercase text-slate-400 hover:bg-slate-50 rounded-2xl transition-all">Cancelar</button>
           <button
-            onClick={() => onConfirm(Object.keys(formData).filter(k => formData[k] === true), afterPhoto || undefined)}
-            className="flex-1 py-2.5 bg-primary text-white text-sm font-bold rounded-xl hover:bg-primary-hover shadow-lg"
+            onClick={handleSubmit}
+            disabled={!belongingsConfirmed}
+            className="flex-2 py-4 bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-black uppercase rounded-2xl shadow-xl shadow-emerald-500/20 transition-all active:scale-95 disabled:opacity-50 disabled:grayscale"
           >
-            {isLastStep ? 'Finalizar Serviço' : 'Salvar e Avançar'}
+            Finalizar Atendimento
           </button>
         </div>
       </div>
@@ -720,11 +1268,54 @@ const PrintReceipt: React.FC<{ task: ServiceTask, amount: number, paymentMethod:
   );
 };
 
+// --- Timer Component ---
+const ExecutionTimer: React.FC<{ startTime?: string; duration?: number }> = ({ startTime, duration }) => {
+  const [elapsed, setElapsed] = useState('');
+
+  useEffect(() => {
+    if (!startTime) {
+      setElapsed('00:00');
+      return;
+    }
+
+    const start = new Date(startTime).getTime();
+
+    const update = () => {
+      const now = new Date().getTime();
+      const diff = Math.max(0, now - start);
+
+      const hours = Math.floor(diff / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+      const hStr = hours > 0 ? `${hours}:` : '';
+      const mStr = String(minutes).padStart(2, '0');
+      const sStr = String(seconds).padStart(2, '0');
+
+      setElapsed(`${hStr}${mStr}:${sStr}`);
+    };
+
+    update();
+    const interval = setInterval(update, 1000);
+    return () => clearInterval(interval);
+  }, [startTime]);
+
+  return (
+    <div className="flex items-center gap-1.5 px-3 py-1 bg-primary/10 rounded-full border border-primary/20">
+      <span className="material-symbols-outlined text-xs text-primary animate-pulse">timer</span>
+      <span className="text-xs font-black text-primary font-mono lowercase">
+        {elapsed} {duration ? `/ ${duration} min` : ''}
+      </span>
+    </div>
+  );
+};
+
 
 export const Execution: React.FC<{ onNavigate?: (screen: any, state?: any) => void }> = ({ onNavigate }) => {
   const [tasks, setTasks] = useState<ServiceTask[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedTask, setSelectedTask] = useState<ServiceTask | null>(null);
+  const [checkinTask, setCheckinTask] = useState<ServiceTask | null>(null);
   const [detailsTask, setDetailsTask] = useState<ServiceTask | null>(null);
   const [detailsPhoto, setDetailsPhoto] = useState<string | undefined>(undefined);
   const [deliveryTask, setDeliveryTask] = useState<ServiceTask | null>(null);
@@ -762,7 +1353,7 @@ export const Execution: React.FC<{ onNavigate?: (screen: any, state?: any) => vo
       .order('start_time', { ascending: true });
 
     if (!error && appts) {
-      const { data: services } = await supabase.from('services').select('name, checklist, category');
+      const { data: services } = await supabase.from('services').select('name, checklist, category, checkin_checklist, checkout_checklist');
 
       const mapped: ServiceTask[] = appts.filter(a => a.status !== 'cancelled').map(a => {
         const svcInfo = services?.find(s => s.name === a.service);
@@ -777,19 +1368,22 @@ export const Execution: React.FC<{ onNavigate?: (screen: any, state?: any) => vo
           petAvatar: a.pets?.img || `https://ui-avatars.com/api/?name=${encodeURIComponent(a.pets?.name || 'P')}&background=random`,
           serviceType: a.service,
           category: svcInfo?.category || 'Geral',
-          status: (a.status as ServiceStage) || 'waiting',
+          status: (a.status === 'pending' ? 'waiting' : a.status) as ServiceStage || 'waiting',
           currentStepIndex: a.current_step || 0,
           checklist: svcInfo?.checklist || [],
           checkedItems: a.checklist_state || [],
           steps: [
             { label: 'Check-in', key: 'waiting' },
-            { label: svcInfo?.category === 'Banho & Tosa' ? 'Banho' : 'Execução', key: 'in-progress' },
-            { label: svcInfo?.category === 'Banho & Tosa' ? 'Tosa' : 'Finalização', key: 'ready' },
-            { label: 'Retirada', key: 'finished' }
+            { label: 'Execução', key: 'in-progress' },
+            { label: 'Pronto', key: 'ready' }
           ],
+          execution_started_at: (a.checklist_state || []).find((s: any) => typeof s === 'string' && s.startsWith('TIMER:'))?.replace('TIMER:', ''),
           notes: a.notes || '',
+          duration: a.duration || 60,
           responsible: a.professional || 'Não designado',
-          responsibleAvatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(a.professional || 'NA')}&background=random`
+          responsibleAvatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(a.professional || 'NA')}&background=random`,
+          checkin_checklist: svcInfo?.checkin_checklist,
+          checkout_checklist: svcInfo?.checkout_checklist
         };
       });
       setTasks(mapped);
@@ -799,26 +1393,41 @@ export const Execution: React.FC<{ onNavigate?: (screen: any, state?: any) => vo
 
   useEffect(() => { fetchTasks(); }, []);
 
-  const handleUpdateProgress = async (checkedIds: string[], afterPhotoUrl?: string) => {
-    if (!selectedTask) return;
+  const handleUpdateProgress = async (checkedIds: string[], afterPhotoUrl?: any, taskOverride?: ServiceTask) => {
+    const activeTask = taskOverride || selectedTask;
+    if (!activeTask) return;
 
     try {
-      let nextStatus = selectedTask.status;
-      let nextStep = selectedTask.currentStepIndex;
+      let nextStatus = activeTask.status;
+      let nextStep = activeTask.currentStepIndex;
 
-      const isLastStep = selectedTask.currentStepIndex === selectedTask.steps.length - 1;
+      const isLastStep = activeTask.currentStepIndex === activeTask.steps.length - 1;
+      let updatedChecklist = [...checkedIds];
 
-      if (!isLastStep) {
+      if (!isLastStep && activeTask.steps && activeTask.steps[nextStep + 1]) {
         nextStep += 1;
-        nextStatus = selectedTask.steps[nextStep].key as ServiceStage;
-      } else {
-        // When finishing the last step, set to 'ready' for delivery, not 'finished'
-        nextStatus = 'ready';
+        nextStatus = activeTask.steps[nextStep].key as ServiceStage;
+
+        // If moving to 'in-progress', record start time
+        if (nextStatus === 'in-progress') {
+          const now = new Date().toISOString();
+          updatedChecklist.push(`TIMER:${now}`);
+        }
+
+        // Add checkin/checkout data if provided
+        if (afterPhotoUrl && typeof afterPhotoUrl === 'object') {
+          const prefix = activeTask.currentStepIndex === 0 ? 'CHECKIN:' : 'CHECKOUT:';
+          const payload = `${prefix}${JSON.stringify(afterPhotoUrl)}`;
+          updatedChecklist.push(payload);
+        }
+      } else if (isLastStep || !activeTask.steps) {
+        // Fallback for unexpected state
+        nextStatus = 'finished';
       }
 
       console.log('=== UPDATE PROGRESS DEBUG ===');
-      console.log('Appointment ID:', selectedTask.appointmentId);
-      console.log('Current step:', selectedTask.currentStepIndex);
+      console.log('Appointment ID:', activeTask.appointmentId);
+      console.log('Current step:', activeTask.currentStepIndex);
       console.log('Next step:', nextStep);
       console.log('Next status:', nextStatus);
       console.log('Checked IDs:', checkedIds);
@@ -826,11 +1435,11 @@ export const Execution: React.FC<{ onNavigate?: (screen: any, state?: any) => vo
       const { error } = await supabase
         .from('appointments')
         .update({
-          checklist_state: checkedIds,
+          checklist_state: updatedChecklist,
           current_step: nextStep,
           status: nextStatus
         })
-        .eq('id', selectedTask.appointmentId);
+        .eq('id', activeTask.appointmentId);
 
       if (error) {
         console.error('Update error:', error);
@@ -838,54 +1447,63 @@ export const Execution: React.FC<{ onNavigate?: (screen: any, state?: any) => vo
         return;
       }
 
-      // If there's an after photo, add it to the pet's gallery
-      if (afterPhotoUrl && selectedTask.petId) {
-        const { data: petData, error: fetchError } = await supabase
-          .from('pets')
-          .select('gallery')
-          .eq('id', selectedTask.petId)
-          .single();
+      // If there's an after photo or checkout photos, add them to the pet's gallery
+      try {
+        const payloadData = typeof afterPhotoUrl === 'object' ? (afterPhotoUrl as any) : null;
+        let photosToSave: string[] = [];
 
-        if (fetchError) {
-          console.error('Error fetching pet:', fetchError);
-        } else if (petData) {
-          const currentGallery = petData.gallery || [];
-          const newGallery = [...currentGallery, afterPhotoUrl];
+        if (Array.isArray(payloadData?.photos)) {
+          photosToSave = payloadData.photos;
+        } else if (typeof afterPhotoUrl === 'string') {
+          photosToSave = [afterPhotoUrl];
+        }
 
-          const { error: galleryError } = await supabase
+        if (photosToSave.length > 0 && activeTask.petId) {
+          const { data: petData } = await supabase
             .from('pets')
-            .update({ gallery: newGallery })
-            .eq('id', selectedTask.petId);
+            .select('gallery')
+            .eq('id', activeTask.petId)
+            .single();
 
-          if (galleryError) {
-            console.error('Error saving to gallery:', galleryError);
-            showNotification('Progresso salvo, mas erro ao adicionar foto à galeria', 'warning');
-          } else {
-            showNotification(`✅ ${selectedTask.petName} - Foto adicionada à galeria!`, 'success');
+          if (petData) {
+            const currentGallery = Array.isArray(petData.gallery) ? petData.gallery : [];
+            const newGallery = [...currentGallery, ...photosToSave];
+
+            await supabase
+              .from('pets')
+              .update({ gallery: newGallery })
+              .eq('id', activeTask.petId);
+
+            showNotification(`✅ ${activeTask.petName} - ${photosToSave.length} foto(s) adicionada(s) à galeria!`, 'success');
           }
         }
+      } catch (galleryErr) {
+        console.error('Error updating pet gallery:', galleryErr);
       }
 
-      showNotification(`${selectedTask.petName} avançou para ${selectedTask.steps[nextStep].label}!`, 'success');
+      const nextLabel = activeTask.steps && activeTask.steps[nextStep] ? activeTask.steps[nextStep].label : 'Próxima Etapa';
+      showNotification(`${activeTask.petName} avançou para ${nextLabel}!`, 'success');
 
       // If at step before "Retirada", get ready to open Delivery Modal
-      if (nextStatus === 'ready' && isLastStep) {
-        // Find the service to get its price
+      // If moving to "Ready" status, open Delivery Modal automatically
+      if (nextStatus === 'ready') {
         const { data: serviceData } = await supabase
           .from('services')
           .select('price_pequeno, price')
-          .eq('name', selectedTask.serviceType)
+          .eq('name', activeTask.serviceType)
           .single();
 
         const price = serviceData?.price_pequeno || serviceData?.price || 0;
         setInitialPrice(price);
-        setDeliveryTask(selectedTask);
-        setSelectedTask(null); // Close ChecklistModal
+        setDeliveryTask(activeTask);
+        setSelectedTask(null);
+        setCheckinTask(null);
         fetchTasks();
       } else {
         fetchTasks();
-        setSelectedTask(null);
       }
+      setSelectedTask(null);
+      setCheckinTask(null);
     } catch (err: any) {
       console.error('Unexpected error:', err);
       showNotification(`Erro inesperado: ${err.message}`, 'error');
@@ -893,6 +1511,7 @@ export const Execution: React.FC<{ onNavigate?: (screen: any, state?: any) => vo
   };
 
   const handleOpenDelivery = async (task: ServiceTask) => {
+
     // Find the service to get its price
     const { data: serviceData } = await supabase
       .from('services')
@@ -956,14 +1575,12 @@ export const Execution: React.FC<{ onNavigate?: (screen: any, state?: any) => vo
     }
   };
 
-  const categories = ['TODOS', 'BANHO & TOSA', 'VETERINÁRIO', 'DAY CARE', 'PRONTOS', 'FINALIZADOS'];
+  const categories = ['TODOS', 'BANHO & TOSA', 'VETERINÁRIO', 'DAY CARE', 'FINALIZADOS'];
   const filteredTasks = categoryFilter === 'TODOS'
     ? tasks.filter(t => t.status !== 'finished')
     : categoryFilter === 'FINALIZADOS'
       ? tasks.filter(t => t.status === 'finished')
-      : categoryFilter === 'PRONTOS'
-        ? tasks.filter(t => t.status === 'ready')
-        : tasks.filter(t => t.category === categoryFilter && t.status !== 'finished');
+      : tasks.filter(t => t.category === categoryFilter && t.status !== 'finished');
 
   const inProgressCount = tasks.filter(t => t.status === 'in-progress').length;
 
@@ -1003,7 +1620,8 @@ export const Execution: React.FC<{ onNavigate?: (screen: any, state?: any) => vo
         }
       `}</style>
 
-      {selectedTask && <ChecklistModal isOpen={!!selectedTask} onClose={() => setSelectedTask(null)} onConfirm={handleUpdateProgress} task={selectedTask} />}
+      {selectedTask && <CheckoutModal isOpen={!!selectedTask} onClose={() => setSelectedTask(null)} onConfirm={handleUpdateProgress} task={selectedTask} />}
+      {checkinTask && <CheckinModal isOpen={!!checkinTask} onClose={() => setCheckinTask(null)} onConfirm={(checkedIds, data) => handleUpdateProgress(checkedIds, data, checkinTask)} task={checkinTask} />}
       {detailsTask && <TimelineDetailsModal isOpen={!!detailsTask} onClose={() => { setDetailsTask(null); setDetailsPhoto(undefined); }} task={detailsTask} finalPhoto={detailsPhoto} />}
       {deliveryTask && (
         <DeliveryModal
@@ -1037,12 +1655,8 @@ export const Execution: React.FC<{ onNavigate?: (screen: any, state?: any) => vo
               <p className="text-[9px] font-bold uppercase text-purple-200 tracking-wider">Andamento</p>
             </div>
             <div className="text-center px-6 py-4 bg-emerald-500 rounded-2xl border border-emerald-400">
-              <p className="text-3xl font-black text-white mb-1">{tasks.filter(t => t.status === 'ready').length}</p>
-              <p className="text-[9px] font-bold uppercase text-emerald-100 tracking-wider">Prontos</p>
-            </div>
-            <div className="text-center px-6 py-4 bg-gray-900 rounded-2xl border border-gray-800">
-              <p className="text-3xl font-black text-gray-400 mb-1">{tasks.filter(t => t.status === 'finished').length}</p>
-              <p className="text-[9px] font-bold uppercase text-gray-500 tracking-wider">Finalizados</p>
+              <p className="text-3xl font-black text-white mb-1">{tasks.filter(t => t.status === 'finished').length}</p>
+              <p className="text-[9px] font-bold uppercase text-emerald-100 tracking-wider">Finalizados</p>
             </div>
           </div>
         </div>
@@ -1079,12 +1693,13 @@ export const Execution: React.FC<{ onNavigate?: (screen: any, state?: any) => vo
                   <span className="px-3 py-1 bg-gray-800 text-white text-[9px] font-black uppercase rounded-full">{task.serviceType}</span>
                 </div>
                 <h3 className="text-2xl font-black text-white uppercase italic">{task.petName}</h3>
-                {task.status === 'ready' ? (
-                  <p className="text-xs uppercase font-bold mb-1 text-emerald-400 animate-pulse">PRONTO PARA ENTREGA / RETIRADA</p>
-                ) : task.status === 'finished' ? (
-                  <p className="text-xs uppercase font-bold mb-1 text-gray-400">FINALIZADO</p>
+                {task.status === 'finished' ? (
+                  <p className="text-xs uppercase font-bold mb-1 text-emerald-400">SERVIÇO FINALIZADO</p>
                 ) : (
-                  <p className="text-xs uppercase font-bold mb-1" style={{ color: task.category === 'Banho & Tosa' ? '#a855f7' : task.category === 'Veterinário' ? '#f59e0b' : '#10b981' }}>EM ANDAMENTO</p>
+                  <div className="flex items-center gap-3 mb-1">
+                    <p className="text-xs uppercase font-bold" style={{ color: task.category === 'Banho & Tosa' ? '#a855f7' : task.category === 'Veterinário' ? '#f59e0b' : '#10b981' }}>EM ANDAMENTO</p>
+                    {task.status === 'in-progress' && <ExecutionTimer startTime={task.execution_started_at} duration={task.duration} />}
+                  </div>
                 )}
                 <p className="text-xs text-gray-400 uppercase">{task.breed} • {task.ownerName}</p>
 
@@ -1134,6 +1749,7 @@ export const Execution: React.FC<{ onNavigate?: (screen: any, state?: any) => vo
                   onClick={() => {
                     if (task.status === 'finished') openDetailsModal(task);
                     else if (task.status === 'ready') handleOpenDelivery(task);
+                    else if (task.status === 'waiting') setCheckinTask(task);
                     else setSelectedTask(task);
                   }}
                   className={`px-6 py-3 ${task.status === 'finished' ? 'bg-gray-700 hover:bg-gray-600' : task.status === 'ready' ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-500/20' : getButtonColor(task.category)} text-white text-sm font-black rounded-xl shadow-lg transition-all hover:scale-105 flex items-center gap-2`}
@@ -1145,13 +1761,18 @@ export const Execution: React.FC<{ onNavigate?: (screen: any, state?: any) => vo
                     </>
                   ) : task.status === 'ready' ? (
                     <>
-                      <span className="material-symbols-outlined text-[20px]">inventory_2</span>
+                      <span className="material-symbols-outlined text-[20px]">local_shipping</span>
                       ENTREGAR PET
+                    </>
+                  ) : task.currentStepIndex === 1 ? (
+                    <>
+                      <span className="material-symbols-outlined text-[20px]">logout</span>
+                      CHECK-OUT
                     </>
                   ) : (
                     <>
-                      <span className="material-symbols-outlined text-[18px]">play_arrow</span>
-                      PRÓXIMA ETAPA
+                      <span className="material-symbols-outlined text-[18px]">login</span>
+                      CHECK-IN
                     </>
                   )}
                 </button>

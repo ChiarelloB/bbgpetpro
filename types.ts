@@ -79,4 +79,5 @@ export interface Appointment {
   delivery_status?: string;
   current_step?: number;
   checklist_state?: string[];
+  execution_started_at?: string;
 }

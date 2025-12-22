@@ -71,6 +71,8 @@ interface ServiceItem {
   items_medio?: CostItem[];
   items_grande?: CostItem[];
   items_gigante?: CostItem[];
+  checkin_checklist?: AdvancedChecklistTemplate;
+  checkout_checklist?: AdvancedChecklistTemplate;
 }
 
 
@@ -117,8 +119,10 @@ const ServiceForm: React.FC<{
     medio: initialData?.items_medio || [],
     grande: initialData?.items_grande || [],
     gigante: initialData?.items_gigante || []
-
   });
+  const [checkinChecklist, setCheckinChecklist] = useState<AdvancedChecklistTemplate | null>(initialData?.checkin_checklist || null);
+  const [checkoutChecklist, setCheckoutChecklist] = useState<AdvancedChecklistTemplate | null>(initialData?.checkout_checklist || null);
+  const [editingChecklistType, setEditingChecklistType] = useState<'checkin' | 'checkout' | null>(null);
   const [selectedPorteProductId, setSelectedPorteProductId] = useState('');
   const [selectedPorteQty, setSelectedPorteQty] = useState('1');
 
@@ -306,6 +310,13 @@ const ServiceForm: React.FC<{
     }
     setAdvancedTemplates(updated);
     saveAdvancedTemplates(updated);
+
+    // If we're editing a specific checklist for the service, update it too
+    if (editingChecklistType === 'checkin') {
+      setCheckinChecklist(template);
+    } else if (editingChecklistType === 'checkout') {
+      setCheckoutChecklist(template);
+    }
   };
 
 
@@ -361,7 +372,9 @@ const ServiceForm: React.FC<{
       items_pequeno: itemsPorPorte.pequeno,
       items_medio: itemsPorPorte.medio,
       items_grande: itemsPorPorte.grande,
-      items_gigante: itemsPorPorte.gigante
+      items_gigante: itemsPorPorte.gigante,
+      checkin_checklist: checkinChecklist,
+      checkout_checklist: checkoutChecklist
     });
   };
 
@@ -371,8 +384,12 @@ const ServiceForm: React.FC<{
     <>
       <TemplateBuilderModal
         isOpen={isTemplateBuilderOpen}
-        onClose={() => setIsTemplateBuilderOpen(false)}
+        onClose={() => {
+          setIsTemplateBuilderOpen(false);
+          setEditingChecklistType(null);
+        }}
         onSave={handleSaveAdvancedTemplate}
+        initialData={editingChecklistType === 'checkin' ? checkinChecklist : editingChecklistType === 'checkout' ? checkoutChecklist : null}
       />
       <div className="bg-[#111] rounded-3xl shadow-2xl w-full max-w-5xl relative z-10 overflow-hidden animate-in zoom-in-95 duration-200 border border-white/5">
         <div className="p-8 border-b border-white/5 flex justify-between items-center">
@@ -455,61 +472,26 @@ const ServiceForm: React.FC<{
             <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
               <h3 className="text-[10px] font-black uppercase text-primary mb-4 tracking-widest">💰 Preços por Porte</h3>
               <div className="grid grid-cols-5 gap-3">
-                <div>
-                  <label className="block text-[10px] font-black uppercase text-white/60 mb-2 tracking-widest">Mini</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={priceMini}
-                    onChange={e => setPriceMini(e.target.value)}
-                    className="w-full h-12 rounded-xl border-white/10 bg-white/5 text-white font-bold focus:ring-primary px-3 text-sm"
-                    placeholder="0.00"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[10px] font-black uppercase text-white/60 mb-2 tracking-widest">Pequeno</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={pricePequeno}
-                    onChange={e => setPricePequeno(e.target.value)}
-                    className="w-full h-12 rounded-xl border-white/10 bg-white/5 text-white font-bold focus:ring-primary px-3 text-sm"
-                    placeholder="0.00"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[10px] font-black uppercase text-white/60 mb-2 tracking-widest">Médio</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={priceMedio}
-                    onChange={e => setPriceMedio(e.target.value)}
-                    className="w-full h-12 rounded-xl border-white/10 bg-white/5 text-white font-bold focus:ring-primary px-3 text-sm"
-                    placeholder="0.00"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[10px] font-black uppercase text-white/60 mb-2 tracking-widest">Grande</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={priceGrande}
-                    onChange={e => setPriceGrande(e.target.value)}
-                    className="w-full h-12 rounded-xl border-white/10 bg-white/5 text-white font-bold focus:ring-primary px-3 text-sm"
-                    placeholder="0.00"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[10px] font-black uppercase text-white/60 mb-2 tracking-widest">Gigante</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={priceGigante}
-                    onChange={e => setPriceGigante(e.target.value)}
-                    className="w-full h-12 rounded-xl border-white/10 bg-white/5 text-white font-bold focus:ring-primary px-3 text-sm"
-                    placeholder="0.00"
-                  />
-                </div>
+                {(['mini', 'pequeno', 'medio', 'grande', 'gigante'] as const).map(porte => (
+                  <div key={porte}>
+                    <label className="block text-[10px] font-black uppercase text-white/60 mb-2 tracking-widest">{porte.charAt(0).toUpperCase() + porte.slice(1)}</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={porte === 'mini' ? priceMini : porte === 'pequeno' ? pricePequeno : porte === 'medio' ? priceMedio : porte === 'grande' ? priceGrande : priceGigante}
+                      onChange={e => {
+                        const v = e.target.value;
+                        if (porte === 'mini') setPriceMini(v);
+                        else if (porte === 'pequeno') setPricePequeno(v);
+                        else if (porte === 'medio') setPriceMedio(v);
+                        else if (porte === 'grande') setPriceGrande(v);
+                        else setPriceGigante(v);
+                      }}
+                      className="w-full h-12 rounded-xl border-white/10 bg-white/5 text-white font-bold focus:ring-primary px-3 text-sm text-center"
+                      placeholder="0.00"
+                    />
+                  </div>
+                ))}
               </div>
               <p className="text-xs text-white/40 mt-3 italic">O sistema calculará automaticamente o preço correto no agendamento baseado no porte do pet.</p>
             </div>
@@ -622,6 +604,72 @@ const ServiceForm: React.FC<{
             </div>
 
 
+            {/* Advanced Check-in/Check-out Configuration */}
+            <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
+              <h3 className="text-[10px] font-black uppercase text-primary mb-4 tracking-widest">📋 Checklists Avançados</h3>
+              <div className="space-y-4">
+                {/* Check-in */}
+                <div>
+                  <label className="block text-[10px] font-black uppercase text-white/40 mb-2 tracking-widest">Checklist de Início (Check-in)</label>
+                  <div className="flex gap-2">
+                    <select
+                      value={checkinChecklist?.id || ''}
+                      onChange={(e) => {
+                        const template = advancedTemplates.find(t => t.id === e.target.value);
+                        setCheckinChecklist(template || null);
+                      }}
+                      className="flex-1 h-10 rounded-xl border-white/10 bg-white/5 text-white text-xs font-bold px-3"
+                    >
+                      <option value="">Nenhum (Usar Padrão)</option>
+                      {advancedTemplates.map(t => (
+                        <option key={t.id} value={t.id}>{t.name}</option>
+                      ))}
+                    </select>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingChecklistType('checkin');
+                        setIsTemplateBuilderOpen(true);
+                      }}
+                      className="w-10 h-10 rounded-xl bg-primary/20 text-primary flex items-center justify-center hover:bg-primary hover:text-white transition-all"
+                    >
+                      <span className="material-symbols-outlined text-sm">{checkinChecklist ? 'edit' : 'add'}</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Check-out */}
+                <div>
+                  <label className="block text-[10px] font-black uppercase text-white/40 mb-2 tracking-widest">Checklist de Finalização (Check-out)</label>
+                  <div className="flex gap-2">
+                    <select
+                      value={checkoutChecklist?.id || ''}
+                      onChange={(e) => {
+                        const template = advancedTemplates.find(t => t.id === e.target.value);
+                        setCheckoutChecklist(template || null);
+                      }}
+                      className="flex-1 h-10 rounded-xl border-white/10 bg-white/5 text-white text-xs font-bold px-3"
+                    >
+                      <option value="">Nenhum (Usar Padrão)</option>
+                      {advancedTemplates.map(t => (
+                        <option key={t.id} value={t.id}>{t.name}</option>
+                      ))}
+                    </select>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingChecklistType('checkout');
+                        setIsTemplateBuilderOpen(true);
+                      }}
+                      className="w-10 h-10 rounded-xl bg-primary/20 text-primary flex items-center justify-center hover:bg-primary hover:text-white transition-all"
+                    >
+                      <span className="material-symbols-outlined text-sm">{checkoutChecklist ? 'edit' : 'add'}</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <p className="text-[10px] text-white/30 mt-3 italic leading-tight">Combine o Checklist de Execução com templates detalhados de entrada e saída.</p>
+            </div>
 
 
             <div className="grid grid-cols-2 gap-6">
@@ -639,7 +687,9 @@ const ServiceForm: React.FC<{
               <label className="block text-[10px] font-black uppercase text-white/40 mb-2 tracking-widest">Descrição Curta</label>
               <textarea value={description} onChange={e => setDescription(e.target.value)} rows={3} className="w-full rounded-2xl border-white/5 bg-white/5 text-white text-sm font-bold focus:ring-primary p-6 resize-none" placeholder="Breve descrição para o catálogo..." />
             </div>
+          </div>
 
+          <div className="space-y-8">
             <div>
               <label className="block text-[10px] font-black uppercase text-white/40 mb-2 tracking-widest">Checklist de Execução</label>
 
@@ -732,10 +782,6 @@ const ServiceForm: React.FC<{
               )}
             </div>
 
-          </div>
-
-          {/* Right Column */}
-          <div className="space-y-8">
             <div className="bg-white/5 rounded-3xl p-8 border border-white/5 space-y-6">
               <div className="flex justify-between items-end">
                 <h3 className="text-[10px] font-black uppercase text-white/40 tracking-widest">Composição de Custos</h3>
@@ -792,7 +838,6 @@ const ServiceForm: React.FC<{
             </div>
           </div>
 
-          {/* Sticky Footer */}
           <div className="col-span-full pt-8 flex justify-end gap-6 h-auto sticky bottom-0 bg-[#111] py-8 border-t border-white/5 mt-8 z-20">
             <button type="button" onClick={onClose} className="text-white/40 hover:text-white font-black text-xs uppercase tracking-widest px-8 transition-colors">Cancelar</button>
             <button type="submit" className="bg-primary hover:bg-primary-hover text-white font-black text-xs uppercase tracking-widest px-10 py-4 rounded-2xl shadow-xl shadow-primary/30 flex items-center gap-2 transition-all active:scale-95 group">
@@ -893,15 +938,10 @@ export const Services: React.FC = () => {
         items_pequeno: service.items_pequeno || [],
         items_medio: service.items_medio || [],
         items_grande: service.items_grande || [],
-        items_gigante: service.items_gigante || []
+        items_gigante: service.items_gigante || [],
+        checkin_checklist: service.checkin_checklist || null,
+        checkout_checklist: service.checkout_checklist || null
       };
-
-
-
-
-
-
-      console.log('Saving service with price tiers:', dbService);
 
       const { error } = service.id && service.id !== 'undefined' && service.id !== 'null'
         ? await supabase.from('services').update(dbService).eq('id', service.id)

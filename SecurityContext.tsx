@@ -3,6 +3,15 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from './src/lib/supabase';
 import { User } from '@supabase/supabase-js';
 
+interface Tenant {
+  id: string;
+  name: string;
+  slug: string;
+  logo_url: string | null;
+  primary_color: string;
+  settings: Record<string, any>;
+}
+
 interface SecurityContextType {
   user: User | null;
   loading: boolean;
@@ -12,6 +21,8 @@ interface SecurityContextType {
   setIsDbUnlocked: (unlocked: boolean) => void;
   dbPassword: string;
   setDbPassword: (pass: string) => void;
+  tenant: Tenant | null;
+  tenantId: string | null;
 }
 
 const SecurityContext = createContext<SecurityContextType | undefined>(undefined);
@@ -21,26 +32,75 @@ export const SecurityProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [loading, setLoading] = useState(true);
   const [isDbUnlocked, setIsDbUnlocked] = useState(false);
   const [dbPassword, setDbPassword] = useState('admin123'); // Default master password
+  const [tenant, setTenant] = useState<Tenant | null>(null);
+  const [tenantId, setTenantId] = useState<string | null>(null);
 
   useEffect(() => {
     // Check active sessions and sets the user
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
-      setLoading(false);
+      if (session?.user) {
+        fetchTenantInfo(session.user.id);
+      } else {
+        setLoading(false);
+      }
     });
 
     // Listen for changes on auth state (sign in, sign out, etc.)
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
-      setLoading(false);
+      if (session?.user) {
+        fetchTenantInfo(session.user.id);
+      } else {
+        setTenant(null);
+        setTenantId(null);
+        setLoading(false);
+      }
     });
 
     return () => subscription.unsubscribe();
   }, []);
 
+  const fetchTenantInfo = async (userId: string) => {
+    try {
+      // Get user's tenant_id from profile
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('tenant_id')
+        .eq('id', userId)
+        .single();
+
+      if (profileError || !profile?.tenant_id) {
+        console.warn('No tenant found for user, using default');
+        setTenantId('00000000-0000-0000-0000-000000000001');
+        setLoading(false);
+        return;
+      }
+
+      setTenantId(profile.tenant_id);
+
+      // Get tenant details
+      const { data: tenantData, error: tenantError } = await supabase
+        .from('tenants')
+        .select('*')
+        .eq('id', profile.tenant_id)
+        .single();
+
+      if (!tenantError && tenantData) {
+        setTenant(tenantData);
+      }
+    } catch (err) {
+      console.error('Error fetching tenant info:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const signOut = async () => {
     const { error } = await supabase.auth.signOut();
     if (error) console.error('Error signing out:', error.message);
+    setTenant(null);
+    setTenantId(null);
   };
 
   const value = {
@@ -51,7 +111,9 @@ export const SecurityProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     isDbUnlocked,
     setIsDbUnlocked,
     dbPassword,
-    setDbPassword
+    setDbPassword,
+    tenant,
+    tenantId
   };
 
   return (

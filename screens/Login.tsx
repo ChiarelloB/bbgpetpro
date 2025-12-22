@@ -24,22 +24,41 @@ export const Login: React.FC<{ onLogin: (user: any) => void }> = ({ onLogin }) =
         if (error) throw error;
         // AppContext will handle the redirect on session change
       } else if (mode === 'register') {
-        if (masterPassword !== 'brunosraio') {
-          throw new Error('Código de Convite incorreto. Registro não permitido.');
+        // Validate invite code against tenants table
+        const { data: tenantData, error: tenantError } = await supabase
+          .from('tenants')
+          .select('id, name, slug')
+          .eq('invite_code', masterPassword.toLowerCase().trim())
+          .single();
+
+        if (tenantError || !tenantData) {
+          throw new Error('Código de Convite inválido. Verifique com o administrador da empresa.');
         }
+
+        // Create user account
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
             data: {
               full_name: fullName,
-              company_name: companyName,
-              role: role
+              company_name: tenantData.name,
+              role: role,
+              tenant_id: tenantData.id
             }
           }
         });
         if (error) throw error;
-        showNotification('Conta criada! Por favor, verifique seu e-mail.', 'success');
+
+        // Update profile with tenant_id (in case trigger doesn't handle it)
+        if (data.user) {
+          await supabase
+            .from('profiles')
+            .update({ tenant_id: tenantData.id })
+            .eq('id', data.user.id);
+        }
+
+        showNotification(`Conta criada para ${tenantData.name}! Verifique seu e-mail.`, 'success');
         setMode('login');
       }
     } catch (error: any) {
@@ -48,6 +67,7 @@ export const Login: React.FC<{ onLogin: (user: any) => void }> = ({ onLogin }) =
       setIsSubmitting(false);
     }
   };
+
 
   return (
     <div className="min-h-screen w-full flex bg-white dark:bg-[#0f0529] font-sans">

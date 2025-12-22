@@ -36,7 +36,8 @@ export const Delivery: React.FC = () => {
                     pets(id, name, breed, img),
                     clients(id, name)
                 `)
-                .eq('status', 'ready')
+                .eq('status', 'finished')
+                .eq('delivery_status', 'pending') // Only show those not delivery-completed
                 .order('start_time', { ascending: true })
                 .limit(1);
 

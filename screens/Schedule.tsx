@@ -20,10 +20,11 @@ const calculateLayout = (appointments: Appointment[]) => {
   const pixelsPerHour = 80; // h-20 = 80px
 
   const parsedEvents = appointments.map(evt => {
-    const [h, m] = evt.startTime.split(':').map(Number);
-    const start = (h - startHour) * 60 + m;
-    const end = start + evt.duration;
-    return { ...evt, start, end, original: evt };
+    const [h, m] = (evt.startTime || '00:00').split(':').map(Number);
+    const start = (isNaN(h) ? 0 : (h - startHour)) * 60 + (isNaN(m) ? 0 : m);
+    const duration = evt.duration || 60;
+    const end = start + duration;
+    return { ...evt, start, end, duration, original: evt };
   }).sort((a, b) => a.start - b.start || b.duration - a.duration);
 
   const groups: (typeof parsedEvents)[] = [];
@@ -110,6 +111,8 @@ const AppointmentDetailsModal: React.FC<{
       case 'confirmed': return <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide">Confirmado</span>;
       case 'pending': return <span className="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide">Pendente</span>;
       case 'in-progress': return <span className="bg-amber-100 text-amber-700 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide">Em Andamento</span>;
+      case 'ready':
+      case 'finished':
       case 'completed': return <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide">Concluído</span>;
       default: return null;
     }
@@ -294,9 +297,14 @@ const MonthView: React.FC<{
   const weekDays = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 
   const getDayAppointments = (date: Date) => {
-    const dateStr = date.toISOString().split('T')[0];
+    // Use local date formatting to match how appointments are stored
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const dateStr = `${year}-${month}-${day}`;
     return appointments.filter(appt => appt.date === dateStr);
   };
+
 
   return (
     <div className="flex-1 flex flex-col h-full bg-white dark:bg-[#1a1a1a] animate-in fade-in duration-300">
@@ -426,13 +434,22 @@ const DayView: React.FC<{
   const { resources } = useResources();
   const { showNotification } = useNotification();
 
-  const currentDateStr = currentDate.toISOString().split('T')[0];
+  // Use local date string instead of UTC to avoid shifting at night
+  const yearStr = currentDate.getFullYear();
+  const monthStr = String(currentDate.getMonth() + 1).padStart(2, '0');
+  const dayStr = String(currentDate.getDate()).padStart(2, '0');
+  const currentDateStr = `${yearStr}-${monthStr}-${dayStr}`;
   const dateOptions: Intl.DateTimeFormatOptions = { weekday: 'short', day: '2-digit', month: 'long' };
   const formattedDate = currentDate.toLocaleDateString('pt-BR', dateOptions);
 
-  const dailyAppointments = useMemo(() =>
-    appointments.filter(a => a.date === currentDateStr),
-    [appointments, currentDateStr]);
+  const dailyAppointments = useMemo(() => {
+    const filtered = appointments.filter(a => a.date === currentDateStr);
+    console.log('DayView - Current date:', currentDateStr);
+    console.log('DayView - Daily appointments:', filtered);
+    console.log('DayView - All appointments dates:', appointments.map(a => a.date));
+    return filtered;
+  }, [appointments, currentDateStr]);
+
 
   const filteredResources = resources.filter(r =>
     filter === 'Todos' || r.type === filter || (filter === 'Banho & Tosa' && r.type.includes('Banho'))
@@ -628,7 +645,15 @@ const DayView: React.FC<{
                 onDragOver={handleDragOver}
                 onDrop={(e) => handleDrop(e, resource.id)}
               >
-                {calculateLayout(dailyAppointments.filter(a => a.resourceId === resource.id)).map(appt => (
+                {calculateLayout(dailyAppointments.filter(a => {
+                  // Show appointments that match this resource OR
+                  // Show unassigned appointments in the first resource column
+                  const isFirstResource = filteredResources[0]?.id === resource.id;
+                  const matchesResource = a.resourceId === resource.id;
+                  const isUnassigned = !a.resourceId || a.resourceId === '';
+                  return matchesResource || (isFirstResource && isUnassigned);
+                })).map(appt => (
+
                   <div
                     key={appt.id}
                     draggable="true"
@@ -687,9 +712,20 @@ export const Schedule: React.FC<{ onNavigate: (screen: ScreenType) => void; init
       console.error('Error fetching appointments:', error);
       showNotification('Erro ao carregar agenda', 'error');
     } else {
-      setAppointmentsList((data || []).map(a => {
-        const startTime = new Date(a.start_time);
-        // Use local date formatting to avoid UTC conversion
+      console.log('Raw appointments from Supabase:', data);
+      const mappedAppointments = (data || []).map(a => {
+        // Parse database timestamp without timezone shifting if possible
+        // If it's stored as 'YYYY-MM-DD HH:MM:SS+00' or similar, we normalize it
+        let startTime: Date;
+        if (typeof a.start_time === 'string' && a.start_time.includes('T')) {
+          // If it has a T, it's likely ISO. We want to treat it as local wall-clock
+          // if it was saved as YYYY-MM-DDTHH:MM:SS
+          startTime = new Date(a.start_time.replace('Z', '')); // Strip Z to avoid UTC shift
+        } else {
+          startTime = new Date(a.start_time);
+        }
+
+        // Use local date methods for wall-clock consistency
         const year = startTime.getFullYear();
         const month = String(startTime.getMonth() + 1).padStart(2, '0');
         const day = String(startTime.getDate()).padStart(2, '0');
@@ -714,10 +750,13 @@ export const Schedule: React.FC<{ onNavigate: (screen: ScreenType) => void; init
           professional: a.professional
         };
 
-      }));
+      });
+      console.log('Mapped appointments:', mappedAppointments);
+      setAppointmentsList(mappedAppointments);
     }
     setLoading(false);
   };
+
 
   useEffect(() => {
     fetchAppointments();

@@ -526,7 +526,7 @@ export const PetProfile: React.FC = () => {
         })));
 
         // Fetch Clinical History (from appointments)
-        const { data: appts } = await supabase.from('appointments').select('*').eq('pet_id', petId).in('status', ['completed', 'in-progress']).order('start_time', { ascending: false });
+        const { data: appts } = await supabase.from('appointments').select('*').eq('pet_id', petId).in('status', ['completed', 'in-progress', 'finished']).order('start_time', { ascending: false });
         setClinicalHistory((appts || []).map(a => ({
             id: a.id,
             date: new Date(a.start_time).toLocaleDateString(),

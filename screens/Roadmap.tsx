@@ -163,6 +163,23 @@ const roadmapData: RoadmapItem[] = [
         ]
     },
     {
+        id: 10,
+        title: 'Otimização de Performance',
+        description: 'Melhorias contínuas de performance: lazy loading de componentes pesados, memoização de re-renders, paginação de consultas Supabase e cache inteligente de dados.',
+        status: 'Lançado',
+        date: 'Q4 2025',
+        progress: 100,
+        icon: 'speed',
+        tags: ['Performance', 'UX', 'Infraestrutura'],
+        features: [
+            { label: 'Lazy Loading de Telas', done: true },
+            { label: 'Suspense com Loading Animation', done: true },
+            { label: 'Correção de Memory Leaks', done: true },
+            { label: 'Otimização de Queries', done: true }
+        ]
+    },
+    {
+
         id: 8,
         title: 'Expansão: Franquias & Telemedicina',
         description: 'Ferramentas para redes de franquias (multi-loja) e plataforma de telemedicina veterinária integrada com prescrição digital e prontuário na nuvem.',
@@ -176,14 +193,34 @@ const roadmapData: RoadmapItem[] = [
 
 const changelogHistory: ChangelogEntry[] = [
     {
+        version: 'v3.9.0',
+        date: '22 Dez 2025',
+        type: 'major',
+        title: 'Checklists Dinâmicos & Correções Críticas',
+        changes: [
+            'Implementação de checklists dinâmicos configuráveis por serviço.',
+            'Templates personalizados para Check-in e Check-out com campos customizáveis.',
+            'Suporte a campos: texto, checkbox, dropdown, data, textarea e foto.',
+            'Correção de erro de tela branca no avanço de etapas de serviço.',
+            'Correção de agendamentos não visíveis na agenda detalhada (DayView).',
+            'Correção do bucket de upload de fotos (service-photos).',
+            'Melhoria na compatibilidade de tipos de campos entre TemplateBuilder e modais.',
+            'Proteções defensivas em handleUpdateProgress para evitar crashes.',
+            'Lazy loading já implementado para todas as telas do sistema.'
+        ]
+    },
+    {
+
         version: 'v3.8.0',
         date: '22 Dez 2025',
         type: 'major',
-        title: 'Dashboard Cockpit & Calendário Inteligente',
+        title: 'Dashboard Cockpit & Execução Inteligente',
         changes: [
-            'Novo Dashboard "Cockpit" em tela cheia (Full-Width) sem rolagem vertical.',
+            'Novo Dashboard "Cockpit" full-width sem rolagem vertical.',
+            'Refatoração da Execução: 3 estágios unificados (Check-in, Execução, Checkout).',
+            'Cronômetro Live na tela de serviços para monitoramento operacional em tempo real.',
             'Mini-Agenda Mensal integrada com navegação automática para a Agenda Diária.',
-            'Destaque de Feriados Nacionais em todos os calendários com etiquetas visuais.',
+            'Marcação de Feriados Nacionais em todos os calendários com etiquetas visuais.',
             'Refatoração do Hub Financeiro: Gráficos de receita movidos para a tela Finance.',
             'Sincronização de cores entre KPIs e valores para melhor legibilidade.',
             'Efeito Neon "Pulse" para o dia atual no Dashboard.',
@@ -802,7 +839,7 @@ export const Roadmap: React.FC = () => {
                         <div className="flex gap-3">
                             <div className="flex flex-col items-end">
                                 <span className="text-xs font-bold text-text-muted uppercase tracking-widest mb-1">Versão Atual</span>
-                                <span className="text-2xl font-black italic text-primary">v3.8.0</span>
+                                <span className="text-2xl font-black italic text-primary">v3.9.0</span>
                             </div>
                         </div>
                     </div>
