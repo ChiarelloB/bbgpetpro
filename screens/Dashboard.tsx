@@ -165,14 +165,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
   }
 
   return (
-    <div className="p-6 lg:p-10 max-w-[1600px] mx-auto space-y-8 animate-in fade-in duration-500 relative">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
+    <div className="py-4 lg:py-6 space-y-4 animate-in fade-in duration-500 relative w-full max-w-none overflow-hidden h-full flex flex-col">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 px-6 lg:px-10">
         <div>
-          <h1 className="text-5xl font-black tracking-tight uppercase leading-tight">
-            <div className="text-slate-900 dark:text-white">Quartel</div>
-            <div className="text-primary italic">General</div>
+          <h1 className="text-3xl font-black tracking-tight uppercase leading-tight">
+            <span className="text-slate-900 dark:text-white">Quartel</span>
+            <span className="text-primary italic ml-2">General</span>
           </h1>
-          <p className="text-xs text-gray-400 mt-2">Painel de Performance em Tempo Real</p>
+          <p className="text-[10px] text-gray-400 mt-1">Painel de Performance em Tempo Real</p>
         </div>
         <div className="flex gap-3">
           <button
@@ -193,28 +193,28 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
       </div>
 
       {/* KPI Section */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 px-6 lg:px-10 shrink-0">
         {[
           { title: 'Receita Total', value: `R$ ${stats.revenue.toLocaleString()}`, trend: 'Acumulado', icon: 'payments', color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
           { title: 'Pets Hoje', value: stats.appointments.toString(), trend: 'Hoje', icon: 'pets', color: 'text-primary', bg: 'bg-primary/10' },
           { title: 'Novos Tutores', value: stats.newClients.toString(), trend: '7 dias', icon: 'person_add', color: 'text-blue-500', bg: 'bg-blue-500/10' }
         ].map((card, idx) => (
-          <div key={idx} className="bg-white dark:bg-[#1a1a1a] p-8 rounded-3xl border border-slate-100 dark:border-gray-800 shadow-sm hover:shadow-xl transition-all group overflow-hidden relative">
-            <div className={`absolute top-0 right-0 p-4 ${card.bg} ${card.color} rounded-bl-3xl opacity-60 group-hover:scale-110 transition-transform`}>
-              <span className="material-symbols-outlined text-3xl">{card.icon}</span>
+          <div key={idx} className="bg-white dark:bg-[#1a1a1a] p-4 lg:p-6 rounded-2xl border border-slate-100 dark:border-gray-800 shadow-sm hover:shadow-md transition-all group overflow-hidden relative">
+            <div className={`absolute top-0 right-0 p-3 ${card.bg} ${card.color} rounded-bl-2xl opacity-60`}>
+              <span className="material-symbols-outlined text-xl">{card.icon}</span>
             </div>
-            <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-2">{card.title}</p>
-            <div className="flex items-end gap-3">
-              <span className="text-4xl font-black text-slate-900 dark:text-white italic tracking-tighter">{card.value}</span>
-              <span className="text-[10px] font-black uppercase text-slate-400 mb-1.5">{card.trend}</span>
+            <p className="text-[9px] font-black uppercase text-slate-400 tracking-widest mb-1">{card.title}</p>
+            <div className="flex items-end gap-2">
+              <span className="text-2xl font-black text-slate-900 dark:text-white italic tracking-tighter">{card.value}</span>
+              <span className="text-[9px] font-black uppercase text-slate-400 mb-1">{card.trend}</span>
             </div>
           </div>
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-12 gap-6 px-6 lg:px-10 flex-1 min-h-0">
         {/* Unified Monthly Calendar Component */}
-        <div className="lg:col-span-2 bg-[#141414] p-8 rounded-3xl border border-gray-800/50 shadow-2xl flex flex-col min-h-[720px]">
+        <div className="col-span-12 lg:col-span-8 xl:col-span-9 bg-[#141414] p-6 lg:p-8 rounded-2xl border border-gray-800/50 shadow-2xl flex flex-col min-h-0">
 
 
           <div className="flex-1 flex flex-col">
@@ -226,7 +226,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
               ))}
             </div>
 
-            <div className="grid grid-cols-7 gap-3 flex-1 overflow-hidden">
+            <div className="grid grid-cols-7 gap-2 flex-1 min-h-0">
               {Array.from({ length: 42 }).map((_, i) => {
                 const startOfMonth = new Date(selectedCalendarDate.getFullYear(), selectedCalendarDate.getMonth(), 1);
                 const firstDay = startOfMonth.getDay();
@@ -240,18 +240,18 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                   <div
                     key={i}
                     className={`
-                      min-h-[110px] p-3 rounded-2xl border transition-all flex flex-col gap-2 relative group
-                      ${isCurrentMonth ? 'bg-[#1e1e1e] border-gray-800/40 hover:border-primary/40' : 'bg-transparent border-transparent opacity-10 pointer-events-none'}
-                      ${isToday ? 'border-primary shadow-[0_0_20px_rgba(255,0,128,0.1)]' : ''}
+                      aspect-auto p-2 rounded-xl border transition-all flex flex-col gap-1 relative group flex-1
+                      ${isCurrentMonth ? 'bg-[#1e1e1e] border-gray-800/40 hover:border-primary/40' : 'bg-transparent border-transparent opacity-5 pointer-events-none'}
+                      ${isToday ? 'border-primary' : ''}
                     `}
                   >
-                    <div className="flex justify-between items-center z-10">
-                      <span className={`text-[12px] font-black w-7 h-7 flex items-center justify-center rounded-lg ${isToday ? 'bg-primary text-white shadow-lg' : 'text-gray-400 group-hover:text-white'}`}>
+                    <div className="flex justify-between items-center z-10 shrink-0">
+                      <span className={`text-[10px] font-black w-5 h-5 flex items-center justify-center rounded-md ${isToday ? 'bg-primary text-white shadow-lg' : 'text-gray-500 group-hover:text-white'}`}>
                         {cellDate.getDate()}
                       </span>
                     </div>
 
-                    <div className="space-y-1.5 overflow-y-auto custom-scrollbar flex-1 pr-1">
+                    <div className="space-y-1 overflow-y-auto nike-scroll flex-1 pr-1 min-h-0 max-h-[60px] lg:max-h-none">
                       {cellAppts.map((appt, idx) => (
                         <div
                           key={idx}
@@ -262,8 +262,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                                 'bg-primary/10 text-primary border-primary/20'}
                           `}
                         >
-                          <span className="opacity-70 font-black">{appt.time}</span>
-                          <span className="uppercase truncate">- {appt.pet}</span>
+                          <span className="opacity-70 font-black shrink-0">{appt.time}</span>
+                          <span className="uppercase truncate">{appt.pet}</span>
                         </div>
                       ))}
                     </div>
@@ -275,15 +275,15 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
         </div>
 
         {/* Side Controls & Agenda Stack */}
-        <div className="space-y-6 flex flex-col">
+        <div className="col-span-12 lg:col-span-4 xl:col-span-3 space-y-4 flex flex-col min-h-0">
           {/* Top: Today's Appointments */}
-          <div className="bg-white dark:bg-[#1a1a1a] p-8 rounded-3xl border border-slate-100 dark:border-gray-800 shadow-sm flex flex-col min-h-[350px]">
-            <div className="flex justify-between items-center mb-6">
+          <div className="bg-white dark:bg-[#1a1a1a] p-5 lg:p-6 rounded-2xl border border-slate-100 dark:border-gray-800 shadow-sm flex flex-col min-h-0 max-h-[40%]">
+            <div className="flex justify-between items-center mb-4 shrink-0">
               <div className="flex items-center gap-2">
-                <h3 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-widest italic">Missões de Hoje</h3>
-                <span className="px-2 py-0.5 bg-primary/10 text-primary text-[10px] font-black rounded-lg">{todayAppointments.length}</span>
+                <h3 className="text-[10px] font-black text-slate-900 dark:text-white uppercase tracking-widest italic">Missões de Hoje</h3>
+                <span className="px-1.5 py-0.5 bg-primary/10 text-primary text-[9px] font-black rounded-md">{todayAppointments.length}</span>
               </div>
-              <button onClick={() => onNavigate('schedule')} className="text-slate-400 hover:text-primary transition-colors"><span className="material-symbols-outlined text-[20px]">calendar_view_day</span></button>
+              <button onClick={() => onNavigate('schedule')} className="text-slate-400 hover:text-primary transition-colors"><span className="material-symbols-outlined text-[18px]">calendar_view_day</span></button>
             </div>
 
             <div className="space-y-4 overflow-y-auto pr-2 custom-scrollbar flex-1 max-h-[300px]">
@@ -310,58 +310,52 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
               )}
             </div>
 
-            <button onClick={() => onNavigate('schedule')} className="mt-6 w-full py-3 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-800 transition-all shadow-lg active:scale-95">Ver Todas as Missões</button>
+            <button onClick={() => onNavigate('schedule')} className="mt-4 w-full py-2 bg-slate-900 text-white rounded-lg text-[9px] font-black uppercase tracking-widest hover:bg-slate-800 transition-all shadow-lg active:scale-95 shrink-0">Ver Todas as Missões</button>
           </div>
 
           {/* Middle: Side Controls (Painel de Acesso) */}
-          <div className="bg-white dark:bg-[#1a1a1a] p-8 rounded-3xl border border-slate-100 dark:border-gray-800 shadow-sm">
-            <h3 className="text-xs font-black uppercase text-slate-900 dark:text-white tracking-widest mb-6 italic">Painel de Acesso</h3>
-            <div className="grid grid-cols-2 gap-4">
+          <div className="bg-white dark:bg-[#1a1a1a] p-6 rounded-2xl border border-slate-100 dark:border-gray-800 shadow-sm shrink-0">
+            <h3 className="text-[10px] font-black uppercase text-slate-900 dark:text-white tracking-widest mb-4 italic">Painel de Acesso</h3>
+            <div className="grid grid-cols-2 gap-3">
               {[
                 { label: 'Tutores', icon: 'person_add', color: 'primary', screen: 'clients' },
                 { label: 'Estoque', icon: 'inventory_2', color: 'blue-500', screen: 'inventory' },
                 { label: 'Vendas', icon: 'receipt_long', color: 'emerald-500', screen: 'finance' },
                 { label: 'Notificar', icon: 'campaign', color: 'purple-500', screen: 'communication' }
               ].map((act, i) => (
-                <button key={i} onClick={() => onNavigate(act.screen as any)} className="group p-4 rounded-2xl bg-slate-50 dark:bg-white/5 hover:bg-slate-100 dark:hover:bg-white/10 transition-all flex flex-col items-center gap-3 border border-transparent hover:border-slate-200 dark:hover:border-gray-700">
-                  <span className={`material-symbols-outlined text-${act.color} group-hover:scale-110 transition-transform`}>{act.icon}</span>
-                  <span className="text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-gray-400">{act.label}</span>
+                <button key={i} onClick={() => onNavigate(act.screen as any)} className="group p-3 rounded-xl bg-slate-50 dark:bg-white/5 hover:bg-slate-100 dark:hover:bg-white/10 transition-all flex flex-col items-center gap-2 border border-transparent hover:border-slate-200 dark:hover:border-gray-700">
+                  <span className={`material-symbols-outlined text-sm text-${act.color}`}>{act.icon}</span>
+                  <span className="text-[8px] font-black uppercase tracking-widest text-slate-600 dark:text-gray-400">{act.label}</span>
                 </button>
               ))}
             </div>
           </div>
 
           {/* Bottom: Lançamentos */}
-          <div className="bg-gradient-to-br from-slate-900 to-primary/20 p-8 rounded-3xl border border-white/5 shadow-xl relative overflow-hidden transition-hover duration-300 hover:shadow-2xl hover:shadow-primary/10">
-            <div className="absolute top-0 right-0 p-6 opacity-10">
-              <span className="material-symbols-outlined text-6xl text-white">rocket_launch</span>
+          <div className="bg-gradient-to-br from-slate-900 to-primary/20 p-6 rounded-2xl border border-white/5 shadow-xl relative overflow-hidden shrink-0">
+            <div className="absolute top-0 right-0 p-4 opacity-5">
+              <span className="material-symbols-outlined text-4xl text-white">rocket_launch</span>
             </div>
             <div className="relative z-10">
-              <div className="flex items-center gap-2 mb-4">
-                <span className="px-3 py-1 bg-primary text-white text-[9px] font-black rounded-lg uppercase tracking-widest">Novo v3.7.0</span>
-                <h3 className="text-xs font-black text-white uppercase tracking-widest italic">Lançamentos</h3>
+              <div className="flex items-center gap-2 mb-3">
+                <span className="px-2 py-0.5 bg-primary text-white text-[8px] font-black rounded-md uppercase tracking-widest">v3.7.0</span>
+                <h3 className="text-[9px] font-black text-white uppercase tracking-widest italic">Lançamentos</h3>
               </div>
-              <div className="space-y-4 mb-6">
-                <div className="flex gap-3 items-start">
-                  <span className="material-symbols-outlined text-primary text-[20px]">check_circle</span>
-                  <div>
-                    <p className="text-white text-xs font-bold leading-tight">Gestão de Entrega</p>
-                    <p className="text-slate-400 text-[10px]">Novo modal para finalizar e pagar.</p>
-                  </div>
+              <div className="space-y-3 mb-4">
+                <div className="flex gap-2 items-start">
+                  <span className="material-symbols-outlined text-primary text-[16px]">check_circle</span>
+                  <p className="text-white text-[10px] font-bold leading-tight">Gestão de Entrega</p>
                 </div>
-                <div className="flex gap-3 items-start">
-                  <span className="material-symbols-outlined text-primary text-[20px]">print</span>
-                  <div>
-                    <p className="text-white text-xs font-bold leading-tight">Impressão de Recibo</p>
-                    <p className="text-slate-400 text-[10px]">Gere cupons profissionais na hora.</p>
-                  </div>
+                <div className="flex gap-2 items-start">
+                  <span className="material-symbols-outlined text-primary text-[16px]">print</span>
+                  <p className="text-white text-[10px] font-bold leading-tight">Impressão de Recibo</p>
                 </div>
               </div>
               <button
                 onClick={() => onNavigate('roadmap')}
-                className="w-full py-2.5 bg-white/10 hover:bg-white/20 text-white border border-white/10 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all active:scale-95"
+                className="w-full py-2 bg-white/10 hover:bg-white/20 text-white border border-white/10 rounded-lg text-[8px] font-black uppercase tracking-widest transition-all active:scale-95"
               >
-                Ver Roadmap Completo
+                Ver Roadmap
               </button>
             </div>
           </div>

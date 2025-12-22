@@ -244,7 +244,7 @@ const AppContent: React.FC = () => {
     );
   }
 
-  const isFullHeightScreen = ['schedule', 'execution', 'clients', 'petProfile', 'communication', 'roadmap', 'settings', 'pos', 'database', 'delivery'].includes(currentScreen);
+  const isFullHeightScreen = ['dashboard', 'schedule', 'execution', 'clients', 'petProfile', 'communication', 'roadmap', 'settings', 'pos', 'database', 'delivery'].includes(currentScreen);
 
   return (
     <div className="flex min-h-screen bg-slate-50 dark:bg-[#111] transition-colors duration-300 relative">
