@@ -79,6 +79,7 @@ const AppContent: React.FC = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [posInitialState, setPosInitialState] = useState<any>(null);
+  const [scheduleInitialDate, setScheduleInitialDate] = useState<Date | null>(null);
   const { showNotification } = useNotification();
   const { user, signOut } = useSecurity();
   const [userProfile, setUserProfile] = useState({
@@ -146,6 +147,11 @@ const AppContent: React.FC = () => {
       setPosInitialState(state || null);
     } else {
       setPosInitialState(null);
+    }
+    if (screen === 'schedule') {
+      setScheduleInitialDate(state?.date || null);
+    } else {
+      setScheduleInitialDate(null);
     }
     setCurrentScreen(screen);
     setIsMobileMenuOpen(false);
@@ -216,7 +222,7 @@ const AppContent: React.FC = () => {
     switch (currentScreen) {
       case 'dashboard': return <Dashboard onNavigate={handleNavigate} />;
       case 'userDashboard': return <UserDashboard onNavigate={handleNavigate} userProfile={userProfile} />;
-      case 'schedule': return <Schedule onNavigate={handleNavigate} />;
+      case 'schedule': return <Schedule onNavigate={handleNavigate} initialDate={scheduleInitialDate} />;
       case 'execution': return <Execution onNavigate={handleNavigate} />;
       case 'pos': return <POS initialState={posInitialState} />;
       case 'clients': return <Clients onNavigate={handleNavigate} />;

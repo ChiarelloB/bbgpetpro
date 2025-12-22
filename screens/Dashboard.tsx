@@ -196,8 +196,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 px-6 lg:px-10 shrink-0">
         {[
           { title: 'Receita Total', value: `R$ ${stats.revenue.toLocaleString()}`, trend: 'Acumulado', icon: 'payments', color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
-          { title: 'Pets Hoje', value: stats.appointments.toString(), trend: 'Hoje', icon: 'pets', color: 'text-primary', bg: 'bg-primary/10' },
-          { title: 'Novos Tutores', value: stats.newClients.toString(), trend: '7 dias', icon: 'person_add', color: 'text-blue-500', bg: 'bg-blue-500/10' }
+          { title: 'Pets Hoje', value: stats.appointments.toString(), trend: 'Hoje', icon: 'pets', color: 'text-amber-500', bg: 'bg-amber-500/10' },
+          { title: 'Novos Tutores', value: stats.newClients.toString(), trend: '7 dias', icon: 'person_add', color: 'text-indigo-500', bg: 'bg-indigo-500/10' }
         ].map((card, idx) => (
           <div key={idx} className="bg-white dark:bg-[#1a1a1a] p-4 lg:p-6 rounded-2xl border border-slate-100 dark:border-gray-800 shadow-sm hover:shadow-md transition-all group overflow-hidden relative">
             <div className={`absolute top-0 right-0 p-3 ${card.bg} ${card.color} rounded-bl-2xl opacity-60`}>
@@ -205,7 +205,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
             </div>
             <p className="text-[9px] font-black uppercase text-slate-400 tracking-widest mb-1">{card.title}</p>
             <div className="flex items-end gap-2">
-              <span className="text-2xl font-black text-slate-900 dark:text-white italic tracking-tighter">{card.value}</span>
+              <span className={`text-2xl font-black ${card.color} italic tracking-tighter`}>{card.value}</span>
               <span className="text-[9px] font-black uppercase text-slate-400 mb-1">{card.trend}</span>
             </div>
           </div>
@@ -239,10 +239,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                 return (
                   <div
                     key={i}
+                    onClick={() => onNavigate('schedule', { date: cellDate })}
                     className={`
-                      aspect-auto p-2 rounded-xl border transition-all flex flex-col gap-1 relative group flex-1
-                      ${isCurrentMonth ? 'bg-[#1e1e1e] border-gray-800/40 hover:border-primary/40' : 'bg-transparent border-transparent opacity-5 pointer-events-none'}
-                      ${isToday ? 'border-primary' : ''}
+                      aspect-auto p-2 rounded-xl border transition-all duration-300 flex flex-col gap-1 relative group flex-1 cursor-pointer
+                      hover:scale-[1.02] hover:z-20
+                      ${isCurrentMonth ? 'bg-[#1e1e1e] border-gray-800/40 hover:border-primary/40 hover:shadow-[0_8px_30px_rgb(0,0,0,0.5)]' : 'bg-transparent border-transparent opacity-5 pointer-events-none'}
+                      ${isToday ? 'border-primary ring-1 ring-primary/20 shadow-[0_0_20px_-5px_var(--color-primary)] dark:shadow-[0_0_25px_-5px_var(--color-primary)]' : ''}
                     `}
                   >
                     <div className="flex justify-between items-center z-10 shrink-0">

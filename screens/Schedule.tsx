@@ -648,7 +648,7 @@ const DayView: React.FC<{
   );
 };
 
-export const Schedule: React.FC<{ onNavigate: (screen: ScreenType) => void }> = ({ onNavigate }) => {
+export const Schedule: React.FC<{ onNavigate: (screen: ScreenType) => void; initialDate?: Date | null }> = ({ onNavigate, initialDate }) => {
   const { showNotification } = useNotification();
   const { resources } = useResources();
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -711,6 +711,13 @@ export const Schedule: React.FC<{ onNavigate: (screen: ScreenType) => void }> = 
   useEffect(() => {
     fetchAppointments();
   }, []);
+
+  useEffect(() => {
+    if (initialDate) {
+      setCurrentDate(initialDate);
+      setView('day');
+    }
+  }, [initialDate]);
 
   const handleAdd = async (appt: any) => {
     // Keep timestamp as local time string - Supabase will store it as-is
