@@ -16,6 +16,26 @@ interface CostItem {
   unitPrice: number;
 }
 
+interface ChecklistTemplate {
+  id: string;
+  name: string;
+  items: ChecklistItem[];
+}
+
+const CHECKLIST_TEMPLATES_KEY = 'bbg_checklist_templates';
+
+const loadTemplates = (): ChecklistTemplate[] => {
+  try {
+    const saved = localStorage.getItem(CHECKLIST_TEMPLATES_KEY);
+    return saved ? JSON.parse(saved) : [];
+  } catch { return []; }
+};
+
+const saveTemplates = (templates: ChecklistTemplate[]) => {
+  localStorage.setItem(CHECKLIST_TEMPLATES_KEY, JSON.stringify(templates));
+};
+
+
 interface ServiceItem {
   id: string;
   name: string;
@@ -61,6 +81,11 @@ const ServiceForm: React.FC<{
   const [selectedProductId, setSelectedProductId] = useState('');
   const [selectedQty, setSelectedQty] = useState('1');
   const [variations, setVariations] = useState<Record<string, string>>(initialData?.variations || {});
+  const [templates, setTemplates] = useState<ChecklistTemplate[]>(loadTemplates());
+  const [selectedTemplateId, setSelectedTemplateId] = useState('');
+  const [newTemplateName, setNewTemplateName] = useState('');
+  const [showSaveTemplate, setShowSaveTemplate] = useState(false);
+
 
   useEffect(() => {
     const fetchInv = async () => {
@@ -107,6 +132,35 @@ const ServiceForm: React.FC<{
     setChecklist([...checklist, newItem]);
     setNewItemText('');
   };
+
+  const handleApplyTemplate = (templateId: string) => {
+    const template = templates.find(t => t.id === templateId);
+    if (template) {
+      setChecklist(template.items.map(item => ({ ...item, id: Math.random().toString(36).substr(2, 9) })));
+    }
+    setSelectedTemplateId(templateId);
+  };
+
+  const handleSaveAsTemplate = () => {
+    if (!newTemplateName.trim() || checklist.length === 0) return;
+    const newTemplate: ChecklistTemplate = {
+      id: Math.random().toString(36).substr(2, 9),
+      name: newTemplateName,
+      items: checklist
+    };
+    const updatedTemplates = [...templates, newTemplate];
+    setTemplates(updatedTemplates);
+    saveTemplates(updatedTemplates);
+    setNewTemplateName('');
+    setShowSaveTemplate(false);
+  };
+
+  const handleDeleteTemplate = (templateId: string) => {
+    const updatedTemplates = templates.filter(t => t.id !== templateId);
+    setTemplates(updatedTemplates);
+    saveTemplates(updatedTemplates);
+  };
+
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -293,11 +347,48 @@ const ServiceForm: React.FC<{
 
           <div>
             <label className="block text-[10px] font-black uppercase text-white/40 mb-2 tracking-widest">Checklist de Execução</label>
+
+            {/* Template Selector */}
+            <div className="flex gap-2 mb-4">
+              <select
+                value={selectedTemplateId}
+                onChange={(e) => handleApplyTemplate(e.target.value)}
+                className="flex-1 h-12 rounded-xl border-white/5 bg-white/10 text-white text-xs font-bold px-4"
+              >
+                <option value="">Selecionar template...</option>
+                {templates.map(t => (
+                  <option key={t.id} value={t.id}>{t.name} ({t.items.length} itens)</option>
+                ))}
+              </select>
+              <button
+                type="button"
+                onClick={() => setShowSaveTemplate(true)}
+                className="h-12 px-4 rounded-xl bg-primary/20 text-primary flex items-center justify-center gap-2 hover:bg-primary hover:text-white transition-all text-xs font-bold"
+                title="Criar novo template"
+              >
+                <span className="material-symbols-outlined text-sm">add</span>
+                Criar Template
+              </button>
+              {templates.length > 0 && selectedTemplateId && (
+                <button
+                  type="button"
+                  onClick={() => handleDeleteTemplate(selectedTemplateId)}
+                  className="w-12 h-12 rounded-xl bg-rose-500/20 text-rose-500 flex items-center justify-center hover:bg-rose-500 hover:text-white transition-all"
+                  title="Excluir template"
+                >
+                  <span className="material-symbols-outlined text-sm">delete</span>
+                </button>
+              )}
+            </div>
+
+            {/* Add Item */}
             <div className="flex gap-3 mb-4">
               <input type="text" value={newItemText} onChange={e => setNewItemText(e.target.value)} className="flex-1 h-12 rounded-xl border-white/5 bg-white/5 text-white text-sm px-6" placeholder="Nova etapa..." />
               <button type="button" onClick={handleAddChecklistItem} className="bg-[#10b981] text-white w-12 h-12 rounded-xl flex items-center justify-center hover:scale-105 transition-transform"><span className="material-symbols-outlined">add</span></button>
             </div>
-            <div className="space-y-2 bg-white/5 rounded-2xl p-4 border border-white/5">
+
+            {/* Checklist Items */}
+            <div className="space-y-2 bg-white/5 rounded-2xl p-4 border border-white/5 mb-4">
               {checklist.length === 0 ? (
                 <p className="text-center text-white/20 text-xs font-bold py-4 italic">Nenhuma etapa configurada.</p>
               ) : checklist.map((item, idx) => (
@@ -307,7 +398,36 @@ const ServiceForm: React.FC<{
                 </div>
               ))}
             </div>
+
+            {/* Save as Template */}
+            {checklist.length > 0 && (
+              <div className="border-t border-white/10 pt-4">
+                {showSaveTemplate ? (
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={newTemplateName}
+                      onChange={(e) => setNewTemplateName(e.target.value)}
+                      placeholder="Nome do template..."
+                      className="flex-1 h-10 rounded-xl border-white/5 bg-white/5 text-white text-xs px-4"
+                    />
+                    <button type="button" onClick={handleSaveAsTemplate} className="px-4 h-10 bg-primary text-white text-xs font-bold rounded-xl">Salvar</button>
+                    <button type="button" onClick={() => setShowSaveTemplate(false)} className="px-4 h-10 bg-white/10 text-white/60 text-xs font-bold rounded-xl">Cancelar</button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setShowSaveTemplate(true)}
+                    className="flex items-center gap-2 text-xs font-bold text-primary hover:text-white transition-colors"
+                  >
+                    <span className="material-symbols-outlined text-sm">bookmark_add</span>
+                    Salvar como Template
+                  </button>
+                )}
+              </div>
+            )}
           </div>
+
         </div>
 
         {/* Right Column */}

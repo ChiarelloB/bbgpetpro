@@ -150,7 +150,7 @@ export const AppointmentModal: React.FC<AppointmentModalProps> = ({
         checkSubscription();
     }, [selectedPet, formData.service]);
 
-    // Fetch existing appointments and calculate available slots when resource/date changes
+    // No longer restrict time slots - fetch for display only
     useEffect(() => {
         if (formData.resourceId && formData.date) {
             const fetchExistingAppointments = async () => {
@@ -163,22 +163,12 @@ export const AppointmentModal: React.FC<AppointmentModalProps> = ({
 
                 if (data) {
                     setExistingAppointments(data);
-
-                    const allSlots = ['08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00'];
-                    const bookedSlots = data.map(appt => {
-                        const time = new Date(appt.start_time);
-                        return time.toTimeString().substring(0, 5);
-                    });
-
-                    const available = allSlots.filter(slot => !bookedSlots.includes(slot));
-                    setAvailableTimeSlots(available);
                 }
             };
             fetchExistingAppointments();
-        } else {
-            setAvailableTimeSlots(['08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00']);
         }
     }, [formData.resourceId, formData.date]);
+
 
     useEffect(() => {
         if (initialData) {
@@ -371,23 +361,17 @@ export const AppointmentModal: React.FC<AppointmentModalProps> = ({
                         </div>
                         <div>
                             <label className="block text-xs font-bold text-slate-500 dark:text-slate-300 mb-1.5 uppercase tracking-tighter">
-                                Horário {availableTimeSlots.length > 0 && <span className="text-green-500">({availableTimeSlots.length} disponíveis)</span>}
+                                Horário
                             </label>
-                            <select
+                            <input
+                                type="time"
                                 required
                                 value={formData.startTime}
                                 onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
-                                disabled={!formData.resourceId || !formData.date}
-                                className="w-full rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-[#2d3748] text-slate-900 dark:text-white focus:ring-primary focus:border-primary text-sm py-2.5 px-3 disabled:opacity-50"
-                            >
-                                <option value="" disabled>
-                                    {formData.resourceId && formData.date ? 'Selecione...' : 'Selecione local e data'}
-                                </option>
-                                {availableTimeSlots.map(slot => (
-                                    <option key={slot} value={slot}>{slot}</option>
-                                ))}
-                            </select>
+                                className="w-full rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-[#2d3748] text-slate-900 dark:text-white focus:ring-primary focus:border-primary text-sm py-2.5 px-3"
+                            />
                         </div>
+
                     </div>
 
                     <div>
