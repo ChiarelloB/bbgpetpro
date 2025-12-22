@@ -97,9 +97,10 @@ const NewClientModal: React.FC<{ isOpen: boolean; onClose: () => void; onSave: (
 };
 
 // --- Memoized Components ---
-const ClientItem = React.memo(({ client, isSelected, onClick }: { client: any, isSelected: boolean, onClick: () => void }) => (
+const ClientItem = React.memo(({ client, isSelected, onSelect }: { client: any, isSelected: boolean, onSelect: (id: string) => void }) => (
   <div
-    onClick={onClick}
+    onClick={() => onSelect(client.id)}
+
     style={{ contentVisibility: 'auto', containIntrinsicSize: '0 72px' }}
     className={`group flex items-center gap-4 p-3 rounded-xl cursor-pointer transition-[background-color,border-color,transform] duration-200 border ${isSelected
       ? 'bg-primary text-white border-primary shadow-md shadow-primary/10'
@@ -119,9 +120,10 @@ const ClientItem = React.memo(({ client, isSelected, onClick }: { client: any, i
   </div>
 ));
 
-const PetCard = React.memo(({ pet, onClick }: { pet: any, onClick: () => void }) => (
+const PetCard = React.memo(({ pet, onSelect }: { pet: any, onSelect: (pet: any) => void }) => (
   <div
-    onClick={onClick}
+    onClick={() => onSelect(pet)}
+
     style={{ contentVisibility: 'auto', containIntrinsicSize: '0 120px' }}
     className="group relative bg-white dark:bg-[#1a1a1a] rounded-2xl shadow-sm border border-slate-100 dark:border-gray-800 hover:border-primary/20 hover:shadow-md transition-[border-color,shadow] duration-300 overflow-hidden cursor-pointer"
   >
@@ -574,8 +576,9 @@ export const Clients: React.FC<ClientsProps> = ({ onNavigate }) => {
               key={client.id}
               client={client}
               isSelected={selectedClientId === client.id}
-              onClick={handleSelectClient}
+              onSelect={handleSelectClient}
             />
+
           ))}
           <div ref={listEndRef} className="h-4 w-full" />
 
@@ -686,8 +689,9 @@ export const Clients: React.FC<ClientsProps> = ({ onNavigate }) => {
                   <PetCard
                     key={pet.id}
                     pet={pet}
-                    onClick={handleOpenPet}
+                    onSelect={handleOpenPet}
                   />
+
 
                 ))}
               </div>
