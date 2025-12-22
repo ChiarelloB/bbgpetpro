@@ -32,24 +32,37 @@ interface Client {
 
 const NewClientModal: React.FC<{ isOpen: boolean; onClose: () => void; onSave: (c: any) => void }> = ({ isOpen, onClose, onSave }) => {
   const [formData, setFormData] = useState({
-    name: '', pet: '', breed: '', phone: '', email: ''
+    name: '', pet: '', breed: '', phone: '', email: '', img: `https://i.pravatar.cc/150?u=${Math.random()}`
   });
+
+  const handleShuffle = () => {
+    setFormData(prev => ({ ...prev, img: `https://i.pravatar.cc/150?u=${Math.random()}` }));
+  };
+
 
   if (!isOpen) return null;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSave(formData);
-    setFormData({ name: '', pet: '', breed: '', phone: '', email: '' });
+    setFormData({ name: '', pet: '', breed: '', phone: '', email: '', img: `https://i.pravatar.cc/150?u=${Math.random()}` });
     onClose();
+
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={onClose}></div>
-      <div className="bg-white dark:bg-[#1a1a1a] rounded-2xl shadow-2xl w-full max-w-sm relative z-10 p-6 border border-slate-100 dark:border-gray-800 animate-in zoom-in-95">
+      <div className="bg-white dark:bg-[#1a1a1a] rounded-2xl shadow-2xl w-full max-w-sm relative z-10 p-6 border border-slate-100 dark:border-gray-800 animate-in zoom-in-95 overflow-y-auto max-h-[90vh]">
         <h2 className="text-xl font-black text-slate-900 dark:text-white mb-6">Novo Cliente</h2>
         <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="flex flex-col items-center mb-4 p-4 bg-slate-50 dark:bg-white/5 rounded-2xl border border-dashed border-slate-200 dark:border-gray-700">
+            <img src={formData.img} alt="Preview" className="w-20 h-20 rounded-full border-4 border-white dark:border-[#1a1a1a] shadow-lg object-cover mb-2" />
+            <button type="button" onClick={handleShuffle} className="text-xs font-bold text-primary flex items-center gap-1 hover:underline">
+              <span className="material-symbols-outlined text-[14px]">refresh</span> Sortear Foto
+            </button>
+          </div>
+
           <div>
             <label className="block text-xs font-bold uppercase text-slate-500 mb-1">Nome Completo</label>
             <input type="text" required value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} className="w-full rounded-xl border-slate-200 dark:border-gray-700 bg-white dark:bg-[#252525] dark:text-white text-sm" placeholder="Ex: João Silva" />
@@ -100,9 +113,20 @@ const EditClientModal: React.FC<{ isOpen: boolean; onClose: () => void; onSave: 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={onClose}></div>
-      <div className="bg-white dark:bg-[#1a1a1a] rounded-2xl shadow-2xl w-full max-w-sm relative z-10 p-6 border border-slate-100 dark:border-gray-800 animate-in zoom-in-95">
+      <div className="bg-white dark:bg-[#1a1a1a] rounded-2xl shadow-2xl w-full max-w-sm relative z-10 p-6 border border-slate-100 dark:border-gray-800 animate-in zoom-in-95 overflow-y-auto max-h-[90vh]">
         <h2 className="text-xl font-black text-slate-900 dark:text-white mb-6">Editar Cliente</h2>
         <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="flex flex-col items-center mb-4 p-4 bg-slate-50 dark:bg-white/5 rounded-2xl border border-dashed border-slate-200 dark:border-gray-700">
+            <img src={formData.img} alt="Preview" className="w-20 h-20 rounded-full border-4 border-white dark:border-[#1a1a1a] shadow-lg object-cover mb-2" />
+            <button
+              type="button"
+              onClick={() => setFormData({ ...formData, img: `https://i.pravatar.cc/150?u=${Math.random()}` })}
+              className="text-xs font-bold text-primary flex items-center gap-1 hover:underline"
+            >
+              <span className="material-symbols-outlined text-[14px]">refresh</span> Sortear Nova Foto
+            </button>
+          </div>
+
           <div>
             <label className="block text-xs font-bold uppercase text-slate-500 mb-1">Nome Completo</label>
             <input type="text" required value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} className="w-full rounded-xl border-slate-200 dark:border-gray-700 bg-white dark:bg-[#252525] dark:text-white text-sm" />
@@ -170,7 +194,8 @@ export const Clients: React.FC<ClientsProps> = ({ onNavigate }) => {
         phone: c.phone || '',
         email: c.email || '',
         status: (c as any).status || 'Ativo',
-        img: (c as any).img || 'https://lh3.googleusercontent.com/aida-public/AB6AXuAtM3kjadQTjMTHl9YC-OrGR8wbZYUqoOrwId5WQ7c2eyZomiQk05HuotL6zwyo6Z9Tr5P-wLbqRkvXJ4tfqjiuIyIJRMtI60gAaGhsmDbYvURZIWtzVvmBHOZTA-JhfziZkJiaZsO3kiG-01SxOfOajsZqvE8qPHg8m0ijjIFfFyzwhP-y1iG2BhKcEaK44Gpg2MMxv_x_m5TEoqZnmVJGCnHaw4ZCwyyusgRRLNTU8tgNXStlKIvVM24O-x_t-2WnpW99rwAs7oI',
+        img: c.img || `https://i.pravatar.cc/150?u=${encodeURIComponent(c.id)}`,
+
         since: new Date(c.created_at).toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' }),
         totalSpent: 'R$ 0',
         visits: 0,
@@ -212,7 +237,9 @@ export const Clients: React.FC<ClientsProps> = ({ onNavigate }) => {
         name: updatedClient.name,
         phone: updatedClient.phone,
         email: updatedClient.email,
+        img: updatedClient.img,
       })
+
       .eq('id', updatedClient.id);
 
     if (error) {
@@ -240,8 +267,10 @@ export const Clients: React.FC<ClientsProps> = ({ onNavigate }) => {
       .insert([{
         name: data.name,
         phone: data.phone,
-        email: data.email
+        email: data.email,
+        img: data.img
       }])
+
       .select();
 
     if (clientError) {

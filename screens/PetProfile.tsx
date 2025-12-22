@@ -62,6 +62,16 @@ const EditPetModal: React.FC<{ isOpen: boolean; onClose: () => void; onSave: (p:
         }
     }, [formData?.weight, calculateSize]);
 
+    const handleShuffle = () => {
+        const type = formData.species?.toLowerCase() || 'cachorro';
+        const randomId = Math.floor(Math.random() * 1000);
+        const newImg = type === 'gato'
+            ? `https://placekitten.com/150/150?image=${randomId}`
+            : `https://placedog.net/150/150?id=${randomId}`;
+        setFormData((prev: any) => ({ ...prev, img: newImg }));
+    };
+
+
     const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file || !formData.id) return;
@@ -134,13 +144,17 @@ const EditPetModal: React.FC<{ isOpen: boolean; onClose: () => void; onSave: (p:
                                         <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                                     </div>
                                 )}
+                                <div className="absolute -bottom-1 -right-1 w-8 h-8 bg-black dark:bg-white rounded-full flex items-center justify-center text-white dark:text-black shadow-lg cursor-pointer hover:opacity-80 transition-colors mr-10" onClick={handleShuffle}>
+                                    <span className="material-symbols-outlined text-[16px]">refresh</span>
+                                </div>
                                 <div className="absolute -bottom-1 -right-1 w-8 h-8 bg-primary rounded-full flex items-center justify-center text-white shadow-lg cursor-pointer hover:bg-primary-hover transition-colors" onClick={() => document.getElementById('editPetPhotoInput')?.click()}>
                                     <span className="material-symbols-outlined text-[16px]">photo_camera</span>
                                 </div>
                             </div>
                             <div className="flex-1">
                                 <h4 className="text-sm font-black text-slate-900 dark:text-white uppercase mb-1">Foto do Perfil</h4>
-                                <p className="text-xs text-slate-500 dark:text-gray-400 mb-3">Clique no ícone da câmera para alterar a foto</p>
+                                <p className="text-xs text-slate-500 dark:text-gray-400 mb-3">Clique na câmera ou no sorteio para alterar</p>
+
                                 <input
                                     type="file"
                                     id="editPetPhotoInput"
@@ -202,9 +216,29 @@ const EditPetModal: React.FC<{ isOpen: boolean; onClose: () => void; onSave: (p:
 };
 
 const AddPetModal: React.FC<{ isOpen: boolean; onClose: () => void; onSave: (p: any) => void; initialClientId?: string }> = ({ isOpen, onClose, onSave, initialClientId }) => {
-    const [formData, setFormData] = useState({ name: '', breed: '', species: 'Cachorro', weight: 0, gender: 'M', clientId: initialClientId || '', birthDate: '', notes: '' });
+    const [formData, setFormData] = useState({
+        name: '',
+        breed: '',
+        species: 'Cachorro',
+        weight: 0,
+        gender: 'M',
+        clientId: initialClientId || '',
+        birthDate: '',
+        notes: '',
+        img: `https://placedog.net/150/150?id=${Math.floor(Math.random() * 1000)}`
+    });
     const [clients, setClients] = useState<any[]>([]);
     const { calculateSize } = useResources();
+
+    const handleShuffle = () => {
+        const type = formData.species?.toLowerCase() || 'cachorro';
+        const randomId = Math.floor(Math.random() * 1000);
+        const newImg = type === 'gato'
+            ? `https://placekitten.com/150/150?image=${randomId}`
+            : `https://placedog.net/150/150?id=${randomId}`;
+        setFormData(prev => ({ ...prev, img: newImg }));
+    };
+
 
     useEffect(() => {
         const fetchClients = async () => {
@@ -235,8 +269,10 @@ const AddPetModal: React.FC<{ isOpen: boolean; onClose: () => void; onSave: (p: 
             birth_date: formData.birthDate || null,
             client_id: formData.clientId, // Ensure you select a client!
             size_category: size,
-            notes: formData.notes
+            notes: formData.notes,
+            img: formData.img
         }]).select();
+
 
         if (!error && data) {
             onSave(data[0]);
@@ -256,6 +292,13 @@ const AddPetModal: React.FC<{ isOpen: boolean; onClose: () => void; onSave: (p: 
                     <button onClick={onClose} className="text-slate-400 hover:text-white"><span className="material-symbols-outlined">close</span></button>
                 </div>
                 <form onSubmit={handleSubmit} className="space-y-4">
+                    <div className="flex flex-col items-center mb-4 p-4 bg-slate-50 dark:bg-white/5 rounded-2xl border border-dashed border-slate-200 dark:border-gray-700">
+                        <img src={formData.img} alt="Preview" className="w-20 h-20 rounded-full border-4 border-white dark:border-[#1a1a1a] shadow-lg object-cover mb-2" />
+                        <button type="button" onClick={handleShuffle} className="text-xs font-bold text-primary flex items-center gap-1 hover:underline">
+                            <span className="material-symbols-outlined text-[14px]">refresh</span> Sortear Foto
+                        </button>
+                    </div>
+
                     <div>
                         <label className="block text-[10px] font-black uppercase text-slate-400 tracking-widest mb-2">Tutor</label>
                         <select required value={formData.clientId} onChange={e => setFormData({ ...formData, clientId: e.target.value })} className="w-full rounded-xl border-slate-200 dark:border-gray-700 bg-white dark:bg-[#252525] dark:text-white text-sm px-4 py-3 font-bold focus:ring-1 focus:ring-primary outline-none">
@@ -393,7 +436,8 @@ export const PetProfile: React.FC = () => {
                 weight: p.weight,
                 sizeCategory: p.size_category,
                 notes: p.notes,
-                img: p.img || `https://ui-avatars.com/api/?name=${encodeURIComponent(p.name)}&background=random`,
+                img: p.img || (p.species?.toLowerCase() === 'gato' ? `https://placekitten.com/150/150?image=${p.id.charCodeAt(0) % 1000}` : `https://placedog.net/150/150?id=${p.id.charCodeAt(0) % 1000}`),
+
                 ownerName: p.clients?.name || 'Desconhecido',
                 ownerImg: `https://ui-avatars.com/api/?name=${encodeURIComponent(p.clients?.name || 'U')}&background=random`,
                 registeredDate: new Date(p.created_at).toLocaleDateString(),
