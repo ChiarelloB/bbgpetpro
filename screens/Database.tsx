@@ -2,6 +2,8 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useNotification } from '../NotificationContext';
 import { useSecurity } from '../SecurityContext';
 import { supabase } from '../src/lib/supabase';
+import { BackupService } from '../utils/backupService';
+
 
 interface DbRecord {
     id: string;
@@ -507,7 +509,64 @@ export const Database: React.FC = () => {
                 </div>
                 <div className="flex gap-4">
                     <button onClick={fetchData} className="px-6 py-3 bg-slate-50 dark:bg-white/5 text-slate-400 hover:text-primary rounded-2xl flex items-center gap-2 transition-all"><span className={`${loading ? 'animate-spin' : ''} material-symbols-outlined text-lg`}>refresh</span></button>
-                    <button onClick={() => showNotification('Exportação total iniciada.', 'info')} className="bg-slate-900 dark:bg-white text-white dark:text-slate-900 h-12 px-8 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl hover:bg-primary hover:text-white transition-all">Full Export</button>
+
+                    <button
+                        onClick={() => document.getElementById('import-input')?.click()}
+                        className="bg-primary/10 text-primary h-12 px-8 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-primary hover:text-white transition-all flex items-center gap-2"
+                    >
+                        <span className="material-symbols-outlined text-lg">upload</span> Import Restore
+                    </button>
+                    <input
+                        type="file"
+                        id="import-input"
+                        accept=".json"
+                        className="hidden"
+                        onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (!file) return;
+
+                            if (!confirm('ATENÇÃO: A importação irá SOBRESCREVER dados existentes com o mesmo ID. Deseja continuar?')) {
+                                e.target.value = '';
+                                return;
+                            }
+
+                            const reader = new FileReader();
+                            reader.onload = async (event) => {
+                                try {
+                                    const json = JSON.parse(event.target?.result as string);
+                                    setLoading(true);
+                                    showNotification('Iniciando restauração...', 'info');
+
+                                    await BackupService.importData(json, (msg) => console.log(msg));
+
+                                    showNotification('Backup restaurado com sucesso!', 'success');
+                                    fetchData();
+                                } catch (err: any) {
+                                    console.error(err);
+                                    showNotification(`Erro na importação: ${err.message}`, 'error');
+                                } finally {
+                                    setLoading(false);
+                                    if (e.target) e.target.value = '';
+                                }
+                            };
+                            reader.readAsText(file);
+                        }}
+                    />
+
+                    <button
+                        onClick={async () => {
+                            try {
+                                showNotification('Gerando backup...', 'info');
+                                await BackupService.downloadBackup();
+                                showNotification('Exportação concluída!', 'success');
+                            } catch (err: any) {
+                                showNotification(`Erro na exportação: ${err.message}`, 'error');
+                            }
+                        }}
+                        className="bg-slate-900 dark:bg-white text-white dark:text-slate-900 h-12 px-8 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl hover:bg-primary hover:text-white transition-all flex items-center gap-2"
+                    >
+                        <span className="material-symbols-outlined text-lg">download</span> Full Export
+                    </button>
                 </div>
             </header>
 
