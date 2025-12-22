@@ -138,7 +138,7 @@ const roadmapData: RoadmapItem[] = [
         description: 'Aplicativo móvel para os clientes finais. Agendamento online, carteirinha de vacinação digital, pagamento via App e acompanhamento do pet em tempo real via câmeras.',
         status: 'Em Desenvolvimento',
         date: 'Q4 2026',
-        progress: 75,
+        progress: 80,
         icon: 'mobile_friendly',
         tags: ['Mobile', 'Flutter', 'B2C'],
         features: [
@@ -175,6 +175,22 @@ const roadmapData: RoadmapItem[] = [
 ];
 
 const changelogHistory: ChangelogEntry[] = [
+    {
+        version: 'v3.8.0',
+        date: '22 Dez 2025',
+        type: 'major',
+        title: 'Dashboard Cockpit & Calendário Inteligente',
+        changes: [
+            'Novo Dashboard "Cockpit" em tela cheia (Full-Width) sem rolagem vertical.',
+            'Mini-Agenda Mensal integrada com navegação automática para a Agenda Diária.',
+            'Destaque de Feriados Nacionais em todos os calendários com etiquetas visuais.',
+            'Refatoração do Hub Financeiro: Gráficos de receita movidos para a tela Finance.',
+            'Sincronização de cores entre KPIs e valores para melhor legibilidade.',
+            'Efeito Neon "Pulse" para o dia atual no Dashboard.',
+            'Ajuste global de contraste para o Modo Claro na Mini-Agenda.',
+            'Expansão de portes de animais (Mini, Pequeno, Médio, Grande, Gigante).'
+        ]
+    },
     {
         version: 'v3.7.0',
         date: '22 Dez 2025',
@@ -786,7 +802,7 @@ export const Roadmap: React.FC = () => {
                         <div className="flex gap-3">
                             <div className="flex flex-col items-end">
                                 <span className="text-xs font-bold text-text-muted uppercase tracking-widest mb-1">Versão Atual</span>
-                                <span className="text-2xl font-black italic text-primary">v3.7.0</span>
+                                <span className="text-2xl font-black italic text-primary">v3.8.0</span>
                             </div>
                         </div>
                     </div>
