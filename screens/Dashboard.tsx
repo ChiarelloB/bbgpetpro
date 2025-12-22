@@ -66,7 +66,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
     const { data: transactions } = await supabase
       .from('financial_transactions')
       .select('amount')
-      .eq('type', 'invoice')
+      .eq('type', 'income')
       .eq('status', 'paid');
 
     const totalRevenue = (transactions || []).reduce((acc, curr) => acc + curr.amount, 0);
