@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+
 import { ScreenType } from '../types';
 import { useNotification } from '../NotificationContext';
 import { getGeminiModel } from '../src/lib/gemini';
@@ -95,7 +96,72 @@ const NewClientModal: React.FC<{ isOpen: boolean; onClose: () => void; onSave: (
   );
 };
 
+// --- Memoized Components ---
+const ClientItem = React.memo(({ client, isSelected, onClick }: { client: any, isSelected: boolean, onClick: () => void }) => (
+  <div
+    onClick={onClick}
+    style={{ contentVisibility: 'auto', containIntrinsicSize: '0 72px' }}
+    className={`group flex items-center gap-4 p-3 rounded-xl cursor-pointer transition-[background-color,border-color,transform] duration-200 border ${isSelected
+      ? 'bg-primary text-white border-primary shadow-md shadow-primary/10'
+      : 'bg-white dark:bg-[#1a1a1a] border-transparent hover:bg-slate-50 dark:hover:bg-white/5 hover:border-slate-200 dark:hover:border-gray-700'
+      }`}
+  >
+    <img src={client.img} alt={client.name} loading="lazy" width="48" height="48" className={`w-12 h-12 rounded-full object-cover border-2 ${isSelected ? 'border-white/50' : 'border-slate-100 dark:border-gray-700'}`} />
+    <div className="flex-1 min-w-0">
+      <div className="flex justify-between items-baseline">
+        <h3 className={`font-bold truncate ${isSelected ? 'text-white' : 'text-slate-900 dark:text-white'}`}>{client.name}</h3>
+        <span className={`text-[10px] font-bold uppercase px-1.5 py-0.5 rounded ${isSelected ? 'bg-white/20 text-white' : 'bg-slate-100 dark:bg-white/10 text-slate-500 dark:text-gray-400'}`}>{client.status}</span>
+      </div>
+      <p className={`text-xs truncate ${isSelected ? 'text-white/80' : 'text-slate-500 dark:text-gray-400'}`}>
+        {client.pets.length > 0 ? `${client.pets.length} Pets: ${client.pets.map((p: any) => p.name).join(', ')}` : 'Nenhum pet'}
+      </p>
+    </div>
+  </div>
+));
+
+const PetCard = React.memo(({ pet, onClick }: { pet: any, onClick: () => void }) => (
+  <div
+    onClick={onClick}
+    style={{ contentVisibility: 'auto', containIntrinsicSize: '0 120px' }}
+    className="group relative bg-white dark:bg-[#1a1a1a] rounded-2xl shadow-sm border border-slate-100 dark:border-gray-800 hover:border-primary/20 hover:shadow-md transition-[border-color,shadow] duration-300 overflow-hidden cursor-pointer"
+  >
+    <div className={`absolute top-4 right-4 z-10 px-2 py-1 rounded text-[10px] font-black uppercase tracking-wider flex items-center gap-1 ${pet.status === 'healthy' ? 'bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-400' :
+      pet.status === 'alert' ? 'bg-orange-100 dark:bg-orange-900/40 text-orange-800 dark:text-orange-400' :
+        'bg-red-100 dark:bg-red-900/40 text-red-800 dark:text-red-400'
+      }`}>
+      <span className={`w-1.5 h-1.5 rounded-full ${pet.status === 'healthy' ? 'bg-green-500' :
+        pet.status === 'alert' ? 'bg-orange-500' : 'bg-red-500'
+        }`}></span>
+      {pet.status === 'healthy' ? 'Saudável' : pet.status === 'alert' ? 'Atenção' : 'Crítico'}
+    </div>
+    <div className="flex h-full">
+      <div className="w-2/5 relative">
+        <img src={pet.img} loading="lazy" width="120" height="120" className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" alt={pet.name} />
+      </div>
+      <div className="w-3/5 p-5 flex flex-col justify-between">
+        <div>
+          <div className="flex justify-between items-start mb-1">
+            <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase">{pet.name}</h3>
+            <span className="material-symbols-outlined text-slate-300 dark:text-gray-600 text-sm">
+              {pet.type === 'Gato' ? 'pets' : 'cruelty_free'}
+            </span>
+          </div>
+          <p className="text-xs font-bold text-slate-500 dark:text-gray-400 uppercase tracking-wide mb-4">{pet.breed}</p>
+          <div className="grid grid-cols-2 gap-2 text-sm">
+            <div>
+              <p className="text-[10px] text-slate-400 font-bold uppercase">Idade</p>
+              <p className="font-bold text-slate-800 dark:text-gray-200">{pet.age}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+));
+
+
 const EditClientModal: React.FC<{ isOpen: boolean; onClose: () => void; onSave: (c: Client) => void; client: Client }> = ({ isOpen, onClose, onSave, client }) => {
+
   const [formData, setFormData] = useState(client);
 
   useEffect(() => {
@@ -170,13 +236,36 @@ export const Clients: React.FC<ClientsProps> = ({ onNavigate }) => {
   const [loading, setLoading] = useState(true);
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
   const [activeTab, setActiveTab] = useState('Todos');
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isAIModalOpen, setIsAIModalOpen] = useState(false);
   const [aiAnalysis, setAiAnalysis] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(20);
+  const listEndRef = useRef<HTMLDivElement>(null);
   const { showNotification } = useNotification();
+
+
+  const handleSelectClient = useCallback((id: string) => {
+    setSelectedClientId(id);
+  }, []);
+
+  const handleOpenPet = useCallback((pet: ClientPet) => {
+    localStorage.setItem('petmanager_selected_pet', JSON.stringify(pet));
+    onNavigate?.('petProfile');
+  }, [onNavigate]);
+
 
   const fetchClients = async () => {
     setLoading(true);
@@ -256,10 +345,8 @@ export const Clients: React.FC<ClientsProps> = ({ onNavigate }) => {
     if (onNavigate) onNavigate('schedule');
   };
 
-  const handleOpenPet = (pet: ClientPet) => {
-    localStorage.setItem('petmanager_target_pet_id', pet.id);
-    if (onNavigate) onNavigate('petProfile');
-  };
+
+
 
   const handleAddClient = async (data: any) => {
     const { data: clientData, error: clientError } = await supabase
@@ -334,12 +421,36 @@ export const Clients: React.FC<ClientsProps> = ({ onNavigate }) => {
     }
   };
 
-  const filteredClients = clients.filter(client => {
-    const matchesSearch = client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      client.pets.some(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()));
-    const matchesTab = activeTab === 'Todos' || client.status === activeTab;
-    return matchesSearch && matchesTab;
-  });
+  const filteredClients = useMemo(() => {
+    return clients.filter(client => {
+      const matchesSearch = client.name.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+        client.pets.some(p => p.name.toLowerCase().includes(debouncedSearchTerm.toLowerCase()));
+      const matchesTab = activeTab === 'Todos' || client.status === activeTab;
+      return matchesSearch && matchesTab;
+    });
+  }, [clients, debouncedSearchTerm, activeTab]);
+
+  useEffect(() => {
+    setVisibleCount(20);
+  }, [debouncedSearchTerm, activeTab]);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          setVisibleCount(prev => prev + 20);
+        }
+      },
+      { threshold: 0.5 }
+    );
+
+    if (listEndRef.current) observer.observe(listEndRef.current);
+    return () => observer.disconnect();
+  }, [filteredClients]);
+
+
+
+
 
   if (loading && clients.length === 0) {
     return (
@@ -453,28 +564,22 @@ export const Clients: React.FC<ClientsProps> = ({ onNavigate }) => {
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-4 space-y-2">
-          {filteredClients.map(client => (
-            <div
+        <div
+          className="flex-1 overflow-y-auto p-4 space-y-2 custom-scrollbar"
+          style={{ willChange: 'transform' }}
+        >
+
+          {filteredClients.slice(0, visibleCount).map(client => (
+            <ClientItem
               key={client.id}
-              onClick={() => setSelectedClientId(client.id)}
-              className={`group flex items-center gap-4 p-3 rounded-xl cursor-pointer transition-all border ${selectedClientId === client.id
-                ? 'bg-primary text-white border-primary shadow-lg shadow-primary/20'
-                : 'bg-white dark:bg-[#1a1a1a] border-transparent hover:bg-slate-50 dark:hover:bg-white/5 hover:border-slate-200 dark:hover:border-gray-700'
-                }`}
-            >
-              <img src={client.img} alt={client.name} className={`w-12 h-12 rounded-full object-cover border-2 ${selectedClientId === client.id ? 'border-white/50' : 'border-slate-100 dark:border-gray-700'}`} />
-              <div className="flex-1 min-w-0">
-                <div className="flex justify-between items-baseline">
-                  <h3 className={`font-bold truncate ${selectedClientId === client.id ? 'text-white' : 'text-slate-900 dark:text-white'}`}>{client.name}</h3>
-                  <span className={`text-[10px] font-bold uppercase px-1.5 py-0.5 rounded ${selectedClientId === client.id ? 'bg-white/20 text-white' : 'bg-slate-100 dark:bg-white/10 text-slate-500 dark:text-gray-400'}`}>{client.status}</span>
-                </div>
-                <p className={`text-xs truncate ${selectedClientId === client.id ? 'text-white/80' : 'text-slate-500 dark:text-gray-400'}`}>
-                  {client.pets.length > 0 ? `${client.pets.length} Pets: ${client.pets.map(p => p.name).join(', ')}` : 'Nenhum pet'}
-                </p>
-              </div>
-            </div>
+              client={client}
+              isSelected={selectedClientId === client.id}
+              onClick={handleSelectClient}
+            />
           ))}
+          <div ref={listEndRef} className="h-4 w-full" />
+
+
           {filteredClients.length === 0 && (
             <div className="p-8 text-center text-slate-400">
               <span className="material-symbols-outlined text-4xl mb-2">search_off</span>
@@ -578,53 +683,12 @@ export const Clients: React.FC<ClientsProps> = ({ onNavigate }) => {
               {/* Dynamic Pet Grid based on Client's Pets */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {selectedClient.pets.map(pet => (
-                  <div
+                  <PetCard
                     key={pet.id}
-                    onClick={() => handleOpenPet(pet)}
-                    className="group relative bg-white dark:bg-[#1a1a1a] rounded-2xl shadow-sm border border-slate-100 dark:border-gray-800 hover:border-primary/30 hover:shadow-xl hover:shadow-primary/5 transition-all overflow-hidden cursor-pointer"
-                  >
-                    <div className={`absolute top-4 right-4 z-10 px-2 py-1 rounded text-[10px] font-black uppercase tracking-wider flex items-center gap-1 ${pet.status === 'healthy' ? 'bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-400' :
-                      pet.status === 'alert' ? 'bg-orange-100 dark:bg-orange-900/40 text-orange-800 dark:text-orange-400' :
-                        'bg-red-100 dark:bg-red-900/40 text-red-800 dark:text-red-400'
-                      }`}>
-                      <span className={`w-1.5 h-1.5 rounded-full ${pet.status === 'healthy' ? 'bg-green-500' :
-                        pet.status === 'alert' ? 'bg-orange-500' : 'bg-red-500'
-                        }`}></span>
-                      {pet.status === 'healthy' ? 'Saudável' : pet.status === 'alert' ? 'Atenção' : 'Crítico'}
-                    </div>
-                    <div className="flex h-full">
-                      <div className="w-2/5 relative">
-                        <img src={pet.img} className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt={pet.name} />
-                      </div>
-                      <div className="w-3/5 p-5 flex flex-col justify-between">
-                        <div>
-                          <div className="flex justify-between items-start mb-1">
-                            <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase">{pet.name}</h3>
-                            <span className="material-symbols-outlined text-slate-300 dark:text-gray-600 text-sm">
-                              {pet.type === 'Gato' ? 'pets' : 'cruelty_free'}
-                            </span>
-                          </div>
-                          <p className="text-xs font-bold text-slate-500 dark:text-gray-400 uppercase tracking-wide mb-4">{pet.breed}</p>
-                          <div className="grid grid-cols-2 gap-2 text-sm">
-                            <div>
-                              <p className="text-[10px] text-slate-400 font-bold uppercase">Idade</p>
-                              <p className="font-bold text-slate-800 dark:text-gray-200">{pet.age}</p>
-                            </div>
-                            <div>
-                              <p className="text-[10px] text-slate-400 font-bold uppercase">Peso</p>
-                              <p className="font-bold text-slate-800 dark:text-gray-200">{pet.weight}</p>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="mt-4 pt-4 border-t border-slate-100 dark:border-gray-800 flex justify-between items-center">
-                          <span className="text-xs font-medium text-primary group-hover:underline">Ver Prontuário</span>
-                          <button className="w-8 h-8 rounded-full bg-slate-50 dark:bg-white/5 group-hover:bg-primary group-hover:text-white flex items-center justify-center transition-colors dark:text-gray-400">
-                            <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                    pet={pet}
+                    onClick={handleOpenPet}
+                  />
+
                 ))}
               </div>
             </div>

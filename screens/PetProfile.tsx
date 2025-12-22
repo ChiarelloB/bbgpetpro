@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useNotification } from '../NotificationContext';
 import { getGeminiModel } from '../src/lib/gemini';
 import { useResources } from '../ResourceContext';
@@ -393,13 +393,44 @@ const AddMedicalRecordModal: React.FC<{ isOpen: boolean; onClose: () => void; on
     );
 };
 
+// --- Memoized Components ---
+const PetListItem = React.memo(({ pet, isSelected, onSelect }: { pet: Pet, isSelected: boolean, onSelect: (pet: Pet) => void }) => (
+    <div
+        onClick={() => onSelect(pet)}
+        style={{ contentVisibility: 'auto', containIntrinsicSize: '0 88px' }}
+        className={`flex items-center gap-4 p-4 rounded-3xl cursor-pointer transition-[background-color,transform,border-color] duration-200 border group relative overflow-hidden ${isSelected ? 'bg-primary text-white border-primary shadow-lg shadow-primary/10 scale-[1.01]' : 'bg-white dark:bg-[#1a1a1a] dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-[#222] border-transparent hover:border-slate-200 dark:hover:border-gray-800'}`}
+    >
+
+        <div className="w-14 h-14 rounded-2xl overflow-hidden border-2 border-white/20 shrink-0 relative bg-slate-200 dark:bg-gray-800">
+            <img src={pet.img} loading="lazy" width="56" height="56" className="w-full h-full object-cover" />
+        </div>
+        <div className="flex-1 min-w-0 z-10">
+            <h3 className={`font-black text-sm truncate uppercase tracking-tight ${isSelected ? 'text-white' : 'text-slate-900 dark:text-white'}`}>{pet.name}</h3>
+            <p className={`text-[10px] font-bold uppercase tracking-wide truncate ${isSelected ? 'text-white/80' : 'text-slate-400'}`}>{pet.breed}</p>
+        </div>
+        {isSelected && <span className="absolute right-4 w-2 h-2 rounded-full bg-white animate-pulse"></span>}
+    </div>
+));
+
+
 // --- Main Component ---
+
 
 export const PetProfile: React.FC = () => {
     const [pets, setPets] = useState<Pet[]>([]);
     const [selectedPet, setSelectedPet] = useState<Pet | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
+    const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
+
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setDebouncedSearchTerm(searchTerm);
+        }, 300);
+        return () => clearTimeout(timer);
+    }, [searchTerm]);
+
     const [activeTab, setActiveTab] = useState('Histórico Médico');
+
     const [medicalRecords, setMedicalRecords] = useState<MedicalRecord[]>([]);
     const [clinicalHistory, setClinicalHistory] = useState<ClinicalHistory[]>([]);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -411,13 +442,28 @@ export const PetProfile: React.FC = () => {
     const [healthReport, setHealthReport] = useState('');
     const [loading, setLoading] = useState(true);
     const [isUploading, setIsUploading] = useState(false); // Upload State
+    const [visibleCount, setVisibleCount] = useState(20);
+    const listEndRef = useRef<HTMLDivElement>(null);
     const { showNotification } = useNotification();
+
+
+    const handleSelectPet = useCallback((pet: Pet) => {
+        setSelectedPet(pet);
+    }, []);
+
 
     // Upload Refs
     const profileImageInputRef = useRef<HTMLInputElement>(null);
     const galleryImageInputRef = useRef<HTMLInputElement>(null);
 
+
+    useEffect(() => {
+        setVisibleCount(20);
+    }, [debouncedSearchTerm]);
+
     const fetchPets = async () => {
+
+
         setLoading(true);
         const { data, error } = await supabase
             .from('pets')
@@ -648,7 +694,26 @@ export const PetProfile: React.FC = () => {
         }
     };
 
-    const filteredPets = pets.filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()) || p.ownerName.toLowerCase().includes(searchTerm.toLowerCase()));
+    const filteredPets = useMemo(() => {
+        return pets.filter(p => p.name.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) || p.ownerName.toLowerCase().includes(debouncedSearchTerm.toLowerCase()));
+    }, [pets, debouncedSearchTerm]);
+
+    useEffect(() => {
+        const observer = new IntersectionObserver(
+            (entries) => {
+                if (entries[0].isIntersecting) {
+                    setVisibleCount(prev => prev + 20);
+                }
+            },
+            { threshold: 0.5 }
+        );
+
+        if (listEndRef.current) observer.observe(listEndRef.current);
+        return () => observer.disconnect();
+    }, [filteredPets]); // Re-observe when items change
+
+
+
 
     if (loading && pets.length === 0) {
         return (
@@ -723,20 +788,23 @@ export const PetProfile: React.FC = () => {
                         <input type="text" placeholder="Buscar pet..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full pl-12 pr-4 py-3.5 bg-slate-50 dark:bg-[#1a1a1a] border border-slate-200 dark:border-gray-800 rounded-2xl text-sm font-bold focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none text-slate-900 dark:text-white transition-all placeholder:text-slate-400 dark:placeholder:text-gray-600" />
                     </div>
                 </div>
-                <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-3">
-                    {filteredPets.map(pet => (
-                        <div key={pet.id} onClick={() => setSelectedPet(pet)} className={`flex items-center gap-4 p-4 rounded-3xl cursor-pointer transition-all border group relative overflow-hidden ${selectedPet?.id === pet.id ? 'bg-primary text-white border-primary shadow-xl shadow-primary/20 scale-[1.02]' : 'bg-white dark:bg-[#1a1a1a] dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-[#222] border-transparent hover:border-slate-200 dark:hover:border-gray-800'}`}>
-                            <div className="w-14 h-14 rounded-2xl overflow-hidden border-2 border-white/20 shrink-0 relative bg-slate-200 dark:bg-gray-800">
-                                <img src={pet.img} className="w-full h-full object-cover" />
-                            </div>
-                            <div className="flex-1 min-w-0 z-10">
-                                <h3 className={`font-black text-sm truncate uppercase tracking-tight ${selectedPet?.id === pet.id ? 'text-white' : 'text-slate-900 dark:text-white'}`}>{pet.name}</h3>
-                                <p className={`text-[10px] font-bold uppercase tracking-wide truncate ${selectedPet?.id === pet.id ? 'text-white/80' : 'text-slate-400'}`}>{pet.breed}</p>
-                            </div>
-                            {selectedPet?.id === pet.id && <span className="absolute right-4 w-2 h-2 rounded-full bg-white animate-pulse"></span>}
-                        </div>
+                <div
+                    className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-3"
+                    style={{ willChange: 'transform' }}
+                >
+
+                    {filteredPets.slice(0, visibleCount).map(pet => (
+                        <PetListItem
+                            key={pet.id}
+                            pet={pet}
+                            isSelected={selectedPet?.id === pet.id}
+                            onSelect={handleSelectPet}
+                        />
                     ))}
+                    <div ref={listEndRef} className="h-4 w-full" />
+
                 </div>
+
             </div>
 
             {/* Main Content */}
@@ -774,7 +842,8 @@ export const PetProfile: React.FC = () => {
                                         className="relative w-64 h-64 mx-auto mb-6 rounded-full p-2 border-4 border-white/10 cursor-pointer hover:border-primary/50 transition-colors"
                                         onClick={() => !isUploading && profileImageInputRef.current?.click()}
                                     >
-                                        <img src={selectedPet.img} alt={selectedPet.name} className={`w-full h-full object-cover rounded-full shadow-2xl group-hover:scale-105 transition-transform duration-500 ${isUploading ? 'opacity-50' : ''}`} />
+                                        <img src={selectedPet.img} loading="lazy" alt={selectedPet.name} className={`w-full h-full object-cover rounded-full shadow-2xl group-hover:scale-105 transition-transform duration-500 ${isUploading ? 'opacity-50' : ''}`} />
+
                                         <div className={`absolute inset-0 flex items-center justify-center rounded-full bg-black/40 ${isUploading ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} transition-opacity`}>
                                             {isUploading ? (
                                                 <div className="w-10 h-10 border-4 border-white/20 border-t-white rounded-full animate-spin"></div>
@@ -825,7 +894,8 @@ export const PetProfile: React.FC = () => {
                                 </div>
                                 <div className="mt-4 bg-white dark:bg-[#1a1a1a] rounded-3xl p-6 border border-slate-100 dark:border-gray-800 flex items-center justify-between shadow-sm">
                                     <div className="flex items-center gap-4">
-                                        <img src={selectedPet.ownerImg} className="w-12 h-12 rounded-full object-cover border-2 border-slate-100 dark:border-gray-700" />
+                                        <img src={selectedPet.ownerImg} loading="lazy" className="w-12 h-12 rounded-full object-cover border-2 border-slate-100 dark:border-gray-700" />
+
                                         <div>
                                             <p className="text-[10px] font-black uppercase tracking-widest text-primary mb-0.5">Tutor Responsável</p>
                                             <p className="text-sm font-black text-slate-900 dark:text-white uppercase italic">{selectedPet.ownerName}</p>
