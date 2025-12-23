@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build --outDir dist/flowpetpro --base /flowpetpro/ && cd bbgpet-landing && npm install && npx vite build --outDir ../dist --base /",
+    "build": "vite build --outDir dist/flowpetpro --base /flowpetpro/ && cd bbgpet-landing && npm install && npx vite build --outDir ../dist --base / && cd ../bbgpet-tutor && npm install && npx vite build --outDir ../dist/tutor --base /tutor/",
     "preview": "vite preview"
   },
   "dependencies": {
