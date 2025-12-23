@@ -31,19 +31,34 @@ export const Account: React.FC = () => {
             if (subError) throw subError;
 
             if (subData) {
-                // Fetch plan info by name (since there is no direct FK)
-                const { data: planData, error: planError } = await supabase
-                    .from('subscription_plans')
-                    .select('name, is_pro')
-                    .eq('name', subData.plan_name)
-                    .eq('tenant_id', tenant?.id)
-                    .maybeSingle();
+                // Fetch plan info to get details like is_pro and current price
+                let planData = null;
 
-                if (planError) throw planError;
+                if (subData.plan_id) {
+                    const { data } = await supabase
+                        .from('subscription_plans')
+                        .select('name, is_pro, price')
+                        .eq('id', subData.plan_id)
+                        .maybeSingle();
+                    planData = data;
+                }
+
+                // Fallback to name match if finding by ID failed (e.g. legacy data)
+                if (!planData && subData.plan_name) {
+                    const { data } = await supabase
+                        .from('subscription_plans')
+                        .select('name, is_pro, price')
+                        .eq('name', subData.plan_name)
+                        // .eq('tenant_id', tenant?.id) // Removed strict tenant check for plan lookup to allow global plans if local missing
+                        .maybeSingle();
+                    planData = data;
+                }
 
                 setActiveSubscription({
                     ...subData,
-                    plan_name: subData.plan_name || 'Plano Personalizado',
+                    plan_name: planData?.name || subData.plan_name || 'Plano Personalizado',
+                    // Prioritize: explicit value -> locked price at start -> current plan price
+                    value: subData.value || subData.price_at_start || planData?.price || 0,
                     is_pro: planData?.is_pro ||
                         subData.plan_name?.toLowerCase().includes('profissional') ||
                         subData.plan_name?.toLowerCase().includes('elite') ||
