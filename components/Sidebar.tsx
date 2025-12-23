@@ -192,6 +192,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentScreen, onNavigate, isO
         ...(permissions.dashboard ? [{ id: 'dashboard' as ScreenType, label: 'Painel', icon: 'dashboard' }] : []),
         ...(permissions.userDashboard ? [{ id: 'userDashboard' as ScreenType, label: 'Meu Painel', icon: 'dashboard_customize' }] : []),
         { id: 'roadmap', label: 'Roadmap', icon: 'map' },
+        { id: 'account', label: 'Minha Conta', icon: 'account_circle' },
       ]
     },
     {

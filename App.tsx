@@ -33,6 +33,7 @@ const POS = React.lazy(() => import('./screens/POS').then(module => ({ default: 
 const Database = React.lazy(() => import('./screens/Database').then(module => ({ default: module.Database })));
 const Delivery = React.lazy(() => import('./screens/Delivery').then(module => ({ default: module.Delivery })));
 const Subscriptions = React.lazy(() => import('./screens/Subscriptions').then(module => ({ default: module.Subscriptions })));
+const Account = React.lazy(() => import('./screens/Account').then(module => ({ default: module.Account })));
 
 const LoadingScreen = () => (
   <div className="flex-1 h-full w-full flex flex-col items-center justify-center min-h-[50vh] bg-background-light dark:bg-[#111] transition-colors duration-300">
@@ -238,6 +239,7 @@ const AppContent: React.FC = () => {
       case 'settings': return <Settings userProfile={userProfile} onUpdateProfile={handleUpdateProfile} />;
       case 'database': return <Database />;
       case 'delivery': return <Delivery />;
+      case 'account': return <Account />;
       default: return <Dashboard onNavigate={handleNavigate} />;
     }
   };

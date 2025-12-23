@@ -359,7 +359,8 @@ const PlanTypeModal: React.FC<{
     maxUsage: 4,
     usageUnit: 'Banhos',
     services: '',
-    color: 'purple'
+    color: 'primary',
+    is_pro: false
   });
 
   useEffect(() => {
@@ -372,7 +373,8 @@ const PlanTypeModal: React.FC<{
         maxUsage: initialData.maxUsage,
         usageUnit: initialData.usageUnit,
         services: initialData.services.join(', '),
-        color: initialData.color
+        color: initialData.color,
+        is_pro: (initialData as any).isPro || false
       });
     } else {
       setFormData({
@@ -474,6 +476,27 @@ const PlanTypeModal: React.FC<{
           <div>
             <label className="block text-xs font-bold uppercase text-slate-500 mb-1">Serviços Incluídos</label>
             <input type="text" value={formData.services} onChange={e => setFormData({ ...formData, services: e.target.value })} className="w-full rounded-xl border-slate-200 dark:border-gray-700 bg-white dark:bg-[#252525] dark:text-white text-sm" placeholder="Banho, Tosa, Hidratação (separados por vírgula)" />
+          </div>
+
+          <div className="p-4 bg-amber-50 dark:bg-amber-900/10 rounded-xl border border-amber-100 dark:border-amber-800/30 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-amber-500 rounded-lg text-white">
+                <span className="material-symbols-outlined text-sm">verified</span>
+              </div>
+              <div>
+                <p className="text-sm font-black text-slate-900 dark:text-white uppercase italic tracking-tighter">Acesso PRO / Academy</p>
+                <p className="text-[10px] text-slate-500 font-bold">Libera cursos e setores exclusivos</p>
+              </div>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={formData.is_pro}
+                onChange={e => setFormData({ ...formData, is_pro: e.target.checked })}
+                className="sr-only peer"
+              />
+              <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
+            </label>
           </div>
 
           <div>
@@ -582,13 +605,13 @@ export const Subscriptions: React.FC = () => {
         usageUnit: p.usage_unit || 'Serviços',
         services: p.services || [],
         isActive: p.is_active ?? true,
-        color: p.color || 'purple'
+        color: p.color || 'purple',
+        isPro: p.is_pro || false
       })));
     }
     setPlansLoading(false);
   };
 
-  // Plan Type CRUD
   const handleSavePlan = async (data: any) => {
     const payload = {
       name: data.name,
@@ -597,9 +620,10 @@ export const Subscriptions: React.FC = () => {
       frequency: data.frequency,
       max_usage: data.maxUsage,
       usage_unit: data.usageUnit,
-      services: data.services,
+      services: data.services.split(',').map((s: string) => s.trim()),
       color: data.color,
       is_active: true,
+      is_pro: data.is_pro,
       tenant_id: tenantId
     };
 

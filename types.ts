@@ -18,7 +18,8 @@ export type ScreenType =
   | 'roadmap'
   | 'settings'
   | 'database'
-  | 'delivery';
+  | 'delivery'
+  | 'account';
 
 export interface NavItem {
   id: ScreenType;

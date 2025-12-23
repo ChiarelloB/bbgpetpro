@@ -15,6 +15,7 @@ import ProfitCalculator from './components/ProfitCalculator';
 import CaseStudies from './components/CaseStudies';
 import Security from './components/Security';
 import Pricing from './components/Pricing';
+import Courses from './components/Courses';
 import Roadmap from './components/Roadmap';
 import SupportHub from './components/SupportHub';
 import Testimonials from './components/Testimonials';
@@ -91,6 +92,7 @@ const App: React.FC = () => {
         <Security />
         <SupportHub />
         <Pricing />
+        <Courses />
         <Roadmap />
         <Testimonials />
         <BlogPreview />
