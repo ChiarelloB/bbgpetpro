@@ -73,6 +73,26 @@ const AccessDenied = () => (
   </div>
 );
 
+const ExpiredSubscriptionScreen = () => (
+  <div className="flex-1 h-full flex flex-col items-center justify-center bg-background-light dark:bg-[#111] p-8 text-center animate-in fade-in duration-500">
+    <div className="bg-amber-50 dark:bg-amber-900/10 p-6 rounded-full mb-6">
+      <span className="material-symbols-outlined text-6xl text-amber-500">schedule</span>
+    </div>
+    <h1 className="text-3xl font-black text-slate-900 dark:text-white mb-2">Assinatura Expirada</h1>
+    <p className="text-slate-500 dark:text-gray-400 max-w-md mb-6">
+      Sua assinatura expirou ou não está ativa. Para continuar usando o sistema, entre em contato com o administrador para renovar o plano.
+    </p>
+    <a
+      href="https://flowpetpro.com.br/#precos"
+      target="_blank"
+      rel="noopener noreferrer"
+      className="px-8 py-4 bg-primary text-white font-black uppercase tracking-wide rounded-xl hover:bg-primary-hover transition-colors shadow-lg shadow-primary/20"
+    >
+      Ver Planos
+    </a>
+  </div>
+);
+
 const AppContent: React.FC = () => {
   const [currentScreen, setCurrentScreen] = useState<ScreenType>('login');
   const [communicationInitialType, setCommunicationInitialType] = useState<'client' | 'team'>('client');
@@ -82,7 +102,7 @@ const AppContent: React.FC = () => {
   const [posInitialState, setPosInitialState] = useState<any>(null);
   const [scheduleInitialDate, setScheduleInitialDate] = useState<Date | null>(null);
   const { showNotification } = useNotification();
-  const { user, signOut } = useSecurity();
+  const { user, signOut, hasActiveSubscription } = useSecurity();
   const [userProfile, setUserProfile] = useState({
     name: 'Usuário',
     role: 'Administrador',
@@ -249,6 +269,15 @@ const AppContent: React.FC = () => {
       <Suspense fallback={<div className="h-screen w-full flex items-center justify-center bg-white dark:bg-[#0f0529]"><LoadingScreen /></div>}>
         <Login onLogin={handleLogin} />
       </Suspense>
+    );
+  }
+
+  // Block access if subscription is expired (but allow account page for renewal info)
+  if (!hasActiveSubscription && currentScreen !== 'account') {
+    return (
+      <div className="flex min-h-screen bg-slate-50 dark:bg-[#111]">
+        <ExpiredSubscriptionScreen />
+      </div>
     );
   }
 

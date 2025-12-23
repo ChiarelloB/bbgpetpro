@@ -107,18 +107,38 @@ const Header: React.FC<HeaderProps> = ({ isDarkMode, toggleDarkMode, onOpenAdmin
       }
     }
 
-    // Load subscription (simplified - adapt based on your schema)
-    const { data: subData } = await supabase
-      .from('subscriptions')
-      .select('status, subscription_plans(name)')
-      .eq('user_id', userId)
-      .single();
+    // Load subscription using tenant_id
+    if (profileData?.tenant_id) {
+      const { data: subData } = await supabase
+        .from('subscriptions')
+        .select('plan_name, status')
+        .eq('tenant_id', profileData.tenant_id)
+        .is('client_name', null)
+        .eq('status', 'active')
+        .maybeSingle();
 
-    if (subData) {
-      setSubscription({
-        plan_name: (subData.subscription_plans as any)?.name || 'Free',
-        status: subData.status
-      });
+      if (subData) {
+        // Fetch plan info to get is_pro
+        const { data: planData } = await supabase
+          .from('subscription_plans')
+          .select('is_pro')
+          .eq('name', subData.plan_name)
+          .maybeSingle();
+
+        // Fallback: detect PRO from plan name if RLS blocks
+        const planName = subData.plan_name?.toLowerCase() || '';
+        const isPro = planData?.is_pro ||
+          planName.includes('profissional') ||
+          planName.includes('elite') ||
+          planName.includes('pro');
+
+        setSubscription({
+          plan_name: isPro ? 'PRO' : subData.plan_name || 'Free',
+          status: subData.status
+        });
+      } else {
+        setSubscription({ plan_name: 'Free', status: 'active' });
+      }
     } else {
       setSubscription({ plan_name: 'Free', status: 'active' });
     }

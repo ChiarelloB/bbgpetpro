@@ -73,18 +73,47 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ isOpen, onClose, planLink
             } else {
                 // Join Existing Tenant
                 // Find Tenant by Invite Code
-                const { data: tenants, error: searchError } = await supabase
+                const { data: tenantData, error: searchError } = await supabase
                     .from('tenants')
-                    .select('id')
+                    .select('id, name')
                     .eq('invite_code', inviteCode)
                     .single();
 
-                if (searchError || !tenants) throw new Error('Código de convite inválido');
+                if (searchError || !tenantData) throw new Error('Código de convite inválido');
+
+                // Check user limit for this tenant
+                const { count: currentUsers } = await supabase
+                    .from('profiles')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('tenant_id', tenantData.id);
+
+                // Get subscription and plan limit
+                const { data: subData } = await supabase
+                    .from('subscriptions')
+                    .select('plan_name')
+                    .eq('tenant_id', tenantData.id)
+                    .is('client_name', null)
+                    .eq('status', 'active')
+                    .maybeSingle();
+
+                let maxUsers = 1;
+                if (subData) {
+                    const { data: planData } = await supabase
+                        .from('subscription_plans')
+                        .select('max_users')
+                        .eq('name', subData.plan_name)
+                        .maybeSingle();
+                    maxUsers = planData?.max_users || 1;
+                }
+
+                if ((currentUsers || 0) >= maxUsers) {
+                    throw new Error(`A empresa ${tenantData.name} atingiu o limite de ${maxUsers} usuário(s) do plano atual. Entre em contato com o administrador para fazer upgrade.`);
+                }
 
                 // Assign User to Tenant
                 const { error: profileError } = await supabase
                     .from('profiles')
-                    .update({ tenant_id: tenants.id, role: 'employee' }) // Default to employee
+                    .update({ tenant_id: tenantData.id, role: 'employee' }) // Default to employee
                     .eq('id', userId);
 
                 if (profileError) throw new Error('Erro ao vincular perfil: ' + profileError.message);

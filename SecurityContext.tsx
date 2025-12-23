@@ -13,6 +13,7 @@ interface Tenant {
   invite_code?: string;
   is_pro?: boolean;
   max_users?: number;
+  subscription_status?: 'active' | 'expired' | 'none';
 }
 
 interface SecurityContextType {
@@ -26,6 +27,7 @@ interface SecurityContextType {
   setDbPassword: (pass: string) => void;
   tenant: Tenant | null;
   tenantId: string | null;
+  hasActiveSubscription: boolean;
 }
 
 const SecurityContext = createContext<SecurityContextType | undefined>(undefined);
@@ -37,6 +39,7 @@ export const SecurityProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [dbPassword, setDbPassword] = useState('admin123'); // Default master password
   const [tenant, setTenant] = useState<Tenant | null>(null);
   const [tenantId, setTenantId] = useState<string | null>(null);
+  const [hasActiveSubscription, setHasActiveSubscription] = useState(true);
 
   useEffect(() => {
     // Check active sessions and sets the user
@@ -93,16 +96,28 @@ export const SecurityProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         // Fetch active subscription for this tenant to get PRO status and limits
         const { data: subData } = await supabase
           .from('subscriptions')
-          .select('plan_name')
+          .select('plan_name, status, next_billing')
           .eq('tenant_id', profile.tenant_id)
           .is('client_name', null)
-          .eq('status', 'active')
           .maybeSingle();
 
         let isPro = false;
         let maxUsers = 1;
+        let subscriptionStatus: 'active' | 'expired' | 'none' = 'none';
 
         if (subData) {
+          // Check if subscription is expired
+          const now = new Date();
+          const nextBilling = subData.next_billing ? new Date(subData.next_billing) : null;
+
+          if (subData.status === 'active' && (!nextBilling || nextBilling > now)) {
+            subscriptionStatus = 'active';
+            setHasActiveSubscription(true);
+          } else {
+            subscriptionStatus = 'expired';
+            setHasActiveSubscription(false);
+          }
+
           const { data: planData } = await supabase
             .from('subscription_plans')
             .select('is_pro, max_users')
@@ -111,12 +126,15 @@ export const SecurityProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
           isPro = planData?.is_pro || false;
           maxUsers = planData?.max_users || 1;
+        } else {
+          setHasActiveSubscription(false);
         }
 
         setTenant({
           ...tenantData,
           is_pro: isPro,
-          max_users: maxUsers
+          max_users: maxUsers,
+          subscription_status: subscriptionStatus
         });
       }
     } catch (err) {
@@ -143,7 +161,8 @@ export const SecurityProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     dbPassword,
     setDbPassword,
     tenant,
-    tenantId
+    tenantId,
+    hasActiveSubscription
   };
 
   return (

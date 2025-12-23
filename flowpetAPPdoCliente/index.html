@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Flow Pet Pro</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,800;1,900&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <script>
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+            extend: {
+                colors: {
+                    "indigo": {
+                        400: '#a78bfa', // Lighter purple/violet
+                        500: '#8b5cf6', // Violet-500 (Primary Brand Color)
+                        600: '#7c3aed', // Violet-600
+                        900: '#4c1d95', // Violet-900
+                    },
+                    "dark": {
+                        950: '#050505',
+                        900: '#0a0a0a',
+                        800: '#121212',
+                        700: '#1e1e1e',
+                    },
+                    "glass": {
+                        "border": "rgba(255, 255, 255, 0.08)",
+                        "bg": "rgba(255, 255, 255, 0.03)",
+                        "bg-strong": "rgba(255, 255, 255, 0.07)",
+                    }
+                },
+                fontFamily: {
+                    "sans": ["Inter", "sans-serif"],
+                },
+                borderRadius: {
+                    "3xl": "1.5rem", 
+                    "4xl": "2.5rem",
+                },
+                boxShadow: {
+                    "neon": "0 0 20px -5px rgba(139, 92, 246, 0.4)", // Violet glow
+                    "glass": "0 8px 32px 0 rgba(0, 0, 0, 0.37)",
+                }
+            },
+        },
+      }
+    </script>
+    <style>
+      body {
+        font-family: 'Inter', sans-serif;
+        background-color: #050505;
+        color: white;
+      }
+      /* Hide scrollbar for Chrome, Safari and Opera */
+      .no-scrollbar::-webkit-scrollbar {
+        display: none;
+      }
+      /* Hide scrollbar for IE, Edge and Firefox */
+      .no-scrollbar {
+        -ms-overflow-style: none;  /* IE and Edge */
+        scrollbar-width: none;  /* Firefox */
+      }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react/": "https://esm.sh/react@^19.2.3/",
+    "react": "https://esm.sh/react@^19.2.3",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "lucide-react": "https://esm.sh/lucide-react@^0.562.0"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+  <body class="bg-dark-950 text-white overflow-x-hidden antialiased">
+    <div id="root"></div>
+  <script type="module" src="/index.tsx"></script>
+</body>
+</html>
