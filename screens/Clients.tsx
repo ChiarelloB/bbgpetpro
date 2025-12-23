@@ -4,7 +4,10 @@ import { ScreenType } from '../types';
 import { useNotification } from '../NotificationContext';
 import { getGeminiModel } from '../src/lib/gemini';
 import { supabase } from '../src/lib/supabase';
+import { useSecurity } from '../SecurityContext';
+import { UpgradeModal } from '../components/UpgradeModal';
 
+const FREE_LIMIT = 30;
 interface ClientPet {
   id: string;
   name: string;
@@ -257,6 +260,31 @@ export const Clients: React.FC<ClientsProps> = ({ onNavigate }) => {
   const [visibleCount, setVisibleCount] = useState(20);
   const listEndRef = useRef<HTMLDivElement>(null);
   const { showNotification } = useNotification();
+  const { tenant } = useSecurity();
+  const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
+  const [upgradeType, setUpgradeType] = useState<'clientes' | 'pets'>('clientes');
+
+  const checkLimit = (type: 'clientes' | 'pets') => {
+    // Check if the tenant is PRO (is_pro = true)
+    const isPro = (tenant as any)?.is_pro === true;
+    if (isPro) return true;
+
+    if (type === 'clientes') {
+      if (clients.length >= FREE_LIMIT) {
+        setUpgradeType('clientes');
+        setIsUpgradeModalOpen(true);
+        return false;
+      }
+    } else if (type === 'pets') {
+      const totalPets = clients.reduce((acc, c) => acc + (c.pets?.length || 0), 0);
+      if (totalPets >= FREE_LIMIT) {
+        setUpgradeType('pets');
+        setIsUpgradeModalOpen(true);
+        return false;
+      }
+    }
+    return true;
+  };
 
 
   const handleSelectClient = useCallback((id: string) => {
@@ -467,6 +495,13 @@ export const Clients: React.FC<ClientsProps> = ({ onNavigate }) => {
 
   return (
     <div className="flex h-screen overflow-hidden bg-slate-50 dark:bg-[#111] flex-col md:flex-row">
+      <UpgradeModal
+        isOpen={isUpgradeModalOpen}
+        onClose={() => setIsUpgradeModalOpen(false)}
+        limit={FREE_LIMIT}
+        type={upgradeType}
+        onUpgrade={() => onNavigate?.('account')}
+      />
       <NewClientModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSave={handleAddClient} />
       {selectedClient && (
         <EditClientModal
@@ -536,7 +571,11 @@ export const Clients: React.FC<ClientsProps> = ({ onNavigate }) => {
         <div className="p-6 border-b border-slate-100 dark:border-gray-800 pb-0">
           <div className="flex justify-between items-center mb-6">
             <h1 className="text-2xl font-black tracking-tight text-primary">CLIENTES</h1>
-            <button onClick={() => setIsModalOpen(true)} className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center hover:bg-primary hover:text-white transition-colors">
+            <button onClick={() => {
+              if (checkLimit('clientes')) {
+                setIsModalOpen(true);
+              }
+            }} className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center hover:bg-primary hover:text-white transition-colors">
               <span className="material-symbols-outlined text-[20px]">add</span>
             </button>
           </div>
@@ -672,6 +711,7 @@ export const Clients: React.FC<ClientsProps> = ({ onNavigate }) => {
                 <button
                   onClick={() => {
                     if (selectedClient && onNavigate) {
+                      if (!checkLimit('pets')) return;
                       localStorage.setItem('petmanager_initial_client_id', selectedClient.id);
                       localStorage.setItem('petmanager_trigger_add_pet', 'true');
                       onNavigate('petProfile');

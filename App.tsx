@@ -227,7 +227,7 @@ const AppContent: React.FC = () => {
       case 'execution': return <Execution onNavigate={handleNavigate} />;
       case 'pos': return <POS initialState={posInitialState} />;
       case 'clients': return <Clients onNavigate={handleNavigate} />;
-      case 'petProfile': return <PetProfile />;
+      case 'petProfile': return <PetProfile onNavigate={handleNavigate} />;
       case 'inventory': return <Inventory />;
       case 'services': return <Services />;
       case 'finance': return <Finance />;

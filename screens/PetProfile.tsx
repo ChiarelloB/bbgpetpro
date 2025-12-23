@@ -5,6 +5,10 @@ import { useResources } from '../ResourceContext';
 import { supabase } from '../src/lib/supabase';
 import { useTheme } from '../ThemeContext';
 import { DOG_BREEDS, CAT_BREEDS } from '../constants';
+import { useSecurity } from '../SecurityContext';
+import { UpgradeModal } from '../components/UpgradeModal';
+
+const FREE_LIMIT = 30;
 
 
 // --- Interfaces ---
@@ -485,7 +489,7 @@ const PetListItem = React.memo(({ pet, isSelected, onSelect }: { pet: Pet, isSel
 // --- Main Component ---
 
 
-export const PetProfile: React.FC = () => {
+export const PetProfile: React.FC<{ onNavigate?: (screen: any) => void }> = ({ onNavigate }) => {
     const [pets, setPets] = useState<Pet[]>([]);
     const [selectedPet, setSelectedPet] = useState<Pet | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
@@ -514,6 +518,19 @@ export const PetProfile: React.FC = () => {
     const [visibleCount, setVisibleCount] = useState(20);
     const listEndRef = useRef<HTMLDivElement>(null);
     const { showNotification } = useNotification();
+    const { tenant } = useSecurity();
+    const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
+
+    const checkPetLimit = () => {
+        const isPro = (tenant as any)?.is_pro === true;
+        if (isPro) return true;
+
+        if (pets.length >= FREE_LIMIT) {
+            setIsUpgradeModalOpen(true);
+            return false;
+        }
+        return true;
+    };
 
 
     const handleSelectPet = useCallback((pet: Pet) => {
@@ -571,8 +588,10 @@ export const PetProfile: React.FC = () => {
             const triggerAdd = localStorage.getItem('petmanager_trigger_add_pet');
             const prefilledClientId = localStorage.getItem('petmanager_initial_client_id');
             if (triggerAdd === 'true' && prefilledClientId) {
-                setInitialClientId(prefilledClientId);
-                setIsAddPetModalOpen(true);
+                if (checkPetLimit()) {
+                    setInitialClientId(prefilledClientId);
+                    setIsAddPetModalOpen(true);
+                }
                 localStorage.removeItem('petmanager_trigger_add_pet');
                 localStorage.removeItem('petmanager_initial_client_id');
             } else if (mappedPets.length > 0 && !selectedPet) {
@@ -797,6 +816,13 @@ export const PetProfile: React.FC = () => {
 
     return (
         <div className="flex h-screen overflow-hidden bg-slate-50 dark:bg-[#09090b] flex-col md:flex-row animate-in fade-in duration-500">
+            <UpgradeModal
+                isOpen={isUpgradeModalOpen}
+                onClose={() => setIsUpgradeModalOpen(false)}
+                limit={FREE_LIMIT}
+                type="pets"
+                onUpgrade={() => onNavigate?.('account')}
+            />
             {selectedPet && <EditPetModal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} onSave={handleUpdatePet} pet={selectedPet} />}
             <AddPetModal
                 isOpen={isAddPetModalOpen}
@@ -848,7 +874,11 @@ export const PetProfile: React.FC = () => {
                 <div className="p-8 border-b border-slate-200 dark:border-gray-800">
                     <div className="flex items-center justify-between mb-6">
                         <h1 className="text-2xl font-black tracking-tighter text-slate-900 dark:text-white uppercase italic">Pets</h1>
-                        <button onClick={() => setIsAddPetModalOpen(true)} className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center hover:bg-primary-hover transition-colors shadow-lg shadow-primary/30">
+                        <button onClick={() => {
+                            if (checkPetLimit()) {
+                                setIsAddPetModalOpen(true);
+                            }
+                        }} className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center hover:bg-primary-hover transition-colors shadow-lg shadow-primary/30">
                             <span className="material-symbols-outlined text-sm">add</span>
                         </button>
                     </div>

@@ -5,6 +5,7 @@ interface HeaderProps {
   isDarkMode: boolean;
   toggleDarkMode: () => void;
   onOpenAdmin?: () => void;
+  onOpenProfile?: () => void;
 }
 
 interface UserProfile {
@@ -27,7 +28,7 @@ interface Subscription {
   status: string;
 }
 
-const Header: React.FC<HeaderProps> = ({ isDarkMode, toggleDarkMode, onOpenAdmin }) => {
+const Header: React.FC<HeaderProps> = ({ isDarkMode, toggleDarkMode, onOpenAdmin, onOpenProfile }) => {
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isLoginOpen, setIsLoginOpen] = useState(false);
@@ -242,13 +243,16 @@ const Header: React.FC<HeaderProps> = ({ isDarkMode, toggleDarkMode, onOpenAdmin
                 {user ? (
                   <>
                     <div className="flex items-center gap-3 pl-4 border-l border-gray-200 dark:border-gray-700">
-                      <div className="text-right hidden lg:block">
+                      <div className="text-right hidden lg:block cursor-pointer" onClick={onOpenProfile}>
                         <p className="text-xs font-bold text-gray-900 dark:text-white">{profile?.full_name || user.email}</p>
                         <p className={`text-[10px] uppercase font-bold tracking-wider ${getPlanColor(subscription?.plan_name || 'Free')}`}>
                           {tenant?.name || 'Carregando...'} • {subscription?.plan_name || 'Free'}
                         </p>
                       </div>
-                      <div className="size-9 bg-gray-200 rounded-full overflow-hidden border-2 border-primary cursor-pointer flex items-center justify-center">
+                      <div
+                        onClick={onOpenProfile}
+                        className="size-9 bg-gray-200 rounded-full overflow-hidden border-2 border-primary cursor-pointer flex items-center justify-center hover:scale-110 transition-transform"
+                      >
                         {profile?.avatar_url ? (
                           <img src={profile.avatar_url} alt="Avatar" className="size-full object-cover" />
                         ) : (
@@ -328,7 +332,10 @@ const Header: React.FC<HeaderProps> = ({ isDarkMode, toggleDarkMode, onOpenAdmin
           {user ? (
             <div className="flex flex-col items-center gap-4">
               <div className="flex items-center gap-3">
-                <div className="size-12 rounded-full border-2 border-primary overflow-hidden flex items-center justify-center bg-gray-200">
+                <div
+                  className="size-12 rounded-full border-2 border-primary overflow-hidden flex items-center justify-center bg-gray-200 cursor-pointer"
+                  onClick={() => { setMobileMenuOpen(false); onOpenProfile?.(); }}
+                >
                   {profile?.avatar_url ? (
                     <img src={profile.avatar_url} alt="Avatar" className="size-full object-cover" />
                   ) : (

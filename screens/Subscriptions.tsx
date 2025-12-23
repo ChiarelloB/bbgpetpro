@@ -556,6 +556,7 @@ export const Subscriptions: React.FC = () => {
     const { data, error } = await supabase
       .from('subscriptions')
       .select('*')
+      .not('client_name', 'is', null)
       .order('created_at', { ascending: false });
 
     if (error) {

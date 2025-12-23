@@ -31,10 +31,12 @@ import ExitIntent from './components/ExitIntent';
 import AdminPanel from './components/AdminPanel';
 import Success from './components/Success';
 import InteractiveCursor from './components/InteractiveCursor';
+import { UserProfile } from './components/UserProfile';
 
 const App: React.FC = () => {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [isAdminOpen, setIsAdminOpen] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
 
   useEffect(() => {
     // Check local storage or system preference
@@ -74,7 +76,13 @@ const App: React.FC = () => {
   return (
     <div className="min-h-screen bg-white dark:bg-black transition-colors duration-300">
       <InteractiveCursor />
-      <Header isDarkMode={isDarkMode} toggleDarkMode={toggleDarkMode} onOpenAdmin={() => setIsAdminOpen(true)} />
+      <Header
+        isDarkMode={isDarkMode}
+        toggleDarkMode={toggleDarkMode}
+        onOpenAdmin={() => setIsAdminOpen(true)}
+        onOpenProfile={() => setIsProfileOpen(true)}
+      />
+      {isProfileOpen && <UserProfile onClose={() => setIsProfileOpen(false)} />}
       <main>
         <Hero />
         <Press />

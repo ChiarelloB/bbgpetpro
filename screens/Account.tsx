@@ -19,26 +19,48 @@ export const Account: React.FC = () => {
     const fetchAccountData = async () => {
         setLoading(true);
         try {
-            // Fetch active subscription for the pet (using a simple one for now)
-            const { data: subData } = await supabase
+            // Fetch active subscription for the current tenant
+            const { data: subData, error: subError } = await supabase
                 .from('subscriptions')
                 .select('*')
+                .eq('tenant_id', tenant?.id)
+                .is('client_name', null)
                 .eq('status', 'active')
-                .limit(1)
-                .single();
+                .maybeSingle();
 
-            setActiveSubscription(subData);
+            if (subError) throw subError;
 
-            // Fetch purchase history (financial transactions)
-            const { data: historyData } = await supabase
+            if (subData) {
+                // Fetch plan info by name (since there is no direct FK)
+                const { data: planData, error: planError } = await supabase
+                    .from('subscription_plans')
+                    .select('name, is_pro')
+                    .eq('name', subData.plan_name)
+                    .eq('tenant_id', tenant?.id)
+                    .maybeSingle();
+
+                if (planError) throw planError;
+
+                setActiveSubscription({
+                    ...subData,
+                    plan_name: subData.plan_name || 'Plano Personalizado',
+                    is_pro: planData?.is_pro || false
+                });
+            }
+
+            // Fetch real purchase history (financial transactions)
+            const { data: historyData, error: historyError } = await supabase
                 .from('financial_transactions')
                 .select('*')
+                .eq('tenant_id', tenant?.id)
                 .order('created_at', { ascending: false })
                 .limit(10);
 
+            if (historyError) throw historyError;
             setPurchaseHistory(historyData || []);
         } catch (error) {
             console.error('Error fetching account data:', error);
+            showNotification('Erro ao carregar dados da conta', 'error');
         } finally {
             setLoading(false);
         }
@@ -89,17 +111,17 @@ export const Account: React.FC = () => {
                                 <>
                                     <h4 className="text-3xl font-black uppercase italic tracking-tighter mb-2">{activeSubscription.plan_name}</h4>
                                     <div className="flex items-baseline gap-2 mb-6">
-                                        <span className="text-xl font-bold">R$ {activeSubscription.value.toFixed(2)}</span>
-                                        <span className="text-sm opacity-60">/ {activeSubscription.frequency}</span>
+                                        <span className="text-xl font-bold">R$ {(activeSubscription.value || activeSubscription.amount || 0).toFixed(2)}</span>
+                                        <span className="text-sm opacity-60">/ {activeSubscription.frequency || 'mês'}</span>
                                     </div>
                                     <div className="space-y-3">
                                         <div className="flex justify-between items-center text-sm font-bold bg-white/10 rounded-xl p-3">
                                             <span>Próxima Cobrança</span>
-                                            <span>{new Date(activeSubscription.next_billing).toLocaleDateString('pt-BR')}</span>
+                                            <span>{activeSubscription.next_billing ? new Date(activeSubscription.next_billing).toLocaleDateString('pt-BR') : 'A definir'}</span>
                                         </div>
                                         <div className="flex justify-between items-center text-sm font-bold bg-white/10 rounded-xl p-3">
                                             <span>Método</span>
-                                            <span>{activeSubscription.payment_method}</span>
+                                            <span>{activeSubscription.payment_method || 'Cartão de Crédito'}</span>
                                         </div>
                                     </div>
                                 </>
@@ -126,10 +148,10 @@ export const Account: React.FC = () => {
                                 { label: 'Relatórios', icon: 'bar_chart', access: true },
                             ].map((item, idx) => (
                                 <div key={idx} className={`p-4 rounded-2xl border transition-all ${item.access
-                                        ? item.highlight
-                                            ? 'bg-amber-50 border-amber-100 dark:bg-amber-900/10 dark:border-amber-800/30 text-amber-600'
-                                            : 'bg-slate-50 border-slate-100 dark:bg-white/5 dark:border-gray-800 text-slate-600 dark:text-gray-300'
-                                        : 'bg-slate-50/50 border-slate-50 dark:bg-black/10 dark:border-gray-900 opacity-40'
+                                    ? item.highlight
+                                        ? 'bg-amber-50 border-amber-100 dark:bg-amber-900/10 dark:border-amber-800/30 text-amber-600'
+                                        : 'bg-slate-50 border-slate-100 dark:bg-white/5 dark:border-gray-800 text-slate-600 dark:text-gray-300'
+                                    : 'bg-slate-50/50 border-slate-50 dark:bg-black/10 dark:border-gray-900 opacity-40'
                                     }`}>
                                     <span className="material-symbols-outlined text-xl mb-2">{item.icon}</span>
                                     <p className="text-xs font-black uppercase">{item.label}</p>

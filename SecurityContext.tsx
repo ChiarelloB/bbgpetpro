@@ -10,6 +10,9 @@ interface Tenant {
   logo_url: string | null;
   primary_color: string;
   settings: Record<string, any>;
+  invite_code?: string;
+  is_pro?: boolean;
+  max_users?: number;
 }
 
 interface SecurityContextType {
@@ -87,7 +90,34 @@ export const SecurityProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         .single();
 
       if (!tenantError && tenantData) {
-        setTenant(tenantData);
+        // Fetch active subscription for this tenant to get PRO status and limits
+        const { data: subData } = await supabase
+          .from('subscriptions')
+          .select('plan_name')
+          .eq('tenant_id', profile.tenant_id)
+          .is('client_name', null)
+          .eq('status', 'active')
+          .maybeSingle();
+
+        let isPro = false;
+        let maxUsers = 1;
+
+        if (subData) {
+          const { data: planData } = await supabase
+            .from('subscription_plans')
+            .select('is_pro, max_users')
+            .eq('name', subData.plan_name)
+            .maybeSingle();
+
+          isPro = planData?.is_pro || false;
+          maxUsers = planData?.max_users || 1;
+        }
+
+        setTenant({
+          ...tenantData,
+          is_pro: isPro,
+          max_users: maxUsers
+        });
       }
     } catch (err) {
       console.error('Error fetching tenant info:', err);

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNotification } from '../NotificationContext';
 import { getGeminiModel } from '../src/lib/gemini';
 import { supabase } from '../src/lib/supabase';
+import { useSecurity } from '../SecurityContext';
 
 interface TeamMember {
   id: string;
@@ -285,6 +286,7 @@ export const Team: React.FC<{ onNavigate?: (screen: ScreenType) => void }> = ({ 
   const [isOpEditModalOpen, setIsOpEditModalOpen] = useState(false);
   const [selectedOpMember, setSelectedOpMember] = useState<OperationalMember | null>(null);
   const [opLoading, setOpLoading] = useState(false);
+  const { tenant, user: authUser } = useSecurity();
 
   const { showNotification } = useNotification();
 
@@ -414,6 +416,12 @@ export const Team: React.FC<{ onNavigate?: (screen: ScreenType) => void }> = ({ 
 
   const handleAddMember = async (data: any) => {
     try {
+      // Check limits
+      if (team.length >= (tenant?.max_users || 1)) {
+        showNotification(`Você atingiu o limite de ${tenant?.max_users} usuários do seu plano. Faça upgrade para adicionar mais.`, 'error');
+        return;
+      }
+
       showNotification('Criando usuário...', 'info');
 
       // Step 1: Create user in Supabase Auth
@@ -653,6 +661,28 @@ export const Team: React.FC<{ onNavigate?: (screen: ScreenType) => void }> = ({ 
         <div>
           <h1 className="text-4xl font-black tracking-tight text-slate-900 dark:text-white mb-2">Equipe</h1>
           <p className="text-slate-500 dark:text-gray-400 max-w-lg">Gerencie os colaboradores, visualize escalas e atribua tarefas para garantir o melhor atendimento.</p>
+
+          <div className="flex items-center gap-4 mt-4">
+            <div className="bg-primary/10 px-4 py-2 rounded-xl border border-primary/20 flex items-center gap-3">
+              <span className="text-[10px] font-black uppercase text-primary tracking-widest">Código: {tenant?.invite_code || '---'}</span>
+              <button
+                onClick={() => {
+                  if (tenant?.invite_code) {
+                    navigator.clipboard.writeText(tenant.invite_code);
+                    showNotification('Código copiado!', 'success');
+                  }
+                }}
+                className="size-6 rounded-md bg-primary text-white flex items-center justify-center hover:scale-110 transition-transform"
+              >
+                <span className="material-symbols-outlined text-[14px]">content_copy</span>
+              </button>
+            </div>
+            <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+              <span>Plano: <span className="text-primary">{tenant?.is_pro ? 'PRO' : 'FREE'}</span></span>
+              <span className="opacity-30">|</span>
+              <span>Uso: {team.length} / {tenant?.max_users || 1}</span>
+            </div>
+          </div>
         </div>
         <div className="flex items-center gap-3 w-full md:w-auto">
           <div className="relative flex-1 md:w-64">
