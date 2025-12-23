@@ -82,6 +82,7 @@ const roadmapData: RoadmapItem[] = [
         icon: 'storefront',
         features: [
             { label: 'PDV com Carrinho', done: true },
+            { label: 'Busca & Filtro de Clientes', done: true },
             { label: 'Workflow de Execução', done: true },
             { label: 'Controle de Estoque', done: true },
             { label: 'Catálogo de Serviços', done: true }
@@ -219,6 +220,7 @@ const changelogHistory: ChangelogEntry[] = [
             'Nova padronização de raças: Dropdowns dinâmicos baseados na espécie.',
             'Suporte a "Outras Espécies" com entrada de texto livre para raças.',
             'Motor de Migração de Dados: Transferência de registros entre tenants (Raio Studio Pet).',
+            'Melhoria no PDV: Adição de busca de clientes, scroll na listagem e opção rápida para Pessoa Física (Consumidor).',
             'Alinhamento de mensagens no chat: Mensagens recebidas agora aparecem no lado correto em salas de equipe.',
             'Correção de duplicidade na inicialização de estado em modais de cadastro.'
         ]
