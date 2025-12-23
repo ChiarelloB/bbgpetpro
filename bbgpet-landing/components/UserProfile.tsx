@@ -429,7 +429,7 @@ export const UserProfile: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                                         <span className="material-symbols-outlined text-4xl mb-4">diamond</span>
                                         <h3 className="text-sm font-black uppercase tracking-widest opacity-80 mb-2">Plano Atual</h3>
                                         <p className="text-3xl font-black uppercase italic italic tracking-tighter">
-                                            {activeSubscription?.is_pro ? 'PRO' : 'Free'}
+                                            {activeSubscription?.plan_name || (activeSubscription?.is_pro ? 'PRO' : 'Free')}
                                         </p>
                                         <p className="text-xs font-bold mt-4 opacity-70">
                                             {activeSubscription?.next_billing
@@ -1096,14 +1096,14 @@ export const UserProfile: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                                                                 setSelectedAnswers(newAnswers);
                                                             }}
                                                             className={`w-full text-left p-4 rounded-2xl border-2 transition-all ${selectedAnswers[currentQuestionIndex] === i
-                                                                    ? 'border-primary bg-primary/10'
-                                                                    : 'border-gray-100 dark:border-white/10 hover:border-primary/50'
+                                                                ? 'border-primary bg-primary/10'
+                                                                : 'border-gray-100 dark:border-white/10 hover:border-primary/50'
                                                                 }`}
                                                         >
                                                             <div className="flex items-center gap-3">
                                                                 <span className={`size-8 rounded-full flex items-center justify-center text-sm font-bold ${selectedAnswers[currentQuestionIndex] === i
-                                                                        ? 'bg-primary text-white'
-                                                                        : 'bg-gray-100 dark:bg-white/10'
+                                                                    ? 'bg-primary text-white'
+                                                                    : 'bg-gray-100 dark:bg-white/10'
                                                                     }`}>
                                                                     {String.fromCharCode(65 + i)}
                                                                 </span>

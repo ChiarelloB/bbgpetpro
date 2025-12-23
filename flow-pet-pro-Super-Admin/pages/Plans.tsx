@@ -155,6 +155,7 @@ export const Plans: React.FC = () => {
       .from('subscriptions')
       .update({
         plan_id: selectedNewPlanId,
+        plan_name: newPlan.name,
         price_at_start: newPrice // Update the locked-in price to the new plan's current price
       })
       .eq('id', selectedSubscription.id);

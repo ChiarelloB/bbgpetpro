@@ -133,7 +133,7 @@ const Header: React.FC<HeaderProps> = ({ isDarkMode, toggleDarkMode, onOpenAdmin
           planName.includes('pro');
 
         setSubscription({
-          plan_name: isPro ? 'PRO' : subData.plan_name || 'Free',
+          plan_name: subData.plan_name || (isPro ? 'PRO' : 'Free'),
           status: subData.status
         });
       } else {
