@@ -15,6 +15,7 @@ interface SidebarProps {
 // Define the structure for grouped navigation
 type NavGroup = {
   title: string;
+  icon: string;
   items: NavItem[];
 };
 
@@ -27,15 +28,17 @@ const sidebarStyles: Record<SidebarTheme, {
   hover: string;
   sectionBg: string;
   activeItem: string;
+  iconHighlight: string;
 }> = {
   default: {
-    container: 'bg-[#1e293b] dark:bg-[#0f172a]', // Slate 800/900 - distinct standard
+    container: 'bg-[#1e293b] dark:bg-[#0f172a]',
     text: 'text-slate-300',
     muted: 'text-slate-500',
     border: 'border-slate-700/50',
     hover: 'hover:bg-white/5 hover:text-white',
     sectionBg: 'bg-black/20',
-    activeItem: 'bg-primary text-white shadow-md shadow-primary/20'
+    activeItem: 'bg-primary text-white shadow-md shadow-primary/20',
+    iconHighlight: 'text-primary'
   },
   light: {
     container: 'bg-white dark:bg-[#111]',
@@ -44,25 +47,28 @@ const sidebarStyles: Record<SidebarTheme, {
     border: 'border-slate-200 dark:border-gray-800',
     hover: 'hover:bg-slate-50 dark:hover:bg-white/5 hover:text-slate-900 dark:hover:text-white',
     sectionBg: 'bg-slate-50 dark:bg-black/20',
-    activeItem: 'bg-primary text-white shadow-md shadow-primary/20'
+    activeItem: 'bg-primary text-white shadow-md shadow-primary/20',
+    iconHighlight: 'text-primary'
   },
   navy: {
-    container: 'bg-[#1e3a8a] dark:bg-[#172554]', // Blue 900
+    container: 'bg-[#1e3a8a] dark:bg-[#172554]',
     text: 'text-blue-100',
     muted: 'text-blue-300/60',
     border: 'border-blue-800/50',
     hover: 'hover:bg-blue-800/40 hover:text-white',
     sectionBg: 'bg-black/20',
-    activeItem: 'bg-white text-blue-900 shadow-md'
+    activeItem: 'bg-white text-blue-900 shadow-md',
+    iconHighlight: 'text-blue-300'
   },
   forest: {
-    container: 'bg-[#064e3b] dark:bg-[#022c22]', // Emerald 900
+    container: 'bg-[#064e3b] dark:bg-[#022c22]',
     text: 'text-emerald-50',
     muted: 'text-emerald-200/60',
     border: 'border-emerald-800/50',
     hover: 'hover:bg-emerald-800/40 hover:text-white',
     sectionBg: 'bg-black/20',
-    activeItem: 'bg-emerald-500 text-white shadow-md shadow-emerald-500/20'
+    activeItem: 'bg-emerald-500 text-white shadow-md shadow-emerald-500/20',
+    iconHighlight: 'text-emerald-400'
   },
   black: {
     container: 'bg-black',
@@ -71,18 +77,19 @@ const sidebarStyles: Record<SidebarTheme, {
     border: 'border-gray-800',
     hover: 'hover:bg-white/10 hover:text-white',
     sectionBg: 'bg-white/5',
-    activeItem: 'bg-white text-black shadow-md shadow-white/10'
+    activeItem: 'bg-white text-black shadow-md shadow-white/10',
+    iconHighlight: 'text-white'
   },
   purple: {
-    container: 'bg-[#4c1d95] dark:bg-[#2e1065]', // Violet 900
+    container: 'bg-[#4c1d95] dark:bg-[#2e1065]',
     text: 'text-violet-100',
     muted: 'text-violet-300/60',
     border: 'border-violet-800/50',
     hover: 'hover:bg-violet-800/40 hover:text-white',
     sectionBg: 'bg-black/20',
-    activeItem: 'bg-white text-violet-900 shadow-md'
+    activeItem: 'bg-white text-violet-900 shadow-md',
+    iconHighlight: 'text-violet-300'
   },
-  // New Themes
   slate: {
     container: 'bg-slate-900 dark:bg-slate-950',
     text: 'text-slate-300',
@@ -90,7 +97,8 @@ const sidebarStyles: Record<SidebarTheme, {
     border: 'border-slate-800',
     hover: 'hover:bg-white/5 hover:text-white',
     sectionBg: 'bg-black/20',
-    activeItem: 'bg-primary text-white shadow-md'
+    activeItem: 'bg-primary text-white shadow-md',
+    iconHighlight: 'text-primary'
   },
   zinc: {
     container: 'bg-zinc-900 dark:bg-zinc-950',
@@ -99,7 +107,8 @@ const sidebarStyles: Record<SidebarTheme, {
     border: 'border-zinc-800',
     hover: 'hover:bg-white/5 hover:text-white',
     sectionBg: 'bg-black/20',
-    activeItem: 'bg-white text-zinc-900 shadow-md'
+    activeItem: 'bg-white text-zinc-900 shadow-md',
+    iconHighlight: 'text-zinc-300'
   },
   stone: {
     container: 'bg-stone-900 dark:bg-stone-950',
@@ -108,25 +117,28 @@ const sidebarStyles: Record<SidebarTheme, {
     border: 'border-stone-800',
     hover: 'hover:bg-white/5 hover:text-white',
     sectionBg: 'bg-black/20',
-    activeItem: 'bg-[#d6d3d1] text-stone-900 shadow-md'
+    activeItem: 'bg-[#d6d3d1] text-stone-900 shadow-md',
+    iconHighlight: 'text-stone-300'
   },
   ruby: {
-    container: 'bg-[#881337] dark:bg-[#4c0519]', // Rose 900
+    container: 'bg-[#881337] dark:bg-[#4c0519]',
     text: 'text-rose-100',
     muted: 'text-rose-300/60',
     border: 'border-rose-800/50',
     hover: 'hover:bg-rose-800/40 hover:text-white',
     sectionBg: 'bg-black/20',
-    activeItem: 'bg-white text-rose-900 shadow-md'
+    activeItem: 'bg-white text-rose-900 shadow-md',
+    iconHighlight: 'text-rose-300'
   },
   chocolate: {
-    container: 'bg-[#451a03] dark:bg-[#451a03]', // Amber 950
+    container: 'bg-[#451a03] dark:bg-[#451a03]',
     text: 'text-orange-100',
     muted: 'text-orange-300/50',
     border: 'border-orange-900/30',
     hover: 'hover:bg-orange-900/40 hover:text-white',
     sectionBg: 'bg-black/20',
-    activeItem: 'bg-orange-500 text-white shadow-md'
+    activeItem: 'bg-orange-500 text-white shadow-md',
+    iconHighlight: 'text-orange-400'
   }
 };
 
@@ -174,6 +186,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentScreen, onNavigate, isO
   const navGroups: NavGroup[] = [
     {
       title: 'Visão Geral',
+      icon: 'grid_view',
       items: [
         // Conditionally show Main Dashboard OR User Dashboard based on permissions
         ...(permissions.dashboard ? [{ id: 'dashboard' as ScreenType, label: 'Painel', icon: 'dashboard' }] : []),
@@ -183,6 +196,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentScreen, onNavigate, isO
     },
     {
       title: 'Atendimento',
+      icon: 'assignment',
       items: [
         { id: 'schedule', label: 'Agenda', icon: 'calendar_clock' },
         { id: 'execution', label: 'Execução', icon: 'playlist_play' },
@@ -194,6 +208,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentScreen, onNavigate, isO
     },
     {
       title: 'Gestão',
+      icon: 'admin_panel_settings',
       items: [
         { id: 'finance', label: 'Financeiro', icon: 'payments' },
         { id: 'subscriptions', label: 'Assinaturas', icon: 'loyalty' },
@@ -206,6 +221,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentScreen, onNavigate, isO
     },
     {
       title: 'Marketing',
+      icon: 'campaign',
       items: [
         { id: 'communication', label: 'Comunicação', icon: 'chat' },
       ]
@@ -258,7 +274,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentScreen, onNavigate, isO
               onClick={() => toggleGroup(group.title)}
               className={`w-full flex items-center justify-between px-3 py-1 text-xs font-bold uppercase tracking-wider transition-colors group ${styles.muted} hover:text-opacity-80`}
             >
-              {group.title}
+              <div className="flex items-center gap-2">
+                <span className={`material-symbols-outlined text-[18px] ${styles.iconHighlight}`}>{group.icon}</span>
+                {group.title}
+              </div>
               <span className={`material-symbols-outlined text-[16px] transition-transform duration-200 ${expandedGroups.includes(group.title) ? 'rotate-180' : ''}`}>
                 expand_more
               </span>

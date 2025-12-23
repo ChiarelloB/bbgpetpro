@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNotification } from '../NotificationContext';
 import { getGeminiModel } from '../src/lib/gemini';
 import { supabase } from '../src/lib/supabase';
+import { useSecurity } from '../SecurityContext';
 
 interface Subscription {
   id: string;
@@ -525,6 +526,7 @@ export const Subscriptions: React.FC = () => {
   const [isPlanModalOpen, setIsPlanModalOpen] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<SubscriptionPlan | null>(null);
   const [plansLoading, setPlansLoading] = useState(false);
+  const { tenantId } = useSecurity();
 
   const fetchSubscriptions = async () => {
     setLoading(true);
@@ -597,7 +599,8 @@ export const Subscriptions: React.FC = () => {
       usage_unit: data.usageUnit,
       services: data.services,
       color: data.color,
-      is_active: true
+      is_active: true,
+      tenant_id: tenantId
     };
 
     if (selectedPlan) {
@@ -663,7 +666,8 @@ export const Subscriptions: React.FC = () => {
       max_usage: data.maxUsage,
       current_usage: data.currentUsage,
       usage_unit: data.usageUnit,
-      start_date: new Date().toISOString().split('T')[0]
+      start_date: new Date().toISOString().split('T')[0],
+      tenant_id: tenantId
     };
 
     if (selectedSub) {
@@ -689,7 +693,8 @@ export const Subscriptions: React.FC = () => {
           type: 'income',
           amount: parseFloat(data.value),
           description: `Assinatura: ${data.planName} - ${data.petName} (${data.clientName})`,
-          status: 'paid'
+          status: 'paid',
+          tenant_id: tenantId
         }]);
 
         if (finError) {
