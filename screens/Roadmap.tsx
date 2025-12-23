@@ -41,6 +41,23 @@ interface SuggestionModalProps {
 
 const roadmapData: RoadmapItem[] = [
     {
+        id: 11,
+        title: 'Segurança & Migração (V4)',
+        description: 'Lançamento do sistema de Backup total (JSON) e migração assistida de dados entre inquilinos. Padronização inteligente de raças com detecção de espécie e suporte a campos híbridos.',
+        status: 'Lançado',
+        date: 'Q1 2026',
+        progress: 100,
+        icon: 'backup',
+        tags: ['Segurança', 'Dados', 'Multi-tenant'],
+        features: [
+            { label: 'Backup & Restore JSON', done: true },
+            { label: 'Migração de Tenant', done: true },
+            { label: 'Raças Padronizadas', done: true },
+            { label: 'Otimização de Banco de Dados', done: true }
+        ]
+    },
+    {
+
         id: 1,
         title: 'Fundação CRM & Agendamento',
         description: 'Lançamento do núcleo do sistema. Gestão completa de clientes e pets com galeria de fotos, histórico médico e vacinas. Agenda inteligente com gestão de recursos (salas/mesas) e dashboard interativo.',
@@ -193,6 +210,21 @@ const roadmapData: RoadmapItem[] = [
 
 const changelogHistory: ChangelogEntry[] = [
     {
+        version: 'v4.0.0',
+        date: '23 Dez 2025',
+        type: 'major',
+        title: 'Kernel de Dados & Migração Global',
+        changes: [
+            'Lançamento do Sistema de Backup & Restauração JSON (Painel Database).',
+            'Nova padronização de raças: Dropdowns dinâmicos baseados na espécie.',
+            'Suporte a "Outras Espécies" com entrada de texto livre para raças.',
+            'Motor de Migração de Dados: Transferência de registros entre tenants (Raio Studio Pet).',
+            'Alinhamento de mensagens no chat: Mensagens recebidas agora aparecem no lado correto em salas de equipe.',
+            'Correção de duplicidade na inicialização de estado em modais de cadastro.'
+        ]
+    },
+    {
+
         version: 'v3.9.0',
         date: '22 Dez 2025',
         type: 'major',
