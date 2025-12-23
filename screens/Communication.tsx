@@ -1,5 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNotification } from '../NotificationContext';
+import { useSecurity } from '../SecurityContext';
+
 import { getGeminiModel } from '../src/lib/gemini';
 import { supabase } from '../src/lib/supabase';
 
@@ -240,6 +242,8 @@ export const Communication: React.FC<{ initialType?: 'client' | 'team'; initialC
     const [loadingSuggestions, setLoadingSuggestions] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const { showNotification } = useNotification();
+    const { user } = useSecurity();
+
 
     // Unified initialization logic
     useEffect(() => {
@@ -280,11 +284,12 @@ export const Communication: React.FC<{ initialType?: 'client' | 'team'; initialC
                 sender: m.sender_id || 'Sistema',
                 text: m.text || '',
                 time: new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                isMe: !m.sender_id, // Messages without sender_id are from current user
+                isMe: (user?.id && (m.sender_id === user.id || m.sender_profile_id === user.id)) || (!m.sender_id && !m.sender_profile_id),
                 type: m.type || 'text',
                 meta: m.meta,
                 senderProfileId: m.sender_profile_id
             })));
+
         }
         setLoadingMessages(false);
     };
@@ -414,7 +419,7 @@ export const Communication: React.FC<{ initialType?: 'client' | 'team'; initialC
                         sender: senderName || newMessage.sender_id,
                         text: newMessage.text || '',
                         time: new Date(newMessage.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                        isMe: !newMessage.sender_id, // Messages without sender_id are from current user
+                        isMe: (user?.id && (newMessage.sender_id === user.id || newMessage.sender_profile_id === user.id)) || (!newMessage.sender_id && !newMessage.sender_profile_id),
                         type: newMessage.type || 'text',
                         meta: newMessage.meta,
                         senderImg: senderImg
@@ -427,7 +432,8 @@ export const Communication: React.FC<{ initialType?: 'client' | 'team'; initialC
                 supabase.removeChannel(channel);
             };
         }
-    }, [selectedChat]);
+    }, [selectedChat, user]);
+
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -447,8 +453,11 @@ export const Communication: React.FC<{ initialType?: 'client' | 'team'; initialC
             const { data, error } = await supabase.from('chat_messages').insert([{
                 chat_id: selectedChat.id,
                 text: messageText,
-                type: 'text'
+                type: 'text',
+                sender_id: user?.id, // Use authentication ID
+                sender_profile_id: user?.id
             }]).select();
+
 
             if (error) {
                 console.error('Error sending message:', error);
