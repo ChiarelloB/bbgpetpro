@@ -45,7 +45,7 @@ const Header: React.FC<HeaderProps> = ({ isDarkMode, toggleDarkMode, onOpenAdmin
   const [password, setPassword] = useState('');
 
   // CRM URL
-  const CRM_URL = 'http://localhost:5173';
+  const CRM_URL = '/';
 
   useEffect(() => {
     const handleScroll = () => {
