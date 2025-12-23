@@ -10,6 +10,7 @@ import { AddPetView } from './components/AddPetView';
 import { AddAppointmentView } from './components/AddAppointmentView';
 import { LoginView } from './components/LoginView';
 import { NotificationsView } from './components/NotificationsView';
+import { ServiceTrackingView } from './components/ServiceTrackingView';
 import { SelectPetShopView } from './components/SelectPetShopView';
 import { PetProfile, Appointment } from './types';
 import { Plus, X, CalendarPlus, Dog, Loader2 } from 'lucide-react';
@@ -442,6 +443,8 @@ function App() {
         );
       case 'agenda':
         return <AgendaView appointments={appointments} />;
+      case 'tracking':
+        return <ServiceTrackingView clientId={clientId || undefined} petIds={pets.map(p => p.id)} />;
       case 'profile':
         return <UserProfileView onLogout={handleLogout} />;
       case 'add-pet':
