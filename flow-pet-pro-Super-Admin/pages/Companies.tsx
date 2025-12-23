@@ -3,12 +3,33 @@ import { supabase } from '../src/lib/supabase';
 
 export const Companies: React.FC = () => {
   const [tenants, setTenants] = useState<any[]>([]);
+  const [plans, setPlans] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
     fetchTenants();
+    fetchPlans();
   }, []);
+
+  const fetchPlans = async () => {
+    try {
+      // Fetch system plans (assuming tenant_id '00000000-0000-0000-0000-000000000001' is for global plans)
+      // Or just fetch distinct names if that assumption is risky, but let's try to filter standard plans.
+      const { data, error } = await supabase
+        .from('subscription_plans')
+        .select('*')
+        .eq('tenant_id', '00000000-0000-0000-0000-000000000001');
+
+      if (error) {
+        console.error('Error fetching plans:', error);
+      } else {
+        setPlans(data || []);
+      }
+    } catch (err) {
+      console.error('Error fetching plans:', err);
+    }
+  };
 
   const fetchTenants = async () => {
     setLoading(true);
@@ -19,9 +40,11 @@ export const Companies: React.FC = () => {
         .select(`
           *,
           subscriptions (
+            id,
+            plan_id,
             status,
-            next_billing,
             subscription_plans (
+              id,
               name
             )
           )
@@ -45,38 +68,113 @@ export const Companies: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTenant, setEditingTenant] = useState<any>(null);
   const [newTenant, setNewTenant] = useState({ name: '', slug: '' });
+  const [selectedPlanId, setSelectedPlanId] = useState<string>('');
+
+  // Update selected plan when opening modal for editing
+  useEffect(() => {
+    if (editingTenant) {
+      const currentSub = editingTenant.subscriptions?.[0];
+      // Try to find the plan ID from the subscription, or fallback to the plan that matches the linked plan ID
+      setSelectedPlanId(currentSub?.plan_id || '');
+    } else {
+      // Default to "Plano Free" or first available for new tenants
+      const freePlan = plans.find(p => p.name.includes('Free'));
+      setSelectedPlanId(freePlan?.id || plans[0]?.id || '');
+    }
+  }, [editingTenant, isModalOpen, plans]);
+
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTenant.name || !newTenant.slug) return;
     setLoading(true);
-    const { error } = await supabase.from('tenants').insert([newTenant]);
-    if (!error) {
-      setIsModalOpen(false);
-      setNewTenant({ name: '', slug: '' });
-      fetchTenants();
-    } else {
-      alert('Erro ao criar empresa: ' + error.message);
+
+    // 1. Create Tenant
+    const { data: tenantData, error: tenantError } = await supabase
+      .from('tenants')
+      .insert([newTenant])
+      .select()
+      .single();
+
+    if (tenantError) {
+      alert('Erro ao criar empresa: ' + tenantError.message);
       setLoading(false);
+      return;
     }
+
+    // 2. Create Subscription if plan selected
+    if (selectedPlanId && tenantData) {
+      const plan = plans.find(p => p.id === selectedPlanId);
+      if (plan) {
+        const { error: subError } = await supabase.from('subscriptions').insert({
+          tenant_id: tenantData.id,
+          plan_id: plan.id,
+          plan_name: plan.name, // Keep legacy field in sync
+          status: 'active',
+          start_date: new Date().toISOString()
+        });
+        if (subError) console.error('Error creating subscription:', subError);
+      }
+    }
+
+    setIsModalOpen(false);
+    setNewTenant({ name: '', slug: '' });
+    fetchTenants();
   };
 
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingTenant) return;
     setLoading(true);
-    const { error } = await supabase
+
+    // 1. Update Tenant Info
+    const { error: tenantError } = await supabase
       .from('tenants')
       .update({ name: editingTenant.name, slug: editingTenant.slug })
       .eq('id', editingTenant.id);
-    if (!error) {
-      setIsModalOpen(false);
-      setEditingTenant(null);
-      fetchTenants();
-    } else {
-      alert('Erro ao atualizar empresa: ' + error.message);
+
+    if (tenantError) {
+      alert('Erro ao atualizar empresa: ' + tenantError.message);
       setLoading(false);
+      return;
     }
+
+    // 2. Update/Create Subscription
+    if (selectedPlanId) {
+      const plan = plans.find(p => p.id === selectedPlanId);
+      const currentSub = editingTenant.subscriptions?.[0];
+
+      if (plan) {
+        const subData = {
+          tenant_id: editingTenant.id,
+          plan_id: plan.id,
+          plan_name: plan.name,
+          status: 'active'
+        };
+
+        let subError;
+        if (currentSub?.id) {
+          // Update existing
+          const { error } = await supabase
+            .from('subscriptions')
+            .update(subData)
+            .eq('id', currentSub.id);
+          subError = error;
+        } else {
+          // Insert new
+          const { error } = await supabase
+            .from('subscriptions')
+            .insert({ ...subData, start_date: new Date().toISOString() });
+          subError = error;
+        }
+
+        if (subError) console.error('Error updating subscription:', subError);
+      }
+    }
+
+    setIsModalOpen(false);
+    setEditingTenant(null);
+    fetchTenants();
   };
 
   const handleDelete = async (id: string) => {
@@ -98,7 +196,7 @@ export const Companies: React.FC = () => {
 
   return (
     <div className="flex flex-col h-full animate-fade-in relative">
-      {/* Modal Nova Empresa */}
+      {/* Modal Nova/Editar Empresa */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
           <div className="glass-panel w-full max-w-md p-8 rounded-4xl border border-white/10">
@@ -128,6 +226,23 @@ export const Companies: React.FC = () => {
                   required
                 />
               </div>
+
+              <div>
+                <label className="block text-xs font-bold text-text-muted uppercase mb-2 ml-1">Plano de Assinatura</label>
+                <select
+                  className="w-full bg-black/40 border border-white/10 rounded-2xl px-4 py-3 text-sm text-white outline-none appearance-none"
+                  value={selectedPlanId}
+                  onChange={(e) => setSelectedPlanId(e.target.value)}
+                >
+                  <option value="" disabled>Selecione um plano</option>
+                  {plans.map(plan => (
+                    <option key={plan.id} value={plan.id} className="bg-gray-900 text-white">
+                      {plan.name} {plan.is_pro ? '(PRO)' : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
               <div className="flex gap-3 pt-4">
                 <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 py-3 text-text-muted hover:text-white">Cancelar</button>
                 <button type="submit" className="flex-1 py-3 bg-primary text-white rounded-2xl font-bold">Salvar</button>
@@ -170,7 +285,7 @@ export const Companies: React.FC = () => {
               <tr><td colSpan={5} className="px-6 py-20 text-center text-text-muted">Nenhuma empresa encontrada.</td></tr>
             ) : filteredTenants.map((row) => {
               const sub = row.subscriptions?.[0];
-              const planName = sub?.subscription_plans?.name || 'S/ Plano';
+              const planName = sub?.subscription_plans?.name || sub?.plan_name || 'S/ Plano';
               const status = sub?.status || 'inactive';
               const color = status === 'active' ? 'emerald' : 'rose';
 
