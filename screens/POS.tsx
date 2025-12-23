@@ -268,7 +268,7 @@ export const POS: React.FC<{ initialState?: any }> = ({ initialState }) => {
                         {isClientDropdownOpen && (
                             <div className="absolute top-full left-0 right-0 mt-3 bg-white dark:bg-[#222] rounded-2xl shadow-2xl border border-slate-100 dark:border-gray-800 z-50 p-2">
                                 {clients.map(c => (
-                                    <button key={c.id} onClick={() => { setSelectedClient(c); setIsClientDropdownOpen(false); }} className="w-full text-left p-4 hover:bg-primary/5 rounded-xl text-xs font-bold uppercase transition-colors">{c.name}</button>
+                                    <button key={c.id} onClick={() => { setSelectedClient(c); setIsClientDropdownOpen(false); }} className="w-full text-left p-4 hover:bg-primary/5 rounded-xl text-xs font-bold uppercase transition-colors text-slate-900 dark:text-white">{c.name}</button>
                                 ))}
                             </div>
                         )}
