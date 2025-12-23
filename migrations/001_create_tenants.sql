@@ -15,12 +15,12 @@ CREATE TABLE IF NOT EXISTS tenants (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 2. Create default tenant for existing data (BBG Pet)
+-- 2. Create default tenant for existing data (Flow Pet)
 INSERT INTO tenants (id, name, slug, logo_url)
 VALUES (
     '00000000-0000-0000-0000-000000000001',
-    'BBG Pet',
-    'bbgpet',
+    'Flow Pet',
+    'flowpet',
     NULL
 ) ON CONFLICT (slug) DO NOTHING;
 

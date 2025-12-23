@@ -3,10 +3,10 @@
 -- ===========================================
 
 -- Primeiro, vamos ver o ID de cada tenant
--- BBG Pet: 00000000-0000-0000-0000-000000000001
+-- Flow Pet: 00000000-0000-0000-0000-000000000001
 -- peteste: a02e852a-a1cf-4af5-a82a-fb5b2d14a80a
 
--- 1. Atribuir todos os dados SEM tenant_id ao BBG Pet (dados antigos)
+-- 1. Atribuir todos os dados SEM tenant_id ao Flow Pet (dados antigos)
 UPDATE clients SET tenant_id = '00000000-0000-0000-0000-000000000001' WHERE tenant_id IS NULL;
 UPDATE pets SET tenant_id = '00000000-0000-0000-0000-000000000001' WHERE tenant_id IS NULL;
 UPDATE appointments SET tenant_id = '00000000-0000-0000-0000-000000000001' WHERE tenant_id IS NULL;

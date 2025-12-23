@@ -267,7 +267,7 @@ const AppContent: React.FC = () => {
         {/* Mobile Header */}
         <div className="md:hidden flex items-center justify-between p-4 bg-white dark:bg-[#1a1a1a] border-b border-slate-200 dark:border-gray-800 sticky top-0 z-30 shadow-sm shrink-0">
           <div className="flex items-center gap-2 text-primary font-black italic uppercase">
-            <span className="material-symbols-outlined">pets</span> BBG CRM <span className="text-primary font-black uppercase">PRO</span>
+            <span className="material-symbols-outlined">pets</span> FLOW PET <span className="text-primary font-black uppercase">PRO</span>
           </div>
           <div className="flex items-center gap-4">
             <button onClick={() => setIsCommandPaletteOpen(true)} className="text-slate-500">

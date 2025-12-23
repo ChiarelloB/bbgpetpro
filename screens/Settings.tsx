@@ -782,16 +782,16 @@ export const Settings: React.FC<SettingsProps> = ({ userProfile, onUpdateProfile
 
     // Company Profile State
     const [company, setCompany] = useState({
-        name: 'BBG CRM PRO',
+        name: 'FLOW PET PRO',
         cnpj: '12.345.678/0001-90',
         address: 'Rua dos Pets, 123 - São Paulo, SP',
         phone: '(11) 3333-4444',
-        instagram: '@bbgcrm',
-        website: 'www.bbgcrm.com.br',
+        instagram: '@flowpetpro',
+        website: 'www.flowpetpro.com.br',
         opensAt: '08:00',
         closesAt: '18:00',
         workDays: ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'],
-        email: 'contato@bbgcrm.com',
+        email: 'contato@flowpetpro.com',
         logo: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAtM3kjadQTjMTHl9YC-OrGR8wbZYUqoOrwId5WQ7c2eyZomiQk05HuotL6zwyo6Z9Tr5P-wLbqRkvXJ4tfqjiuIyIJRMtI60gAaGhsmDbYvURZIWtzVvmBHOZTA-JhfziZkJiaZsO3kiG-01SxOfOajsZqvE8qPHg8m0ijjIFfFyzwhP-y1iG2BhKcEaK44Gpg2MMxv_x_m5TEoqZnmVJGCnHaw4ZCwyyusgRRLNTU8tgNXStlKIvVM24O-x_t-2WnpW99rwAs7oI'
     });
 

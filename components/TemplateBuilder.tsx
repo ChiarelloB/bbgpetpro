@@ -23,8 +23,8 @@ export interface AdvancedChecklistTemplate {
     sections: TemplateSection[];
 }
 
-const ADVANCED_TEMPLATES_KEY = 'bbg_advanced_checklist_templates';
-const TEMPLATES_INITIALIZED_KEY = 'bbg_templates_initialized';
+const ADVANCED_TEMPLATES_KEY = 'flowpet_advanced_checklist_templates';
+const TEMPLATES_INITIALIZED_KEY = 'flowpet_templates_initialized';
 
 // Default Templates
 const DEFAULT_INITIAL_TEMPLATE: AdvancedChecklistTemplate = {

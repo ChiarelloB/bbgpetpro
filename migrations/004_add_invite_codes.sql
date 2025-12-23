@@ -6,7 +6,7 @@
 -- Add invite_code column
 ALTER TABLE tenants ADD COLUMN IF NOT EXISTS invite_code TEXT UNIQUE;
 
--- Generate invite code for existing tenant (BBG Pet)
+-- Generate invite code for existing tenant (Flow Pet)
 UPDATE tenants 
 SET invite_code = LOWER(slug) || '-' || LPAD(FLOOR(RANDOM() * 1000000)::TEXT, 6, '0')
 WHERE invite_code IS NULL;

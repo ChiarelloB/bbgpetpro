@@ -34,7 +34,7 @@ interface ItemsPorPorte {
 
 
 
-const CHECKLIST_TEMPLATES_KEY = 'bbg_checklist_templates';
+const CHECKLIST_TEMPLATES_KEY = 'flowpet_checklist_templates';
 
 const loadTemplates = (): ChecklistTemplate[] => {
   try {

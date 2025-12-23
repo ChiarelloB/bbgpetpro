@@ -236,7 +236,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentScreen, onNavigate, isO
           </div>
           <div>
             <h1 className={`font-black text-xl tracking-tight italic uppercase ${sidebarTheme === 'light' ? 'text-slate-900 dark:text-white' : 'text-white'}`}>
-              BBG CRM <span className="text-primary">PRO</span>
+              FLOW PET <span className="text-primary">PRO</span>
             </h1>
             <div className="flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>

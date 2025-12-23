@@ -76,7 +76,7 @@ export const Login: React.FC<{ onLogin: (user: any) => void }> = ({ onLogin }) =
           <div>
             <div className="flex items-center gap-2 mb-6">
               <span className="material-symbols-outlined text-4xl text-primary">pets</span>
-              <span className="text-2xl font-black italic uppercase tracking-tighter text-slate-900 dark:text-white">BBG CRM <span className="text-primary">PRO</span></span>
+              <span className="text-2xl font-black italic uppercase tracking-tighter text-slate-900 dark:text-white">FLOW PET <span className="text-primary">PRO</span></span>
             </div>
             <h1 className="text-5xl font-black italic uppercase tracking-tighter text-slate-900 dark:text-white leading-[0.9]">
               {mode === 'login' && 'Bem-vindo'}

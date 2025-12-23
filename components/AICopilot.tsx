@@ -19,7 +19,7 @@ const suggestions = [
 export const AICopilot: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
-    { id: 'welcome', role: 'model', text: 'Olá! Sou o assistente inteligente do BBG CRM. Como posso ajudar você hoje?' }
+    { id: 'welcome', role: 'model', text: 'Olá! Sou o assistente inteligente do Flow Pet. Como posso ajudar você hoje?' }
   ]);
   const [inputText, setInputText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -63,7 +63,7 @@ export const AICopilot: React.FC = () => {
         generationConfig: {
           maxOutputTokens: 1000,
         },
-        systemInstruction: "Você é o Copiloto IA do BBG CRM PRO, um CRM para Pet Shops. Você é especialista em gestão veterinária, estoque, marketing para pet shops e cuidados animais. Suas respostas devem ser curtas, profissionais e úteis. Use emojis ocasionalmente. Se perguntarem sobre dados do sistema, explique que você tem acesso apenas a conhecimentos gerais por enquanto, mas pode dar dicas estratégicas."
+        systemInstruction: "Você é o Copiloto IA do FLOW PET PRO, um CRM para Pet Shops. Você é especialista em gestão veterinária, estoque, marketing para pet shops e cuidados animais. Suas respostas devem ser curtas, profissionais e úteis. Use emojis ocasionalmente. Se perguntarem sobre dados do sistema, explique que você tem acesso apenas a conhecimentos gerais por enquanto, mas pode dar dicas estratégicas."
       });
 
       const result = await chat.sendMessageStream(userMsg.text);
@@ -101,7 +101,7 @@ export const AICopilot: React.FC = () => {
             <div className="flex items-center gap-2 text-white">
               <span className="material-symbols-outlined">smart_toy</span>
               <div>
-                <h3 className="font-bold text-sm leading-none">BBG CRM AI</h3>
+                <h3 className="font-bold text-sm leading-none">FLOW PET AI</h3>
                 <p className="text-[10px] opacity-80">Online</p>
               </div>
             </div>

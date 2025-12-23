@@ -118,7 +118,7 @@ export const BackupService = {
 
         const a = document.createElement('a');
         a.href = url;
-        a.download = `bbgpet_backup_${new Date().toISOString().split('T')[0]}.json`;
+        a.download = `flowpet_backup_${new Date().toISOString().split('T')[0]}.json`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);

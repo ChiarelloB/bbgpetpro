@@ -90,7 +90,7 @@ const roadmapData: RoadmapItem[] = [
     },
     {
         id: 3,
-        title: 'BBG CRM AI (Gemini)',
+        title: 'FLOW PET AI (Gemini)',
         description: 'Integração nativa com Google Gemini. Copiloto global, análise preditiva de estoque, relatórios financeiros inteligentes, sugestão de respostas no chat e análise comportamental de pets.',
         status: 'Lançado',
         date: 'Q1 2026',
@@ -273,7 +273,7 @@ const changelogHistory: ChangelogEntry[] = [
             'Sistema de Impressão de Recibos profissionais direto da Execução.',
             'Melhoria visual nos botões de ação para status "Pronto".',
             'Sincronização imediata de status de agendamento pós-entrega.',
-            'Atualização da BBG CRM Academy com tutoriais de IA e Checklist.',
+            'Atualização da FLOW PET Academy com tutoriais de IA e Checklist.',
             'Correção de bug no fechamento automático de checklists.'
         ]
     },
@@ -283,7 +283,7 @@ const changelogHistory: ChangelogEntry[] = [
         type: 'major',
         title: 'Rebranding PRO & Segurança de Acesso',
         changes: [
-            'Rebranding oficial para BBG CRM PRO com identidade visual premium.',
+            'Rebranding oficial para FLOW PET PRO com identidade visual premium.',
             'Novo sistema de Código de Convite para restringir novos registros de usuários.',
             'Lançamento da aba de Segurança nas configurações para gestão de credenciais.',
             'Upload de foto de perfil e personalização de avatar do usuário.',
@@ -356,7 +356,7 @@ const changelogHistory: ChangelogEntry[] = [
         version: 'v3.0.0',
         date: '10 Set 2025',
         type: 'major',
-        title: 'BBG CRM AI Core',
+        title: 'FLOW PET AI Core',
         changes: [
             'Integração profunda com Google Gemini.',
             'Copiloto global para dúvidas e insights.',

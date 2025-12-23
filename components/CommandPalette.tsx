@@ -120,8 +120,8 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose,
                     onClick={() => { cmd.action(); onClose(); }}
                     onMouseEnter={() => setSelectedIndex(flatCommands.findIndex(c => c.id === cmd.id))}
                     className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg transition-colors text-left ${isSelected
-                        ? 'bg-primary text-white'
-                        : 'text-slate-600 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-white/5'
+                      ? 'bg-primary text-white'
+                      : 'text-slate-600 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-white/5'
                       }`}
                   >
                     <span className={`material-symbols-outlined text-[20px] ${isSelected ? 'text-white' : 'text-slate-400'}`}>{cmd.icon}</span>
@@ -144,7 +144,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose,
             <span className="flex items-center gap-1"><span className="material-symbols-outlined text-[14px]">arrow_drop_up</span> <span className="material-symbols-outlined text-[14px]">arrow_drop_down</span> Navegar</span>
             <span className="flex items-center gap-1"><span className="material-symbols-outlined text-[14px]">keyboard_return</span> Selecionar</span>
           </div>
-          <span>BBG CRM PRO</span>
+          <span>FLOW PET PRO</span>
         </div>
       </div>
     </div>
