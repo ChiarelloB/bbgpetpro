@@ -871,7 +871,7 @@ export const Roadmap: React.FC = () => {
                         <div className="flex gap-3">
                             <div className="flex flex-col items-end">
                                 <span className="text-xs font-bold text-text-muted uppercase tracking-widest mb-1">Versão Atual</span>
-                                <span className="text-2xl font-black italic text-primary">v3.9.0</span>
+                                <span className="text-2xl font-black italic text-primary">v4.0.0</span>
                             </div>
                         </div>
                     </div>
