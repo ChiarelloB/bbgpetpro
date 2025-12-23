@@ -326,30 +326,38 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentScreen, onNavigate, isO
         )}
       </nav>
 
-      {/* User Footer */}
       <div className={`p-4 border-t ${styles.border} ${styles.sectionBg} space-y-3 shrink-0`}>
         <div className={`hidden md:flex items-center justify-between px-2 text-[10px] font-bold uppercase tracking-wider ${styles.muted}`}>
           <span>Busca Rápida</span>
           <span className={`px-1.5 py-0.5 rounded border ${styles.border} opacity-70`}>⌘ K</span>
         </div>
-        <button
-          onClick={onLogout}
-          className={`w-full flex items-center gap-3 p-2 rounded-xl cursor-pointer transition-colors group text-left ${styles.hover}`}
-        >
-          <div className="relative">
-            <img
-              src={user.avatar}
-              alt="User"
-              className={`w-9 h-9 rounded-lg object-cover border ${styles.border} group-hover:border-opacity-50 transition-colors`}
-            />
-            <span className="absolute -bottom-1 -right-1 w-2.5 h-2.5 bg-green-500 border-2 border-transparent rounded-full"></span>
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className={`text-sm font-bold truncate ${sidebarTheme === 'light' ? 'text-slate-800 dark:text-white' : 'text-white'}`}>{user.name}</p>
-            <p className={`text-xs truncate transition-colors ${styles.muted} group-hover:text-red-400`}>Sair da conta</p>
-          </div>
-          <span className={`material-symbols-outlined ${styles.muted} group-hover:text-red-400 transition-colors`}>logout</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => handleNavClick('account')}
+            className={`flex-1 flex items-center gap-3 p-2 rounded-xl cursor-pointer transition-colors group text-left ${styles.hover}`}
+          >
+            <div className="relative">
+              <img
+                src={user.avatar}
+                alt="User"
+                className={`w-9 h-9 rounded-lg object-cover border ${styles.border} group-hover:border-opacity-50 transition-colors`}
+              />
+              <span className="absolute -bottom-1 -right-1 w-2.5 h-2.5 bg-green-500 border-2 border-transparent rounded-full"></span>
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className={`text-sm font-bold truncate ${sidebarTheme === 'light' ? 'text-slate-800 dark:text-white' : 'text-white'}`}>{user.name}</p>
+              <p className={`text-[10px] font-bold uppercase truncate transition-colors ${styles.muted}`}>Ver Perfil</p>
+            </div>
+          </button>
+
+          <button
+            onClick={onLogout}
+            className={`p-2 rounded-xl transition-colors hover:bg-red-500/10 hover:text-red-500 ${styles.muted}`}
+            title="Sair da conta"
+          >
+            <span className="material-symbols-outlined">logout</span>
+          </button>
+        </div>
       </div>
     </div>
   );

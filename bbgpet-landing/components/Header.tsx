@@ -264,13 +264,7 @@ const Header: React.FC<HeaderProps> = ({ isDarkMode, toggleDarkMode, onOpenAdmin
                     >
                       Acessar CRM
                     </a>
-                    <a
-                      href="/tutor"
-                      className="flex items-center gap-2 px-6 py-2.5 bg-slate-100 dark:bg-white/5 text-slate-900 dark:text-white rounded-full font-bold text-sm hover:bg-slate-200 dark:hover:bg-white/10 transition-all"
-                    >
-                      <span className="material-symbols-outlined text-sm">person</span>
-                      Portal do Tutor
-                    </a>
+
                     <button
                       onClick={handleLogout}
                       className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-white/10 text-gray-500"
@@ -349,13 +343,7 @@ const Header: React.FC<HeaderProps> = ({ isDarkMode, toggleDarkMode, onOpenAdmin
                 </div>
               </div>
               <div className="flex flex-col gap-3 mt-8">
-                <a
-                  href="/tutor"
-                  className="w-full py-4 bg-slate-100 dark:bg-white/5 rounded-2xl text-center font-bold text-slate-900 dark:text-white"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  Portal do Tutor
-                </a>
+
                 <a
                   href={CRM_URL}
                   className="w-full py-4 bg-primary text-white rounded-2xl text-center font-bold shadow-lg shadow-primary/20"
