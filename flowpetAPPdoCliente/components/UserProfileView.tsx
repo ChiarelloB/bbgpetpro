@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { User, Settings, Bell, Shield, LogOut, ChevronRight, MapPin, Phone, Mail, Edit2, Check, X, Store, Calendar, PawPrint, Loader2 } from 'lucide-react';
+import { User, Settings, Bell, Shield, LogOut, ChevronRight, MapPin, Phone, Mail, Edit2, Check, X, Store, Calendar, PawPrint, Loader2, Moon, Sun, Monitor } from 'lucide-react';
 import { SubscriptionSection } from './SubscriptionSection';
 
 interface UserProfileViewProps {
   onLogout: () => void;
+  currentTheme: 'dark' | 'light' | 'system';
+  onThemeChange: (theme: 'dark' | 'light' | 'system') => void;
 }
 
 interface ClientData {
@@ -20,7 +22,7 @@ interface PetShop {
   name: string;
 }
 
-export const UserProfileView: React.FC<UserProfileViewProps> = ({ onLogout }) => {
+export const UserProfileView: React.FC<UserProfileViewProps> = ({ onLogout, currentTheme, onThemeChange }) => {
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
@@ -216,8 +218,8 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({ onLogout }) =>
         <button
           onClick={() => setActiveSection('profile')}
           className={`flex-1 py-3 rounded-xl font-bold text-sm transition-all ${activeSection === 'profile'
-              ? 'bg-indigo-500 text-white shadow-lg'
-              : 'text-white/40 hover:text-white/60'
+            ? 'bg-indigo-500 text-white shadow-lg'
+            : 'text-white/40 hover:text-white/60'
             }`}
         >
           Configurações
@@ -225,8 +227,8 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({ onLogout }) =>
         <button
           onClick={() => setActiveSection('subscriptions')}
           className={`flex-1 py-3 rounded-xl font-bold text-sm transition-all ${activeSection === 'subscriptions'
-              ? 'bg-indigo-500 text-white shadow-lg'
-              : 'text-white/40 hover:text-white/60'
+            ? 'bg-indigo-500 text-white shadow-lg'
+            : 'text-white/40 hover:text-white/60'
             }`}
         >
           Assinaturas
@@ -264,6 +266,52 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({ onLogout }) =>
                   <p className="text-xs text-white/40">Atualizar credenciais de acesso</p>
                 </div>
                 <ChevronRight size={20} className="text-white/20 group-hover:text-indigo-400 transition-colors" />
+              </div>
+
+              {/* Theme Settings */}
+              <div className="p-4 border-b border-white/5 space-y-4">
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-white/80">
+                    <Monitor size={20} />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-bold text-white">Aparência</p>
+                    <p className="text-xs text-white/40">Personalize o tema do aplicativo</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-2">
+                  <button
+                    onClick={() => onThemeChange('light')}
+                    className={`flex items-center justify-center gap-2 py-2 px-3 rounded-xl border transition-all ${currentTheme === 'light'
+                      ? 'bg-white text-indigo-950 border-white'
+                      : 'bg-white/5 border-white/10 text-white/60 hover:bg-white/10'
+                      }`}
+                  >
+                    <Sun size={16} />
+                    <span className="text-xs font-bold">Claro</span>
+                  </button>
+                  <button
+                    onClick={() => onThemeChange('dark')}
+                    className={`flex items-center justify-center gap-2 py-2 px-3 rounded-xl border transition-all ${currentTheme === 'dark'
+                      ? 'bg-indigo-600 text-white border-indigo-500 shadow-neon'
+                      : 'bg-white/5 border-white/10 text-white/60 hover:bg-white/10'
+                      }`}
+                  >
+                    <Moon size={16} />
+                    <span className="text-xs font-bold">Escuro</span>
+                  </button>
+                  <button
+                    onClick={() => onThemeChange('system')}
+                    className={`flex items-center justify-center gap-2 py-2 px-3 rounded-xl border transition-all ${currentTheme === 'system'
+                      ? 'bg-dark-800 text-white border-white/20'
+                      : 'bg-white/5 border-white/10 text-white/60 hover:bg-white/10'
+                      }`}
+                  >
+                    <Monitor size={16} />
+                    <span className="text-xs font-bold">Sistema</span>
+                  </button>
+                </div>
               </div>
 
               <div className="p-4 flex items-center gap-4 hover:bg-white/5 transition-colors cursor-pointer group">

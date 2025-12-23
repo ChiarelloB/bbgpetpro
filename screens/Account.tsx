@@ -146,6 +146,7 @@ export const Account: React.FC = () => {
                                 { label: 'Financeiro', icon: 'payments', access: activeSubscription ? true : false },
                                 { label: 'Cursos PRO', icon: 'school', access: activeSubscription?.is_pro || false, highlight: true },
                                 { label: 'Relatórios', icon: 'bar_chart', access: true },
+                                { label: 'Marca Própria', icon: 'palette', access: activeSubscription?.is_pro || false, highlight: activeSubscription?.is_pro },
                             ].map((item, idx) => (
                                 <div key={idx} className={`p-4 rounded-2xl border transition-all ${item.access
                                     ? item.highlight

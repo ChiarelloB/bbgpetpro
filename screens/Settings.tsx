@@ -520,6 +520,13 @@ interface Tenant {
     logo_url: string | null;
     primary_color: string;
     created_at: string;
+    settings?: {
+        appName?: string;
+        theme?: 'dark' | 'light' | 'system';
+        showVeterinary?: boolean;
+        showGallery?: boolean;
+        showTracking?: boolean;
+    };
 }
 
 const TenantAdminTab: React.FC<{ showNotification: (msg: string, type: any) => void }> = ({ showNotification }) => {
@@ -527,7 +534,16 @@ const TenantAdminTab: React.FC<{ showNotification: (msg: string, type: any) => v
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingTenant, setEditingTenant] = useState<Tenant | null>(null);
-    const [formData, setFormData] = useState({ name: '', slug: '', primary_color: '#FF6B00' });
+    const [formData, setFormData] = useState({
+        name: '',
+        slug: '',
+        primary_color: '#FF6B00',
+        appName: '',
+        theme: 'system' as 'dark' | 'light' | 'system',
+        showVeterinary: true,
+        showGallery: true,
+        showTracking: true
+    });
 
     const fetchTenants = async () => {
         setLoading(true);
@@ -545,10 +561,28 @@ const TenantAdminTab: React.FC<{ showNotification: (msg: string, type: any) => v
     const handleOpenModal = (tenant?: Tenant) => {
         if (tenant) {
             setEditingTenant(tenant);
-            setFormData({ name: tenant.name, slug: tenant.slug, primary_color: tenant.primary_color });
+            setFormData({
+                name: tenant.name,
+                slug: tenant.slug,
+                primary_color: tenant.primary_color,
+                appName: tenant.settings?.appName || tenant.name,
+                theme: tenant.settings?.theme || 'dark',
+                showVeterinary: tenant.settings?.showVeterinary !== false,
+                showGallery: tenant.settings?.showGallery !== false,
+                showTracking: tenant.settings?.showTracking !== false
+            });
         } else {
             setEditingTenant(null);
-            setFormData({ name: '', slug: '', primary_color: '#FF6B00' });
+            setFormData({
+                name: '',
+                slug: '',
+                primary_color: '#FF6B00',
+                appName: '',
+                theme: 'system',
+                showVeterinary: true,
+                showGallery: true,
+                showTracking: true
+            });
         }
         setIsModalOpen(true);
     };
@@ -557,10 +591,23 @@ const TenantAdminTab: React.FC<{ showNotification: (msg: string, type: any) => v
         e.preventDefault();
         const slug = formData.slug || formData.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
 
+        const appSettings = {
+            appName: formData.appName,
+            theme: formData.theme,
+            showVeterinary: formData.showVeterinary,
+            showGallery: formData.showGallery,
+            showTracking: formData.showTracking
+        };
+
         if (editingTenant) {
             const { error } = await supabase
                 .from('tenants')
-                .update({ name: formData.name, slug, primary_color: formData.primary_color })
+                .update({
+                    name: formData.name,
+                    slug,
+                    primary_color: formData.primary_color,
+                    settings: appSettings
+                })
                 .eq('id', editingTenant.id);
             if (!error) {
                 showNotification('Empresa atualizada com sucesso!', 'success');
@@ -572,7 +619,12 @@ const TenantAdminTab: React.FC<{ showNotification: (msg: string, type: any) => v
         } else {
             const { error } = await supabase
                 .from('tenants')
-                .insert([{ name: formData.name, slug, primary_color: formData.primary_color }]);
+                .insert([{
+                    name: formData.name,
+                    slug,
+                    primary_color: formData.primary_color,
+                    settings: appSettings
+                }]);
             if (!error) {
                 showNotification('Nova empresa criada! Código de convite gerado automaticamente.', 'success');
                 fetchTenants();
@@ -724,6 +776,73 @@ const TenantAdminTab: React.FC<{ showNotification: (msg: string, type: any) => v
                                     />
                                 </div>
                             </div>
+
+                            <div className="border-t border-slate-100 dark:border-gray-800 pt-6 mt-6">
+                                <h4 className="text-sm font-black uppercase italic text-primary mb-4 flex items-center gap-2">
+                                    <span className="material-symbols-outlined text-lg">smartphone</span>
+                                    Customização do App (White Label)
+                                </h4>
+
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="block text-xs font-bold uppercase text-slate-500 mb-1">Nome do App (Público)</label>
+                                        <input
+                                            type="text"
+                                            value={formData.appName}
+                                            onChange={e => setFormData({ ...formData, appName: e.target.value })}
+                                            className="w-full rounded-lg border-slate-200 dark:border-gray-700 bg-white dark:bg-[#222] dark:text-white shadow-sm outline-none px-3 py-2"
+                                            placeholder="Ex: Flow Pet Pro"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-xs font-bold uppercase text-slate-500 mb-1">Tema Inicial do App</label>
+                                        <select
+                                            value={formData.theme}
+                                            onChange={e => setFormData({ ...formData, theme: e.target.value as any })}
+                                            className="w-full rounded-lg border-slate-200 dark:border-gray-700 bg-white dark:bg-[#222] dark:text-white shadow-sm outline-none px-3 py-2"
+                                        >
+                                            <option value="system">Seguir Sistema (Padrão)</option>
+                                            <option value="dark">Forçar Dark (Escuro)</option>
+                                            <option value="light">Forçar Light (Claro)</option>
+                                        </select>
+                                        <p className="text-[10px] text-slate-400 mt-1">O cliente poderá mudar no perfil. "Seguir Sistema" é o recomendado.</p>
+                                    </div>
+
+                                    <div className="space-y-2 pt-2">
+                                        <label className="block text-xs font-bold uppercase text-slate-500 mb-1">Recursos Visíveis</label>
+                                        <div className="grid grid-cols-1 gap-2">
+                                            <label className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-white/5 cursor-pointer transition-colors">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={formData.showVeterinary}
+                                                    onChange={e => setFormData({ ...formData, showVeterinary: e.target.checked })}
+                                                    className="w-4 h-4 rounded border-slate-300 text-primary focus:ring-primary"
+                                                />
+                                                <span className="text-sm font-bold text-slate-700 dark:text-gray-300">Mostrar Veterinário</span>
+                                            </label>
+                                            <label className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-white/5 cursor-pointer transition-colors">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={formData.showGallery}
+                                                    onChange={e => setFormData({ ...formData, showGallery: e.target.checked })}
+                                                    className="w-4 h-4 rounded border-slate-300 text-primary focus:ring-primary"
+                                                />
+                                                <span className="text-sm font-bold text-slate-700 dark:text-gray-300">Mostrar Galeria</span>
+                                            </label>
+                                            <label className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-white/5 cursor-pointer transition-colors">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={formData.showTracking}
+                                                    onChange={e => setFormData({ ...formData, showTracking: e.target.checked })}
+                                                    className="w-4 h-4 rounded border-slate-300 text-primary focus:ring-primary"
+                                                />
+                                                <span className="text-sm font-bold text-slate-700 dark:text-gray-300">Acompanhamento Ao Vivo</span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                             <div className="pt-2 flex gap-3">
                                 <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 py-2 text-sm font-bold text-slate-500 hover:bg-slate-100 dark:hover:bg-white/5 rounded-lg">Cancelar</button>
                                 <button type="submit" className="flex-1 py-2 bg-primary text-white font-bold rounded-lg hover:bg-primary-hover">Salvar</button>
@@ -747,7 +866,7 @@ export const Settings: React.FC<SettingsProps> = ({ userProfile, onUpdateProfile
     } = useTheme();
 
     const { showNotification } = useNotification();
-    const { dbPassword, setDbPassword, tenant } = useSecurity();
+    const { dbPassword, setDbPassword, tenant, tenantId } = useSecurity();
     const { resources, addResource, updateResource, deleteResource, sizeSettings, updateSizeSettings } = useResources();
     const [activeTab, setActiveTab] = useState('Aparência');
 
@@ -779,6 +898,20 @@ export const Settings: React.FC<SettingsProps> = ({ userProfile, onUpdateProfile
     // Permissions State
     const [roles, setRoles] = useState<RolePermission[]>(DEFAULT_ROLES);
     const [selectedRole, setSelectedRole] = useState<RolePermission>(DEFAULT_ROLES[0]);
+
+    // App do Cliente Customization State
+    const [appSettings, setAppSettings] = useState({
+        appName: '',
+        primaryColor: '#7c3aed',
+        theme: 'system' as 'dark' | 'light' | 'system',
+        showVeterinary: true,
+        showGallery: true,
+        showTracking: true,
+        showShopName: true,
+        logoUrl: ''
+    });
+
+    const [savingApp, setSavingApp] = useState(false);
 
     // Company Profile State
     const [company, setCompany] = useState({
@@ -822,7 +955,61 @@ export const Settings: React.FC<SettingsProps> = ({ userProfile, onUpdateProfile
                 setSelectedRole(rolesSettings[0]);
             }
         }
+
+        // Fetch App Customization from current tenant
+        if (tenantId) {
+            const { data: tenantData } = await supabase
+                .from('tenants')
+                .select('*')
+                .eq('id', tenantId)
+                .single();
+
+            if (tenantData) {
+                setAppSettings({
+                    appName: tenantData.settings?.appName || tenantData.name || '',
+                    primaryColor: tenantData.primary_color || '#7c3aed',
+                    theme: tenantData.settings?.theme || 'system',
+                    showVeterinary: tenantData.settings?.showVeterinary !== false,
+                    showGallery: tenantData.settings?.showGallery !== false,
+                    showTracking: tenantData.settings?.showTracking !== false,
+                    showShopName: tenantData.settings?.showShopName !== false,
+                    logoUrl: tenantData.logo_url || ''
+                });
+            }
+        }
         setLoading(false);
+    };
+
+    const handleSaveApp = async (silent = false) => {
+        if (!tenantId) return;
+        setSavingApp(true);
+
+        const { error } = await supabase
+            .from('tenants')
+            .update({
+                logo_url: appSettings.logoUrl,
+                primary_color: appSettings.primaryColor,
+                settings: {
+                    ...tenant?.settings,
+                    appName: appSettings.appName,
+                    theme: appSettings.theme,
+                    showVeterinary: appSettings.showVeterinary,
+                    showGallery: appSettings.showGallery,
+                    showTracking: appSettings.showTracking,
+                    showShopName: appSettings.showShopName,
+                }
+            })
+            .eq('id', tenantId);
+
+        if (!silent) {
+            if (!error) {
+                showNotification('Customização do app salva com sucesso!', 'success');
+            } else {
+                showNotification('Erro ao salvar customização do app.', 'error');
+            }
+        }
+        setSavingApp(false);
+        return { error };
     };
 
     useEffect(() => { fetchSettings(); }, []);
@@ -871,10 +1058,16 @@ export const Settings: React.FC<SettingsProps> = ({ userProfile, onUpdateProfile
         const { error: err2 } = await supabase.from('system_settings').update({ data: financialSettings }).eq('id', 'finance');
         const { error: err3 } = await supabase.from('system_settings').update({ data: roles }).eq('id', 'roles');
 
-        if (!err1 && !err2 && !err3) {
-            showNotification('Configurações salvas com sucesso!', 'success');
+        let appErr = null;
+        if (tenantId) {
+            const { error } = await handleSaveApp(true);
+            appErr = error;
+        }
+
+        if (!err1 && !err2 && !err3 && !appErr) {
+            showNotification('Todas as configurações salvas com sucesso!', 'success');
         } else {
-            showNotification('Erro ao salvar as configurações.', 'error');
+            showNotification('Houve um erro ao salvar algumas configurações.', 'error');
         }
     };
 
@@ -1185,7 +1378,7 @@ export const Settings: React.FC<SettingsProps> = ({ userProfile, onUpdateProfile
                 {/* Navigation Tabs */}
                 <div className="px-12 mb-12 border-b border-slate-100 dark:border-white/5 shrink-0 sticky top-0 bg-white/80 dark:bg-[#0a0a0a]/80 backdrop-blur-xl z-20">
                     <div className="flex gap-10 overflow-x-auto no-scrollbar py-2">
-                        {['Aparência', 'Portes', 'Recursos', 'Funcionários', 'Empresa', 'Financeiro', 'Permissões', 'Integrações', 'Perfil', 'Segurança'].map((tab) => (
+                        {['Aparência', 'Portes', 'Recursos', 'Funcionários', 'Empresa', 'App do Cliente', 'Financeiro', 'Permissões', 'Integrações', 'Perfil', 'Segurança'].map((tab) => (
                             <div key={tab} className="relative group">
                                 <button
                                     onClick={() => setActiveTab(tab)}
@@ -1349,6 +1542,196 @@ export const Settings: React.FC<SettingsProps> = ({ userProfile, onUpdateProfile
                                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-2">{res.type}</p>
                                     </div>
                                 ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {activeTab === 'App do Cliente' && (
+                        <div className="max-w-6xl animate-in slide-in-from-right-10 duration-500 space-y-10">
+                            <div className="bg-white dark:bg-[#111] p-10 rounded-[3rem] border border-slate-50 dark:border-gray-900 shadow-xl space-y-10">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-6">
+                                        <div className="size-16 rounded-[1.5rem] bg-indigo-500/10 flex items-center justify-center">
+                                            <span className="material-symbols-outlined text-indigo-500 text-3xl font-black">smartphone</span>
+                                        </div>
+                                        <div>
+                                            <h3 className="text-3xl font-black uppercase italic tracking-tighter text-slate-900 dark:text-white leading-none">Customização do App</h3>
+                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-2">Personalize a experiência do seu cliente</p>
+                                        </div>
+                                    </div>
+                                    <button
+                                        onClick={handleSaveApp}
+                                        disabled={savingApp}
+                                        className="px-8 py-4 bg-primary text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-primary-hover shadow-xl shadow-primary/20 transition-all flex items-center gap-2 disabled:opacity-50"
+                                    >
+                                        {savingApp ? (
+                                            <div className="size-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                        ) : (
+                                            <span className="material-symbols-outlined text-lg">save</span>
+                                        )}
+                                        Salvar Alterações
+                                    </button>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-12 gap-10">
+                                    {/* App Logo */}
+                                    <div className="md:col-span-3">
+                                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 block">Logo do App cliente</label>
+                                        <div className="aspect-square rounded-[2.5rem] bg-slate-50 dark:bg-black/40 border-2 border-dashed border-slate-200 dark:border-gray-800 flex items-center justify-center p-2 relative group cursor-pointer overflow-hidden transition-all hover:border-primary/50">
+                                            {appSettings.logoUrl ? (
+                                                <img src={appSettings.logoUrl} className="size-full object-cover rounded-[2rem]" />
+                                            ) : (
+                                                <span className="material-symbols-outlined text-4xl text-slate-300">add_a_photo</span>
+                                            )}
+                                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                                <span className="text-[9px] font-black uppercase tracking-widest text-white">Alterar Logo do App</span>
+                                            </div>
+                                            <input
+                                                type="file"
+                                                className="absolute inset-0 opacity-0 cursor-pointer"
+                                                onChange={(e) => {
+                                                    const file = e.target.files?.[0];
+                                                    if (file) {
+                                                        const reader = new FileReader();
+                                                        reader.onloadend = () => {
+                                                            setAppSettings(prev => ({ ...prev, logoUrl: reader.result as string }));
+                                                        };
+                                                        reader.readAsDataURL(file);
+                                                    }
+                                                }}
+                                            />
+                                        </div>
+                                        <p className="text-[9px] text-slate-400 mt-4 text-center px-4 uppercase font-bold leading-tight">Sugestão: 512x512px<br />Fundo Transparente</p>
+                                    </div>
+
+                                    {/* App Setup */}
+                                    <div className="md:col-span-9 space-y-8">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                            <div>
+                                                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 block">Nome de exibição no App</label>
+                                                <input
+                                                    type="text"
+                                                    value={appSettings.appName}
+                                                    onChange={e => setAppSettings({ ...appSettings, appName: e.target.value })}
+                                                    className="w-full bg-slate-50 dark:bg-black p-5 rounded-2xl font-bold border-none outline-none shadow-sm focus:ring-2 focus:ring-primary/20 transition-all"
+                                                    placeholder="Ex: My Pet Shop App"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 block">Cor Principal do App</label>
+                                                <div className="flex gap-4">
+                                                    <input
+                                                        type="color"
+                                                        value={appSettings.primaryColor}
+                                                        onChange={e => setAppSettings({ ...appSettings, primaryColor: e.target.value })}
+                                                        className="size-14 rounded-xl cursor-pointer border-none bg-transparent"
+                                                    />
+                                                    <input
+                                                        type="text"
+                                                        value={appSettings.primaryColor}
+                                                        onChange={e => setAppSettings({ ...appSettings, primaryColor: e.target.value })}
+                                                        className="flex-1 bg-slate-50 dark:bg-black p-5 rounded-2xl font-mono font-bold border-none outline-none shadow-sm focus:ring-2 focus:ring-primary/20 transition-all"
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                            <div>
+                                                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 block">Tema Inicial Padrão</label>
+                                                <select
+                                                    value={appSettings.theme}
+                                                    onChange={e => setAppSettings({ ...appSettings, theme: e.target.value as any })}
+                                                    className="w-full bg-slate-50 dark:bg-black p-5 rounded-2xl font-black text-sm uppercase tracking-widest border-none outline-none shadow-sm focus:ring-2 focus:ring-primary/20 transition-all appearance-none cursor-pointer"
+                                                >
+                                                    <option value="system">Seguir Sistema do Cliente</option>
+                                                    <option value="light">Light (Sempre Claro)</option>
+                                                    <option value="dark">Dark (Sempre Escuro)</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="pt-10 border-t border-slate-100 dark:border-white/5">
+                                    <h4 className="text-sm font-black uppercase italic text-primary mb-8 flex items-center gap-2">
+                                        <span className="material-symbols-outlined text-lg">visibility</span>
+                                        Visibilidade e Recursos
+                                    </h4>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                                        {[
+                                            { id: 'showShopName', label: 'Mostrar Nome da Loja', icon: 'label' },
+                                            { id: 'showVeterinary', label: 'Módulo Veterinário', icon: 'medical_services' },
+                                            { id: 'showGallery', label: 'Galeria de Fotos', icon: 'imagesmode' },
+                                            { id: 'showTracking', label: 'Rastreio em Tempo Real', icon: 'near_me' }
+                                        ].map((feature) => (
+                                            <button
+                                                key={feature.id}
+                                                onClick={() => setAppSettings(prev => ({ ...prev, [feature.id]: !prev[feature.id as keyof typeof prev] }))}
+                                                className={`p-6 rounded-[2rem] border-2 transition-all flex flex-col items-start gap-4 ${appSettings[feature.id as keyof typeof appSettings] ? 'bg-primary/5 border-primary shadow-lg shadow-primary/5' : 'bg-slate-50 dark:bg-black border-transparent hover:border-slate-200 dark:hover:border-white/5'}`}
+                                            >
+                                                <div className={`size-10 rounded-xl flex items-center justify-center ${appSettings[feature.id as keyof typeof appSettings] ? 'bg-primary text-white' : 'bg-slate-200 dark:bg-white/10 text-slate-500'}`}>
+                                                    <span className="material-symbols-outlined text-xl">{feature.icon}</span>
+                                                </div>
+                                                <div className="flex flex-col items-start">
+                                                    <span className={`text-[11px] font-black uppercase tracking-tight ${appSettings[feature.id as keyof typeof appSettings] ? 'text-slate-900 dark:text-white' : 'text-slate-500'}`}>{feature.label}</span>
+                                                    <span className="text-[9px] font-bold text-slate-400 mt-1 uppercase">{appSettings[feature.id as keyof typeof appSettings] ? 'Habilitado' : 'Desabilitado'}</span>
+                                                </div>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Preview Mockup (Visual Polish) */}
+                            <div className="bg-slate-900 rounded-[4rem] p-12 border border-white/5 overflow-hidden relative">
+                                <div className="absolute top-0 right-0 w-1/2 h-full bg-gradient-to-l from-primary/10 to-transparent pointer-events-none"></div>
+                                <div className="relative z-10 flex flex-col md:flex-row items-center gap-12">
+                                    <div className="flex-1">
+                                        <h3 className="text-4xl font-black text-white italic uppercase tracking-tighter mb-4">Preview <span className="text-primary">do seu App</span></h3>
+                                        <p className="text-slate-400 font-medium leading-relaxed max-w-sm">Veja como seu app aparece para os clientes. As alterações de cor e logo são refletidas instantaneamente.</p>
+                                    </div>
+                                    <div className="w-[280px] h-[580px] bg-black rounded-[3rem] border-[8px] border-slate-800 shadow-2xl relative overflow-hidden flex flex-col">
+                                        {/* Phone Notch */}
+                                        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-6 bg-slate-800 rounded-b-2xl z-20"></div>
+
+                                        <div className="flex-1 bg-slate-950 flex flex-col">
+                                            {/* Header */}
+                                            <div className="pt-10 pb-6 px-6 bg-slate-950/80 backdrop-blur-md">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="size-10 rounded-xl bg-white/5 flex items-center justify-center p-1 overflow-hidden">
+                                                        {appSettings.logoUrl ? <img src={appSettings.logoUrl} className="size-full object-contain" /> : <div className="size-full bg-primary/20 rounded-lg" />}
+                                                    </div>
+                                                    <div className="flex-1 overflow-hidden">
+                                                        {appSettings.showShopName && <h4 className="text-xs font-black text-white truncate">{appSettings.appName || 'Nome da Loja'}</h4>}
+                                                        <p className="text-[10px] text-zinc-500 font-bold">Olá, Cliente!</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* Content Mock */}
+                                            <div className="flex-1 p-4 space-y-4">
+                                                <div className="h-32 rounded-3xl bg-gradient-to-br p-6 flex items-end" style={{ backgroundImage: `linear-gradient(to bottom right, ${appSettings.primaryColor}, ${appSettings.primaryColor}88)` }}>
+                                                    <div className="w-2/3 h-4 bg-white/20 rounded-full"></div>
+                                                </div>
+                                                <div className="grid grid-cols-2 gap-3">
+                                                    <div className="h-20 rounded-2xl bg-white/5"></div>
+                                                    <div className="h-20 rounded-2xl bg-white/5"></div>
+                                                </div>
+                                                <div className="h-24 rounded-2xl bg-white/5"></div>
+                                            </div>
+
+                                            {/* TabBar Mock */}
+                                            <div className="h-20 bg-slate-950 border-t border-white/5 flex items-center justify-around px-4">
+                                                <div className="size-8 rounded-full bg-primary/20"></div>
+                                                <div className="size-8 rounded-full bg-white/5"></div>
+                                                <div className="size-8 rounded-full bg-white/5"></div>
+                                                <div className="size-8 rounded-full bg-white/5"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     )}

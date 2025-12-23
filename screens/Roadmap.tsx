@@ -152,18 +152,18 @@ const roadmapData: RoadmapItem[] = [
     },
     {
         id: 6,
-        title: 'App do Tutor (Client-Facing)',
-        description: 'Aplicativo móvel para os clientes finais. Agendamento online, carteirinha de vacinação digital, pagamento via App e acompanhamento do pet em tempo real via câmeras.',
-        status: 'Em Desenvolvimento',
-        date: 'Q4 2026',
-        progress: 80,
+        title: 'App do Cliente & Customização',
+        description: 'Lançamento oficial do ecossistema de personalização. Agora os pet shops podem definir sua própria identidade visual (Cores, Logo, Nome) e escolher quais módulos estarão visíveis para os tutores.',
+        status: 'Lançado',
+        date: 'Dez 2025',
+        progress: 100,
         icon: 'mobile_friendly',
-        tags: ['Mobile', 'Flutter', 'B2C'],
+        tags: ['Mobile', 'Branding', 'Customização'],
         features: [
-            { label: 'Agendamento In-App', done: true },
-            { label: 'Carteira Digital', done: true },
-            { label: 'Clube de Assinatura', done: true },
-            { label: 'Streaming de Vídeo', done: false }
+            { label: 'Identidade Visual (Cores/Logo)', done: true },
+            { label: 'Toggles de Funcionalidades', done: true },
+            { label: 'Preview Real-time no CRM', done: true },
+            { label: 'Agendamento In-App', done: true }
         ]
     },
     {
@@ -210,6 +210,20 @@ const roadmapData: RoadmapItem[] = [
 ];
 
 const changelogHistory: ChangelogEntry[] = [
+    {
+        version: 'v4.1.0',
+        date: '23 Dez 2025',
+        type: 'minor',
+        title: 'Personalização do App do Cliente',
+        changes: [
+            'Lançamento da aba "App do Cliente" nas Configurações do CRM.',
+            'Seletor de cor primária interativo com aplicação global no app do tutor.',
+            'Upload de logotipo dedicado para a interface do cliente.',
+            'Toggles de visibilidade: Controle quais módulos (Veterinária, Galeria, Rastreamento) o cliente vê.',
+            'Mockup de pré-visualização em tempo real integrado ao painel de configurações.',
+            'Sincronização automática de branding entre CRM e App do Cliente.'
+        ]
+    },
     {
         version: 'v4.0.0',
         date: '23 Dez 2025',
@@ -873,7 +887,7 @@ export const Roadmap: React.FC = () => {
                         <div className="flex gap-3">
                             <div className="flex flex-col items-end">
                                 <span className="text-xs font-bold text-text-muted uppercase tracking-widest mb-1">Versão Atual</span>
-                                <span className="text-2xl font-black italic text-primary">v4.0.0</span>
+                                <span className="text-2xl font-black italic text-primary">v4.1.0</span>
                             </div>
                         </div>
                     </div>
@@ -1081,22 +1095,22 @@ export const Roadmap: React.FC = () => {
                                 <div className="mb-6 group cursor-pointer" onClick={() => setActiveTab('Changelog')}>
                                     <div className="flex gap-3 mb-2">
                                         <div className="size-2 bg-blue-500 rounded-full mt-1.5 shadow-[0_0_8px_rgba(59,130,246,0.6)]"></div>
-                                        <span className="text-xs font-bold text-gray-400 uppercase">v3.4.1 • Update UI</span>
+                                        <span className="text-xs font-bold text-gray-400 uppercase">v4.1.0 • Branding</span>
                                     </div>
-                                    <h3 className="font-bold text-lg leading-tight text-black dark:text-white group-hover:text-primary transition-colors">Barra de Consumo</h3>
+                                    <h3 className="font-bold text-lg leading-tight text-black dark:text-white group-hover:text-primary transition-colors">Customização do App</h3>
                                     <p className="text-sm text-gray-500 dark:text-gray-400 mt-2 line-clamp-3">
-                                        Nova visualização visual na tabela de assinaturas para acompanhar o consumo de pacotes (ex: 2/4 banhos).
+                                        Agora você pode definir cores, logo e nome para o aplicativo do seu cliente, além de gerenciar a visibilidade de módulos.
                                     </p>
                                 </div>
 
                                 <div className="mb-6 group cursor-pointer border-t border-gray-50 dark:border-gray-800 pt-6" onClick={() => setActiveTab('Changelog')}>
                                     <div className="flex gap-3 mb-2">
                                         <div className="size-2 bg-green-500 rounded-full mt-1.5 shadow-[0_0_8px_rgba(34,197,94,0.6)]"></div>
-                                        <span className="text-xs font-bold text-gray-400 uppercase">v3.4.0 • Novo Módulo</span>
+                                        <span className="text-xs font-bold text-gray-400 uppercase">v4.0.0 • Data Core</span>
                                     </div>
-                                    <h3 className="font-bold text-lg leading-tight text-black dark:text-white group-hover:text-primary transition-colors">Clube de Assinaturas</h3>
+                                    <h3 className="font-bold text-lg leading-tight text-black dark:text-white group-hover:text-primary transition-colors">Backup & Migração</h3>
                                     <p className="text-sm text-gray-500 dark:text-gray-400 mt-2 line-clamp-3">
-                                        Módulo completo para gestão de planos recorrentes (banhos, saúde, etc) com controle de uso e cobrança.
+                                        Lançamento do sistema de Backup JSON e migração de dados entre inquilinos para maior segurança.
                                     </p>
                                 </div>
 

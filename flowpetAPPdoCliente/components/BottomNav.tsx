@@ -5,9 +5,15 @@ interface BottomNavProps {
   activeTab: string;
   onTabChange: (tab: string) => void;
   onAddClick: () => void;
+  showTracking?: boolean;
 }
 
-export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, onTabChange, onAddClick }) => {
+export const BottomNav: React.FC<BottomNavProps> = ({
+  activeTab,
+  onTabChange,
+  onAddClick,
+  showTracking = true
+}) => {
   const getTabClass = (tabName: string) => {
     return activeTab === tabName
       ? "text-indigo-400"
@@ -28,15 +34,17 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, onTabChange, on
         </button>
 
         {/* Tracking (Acompanhamento) */}
-        <button
-          onClick={() => onTabChange('tracking')}
-          className={`flex flex-col items-center gap-1 p-2 transition-colors relative ${getTabClass('tracking')}`}
-        >
-          <Radio size={22} className={activeTab !== 'tracking' ? "group-hover:-translate-y-1 transition-transform" : ""} />
-          <span className="text-[10px] font-medium">Ao Vivo</span>
-          {/* Pulsing indicator for active services */}
-          <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-        </button>
+        {showTracking && (
+          <button
+            onClick={() => onTabChange('tracking')}
+            className={`flex flex-col items-center gap-1 p-2 transition-colors relative ${getTabClass('tracking')}`}
+          >
+            <Radio size={22} className={activeTab !== 'tracking' ? "group-hover:-translate-y-1 transition-transform" : ""} />
+            <span className="text-[10px] font-medium">Ao Vivo</span>
+            {/* Pulsing indicator for active services */}
+            <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+          </button>
+        )}
 
         {/* Add Button (Floating) */}
         <div className="relative -top-6">

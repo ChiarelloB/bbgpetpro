@@ -20,7 +20,7 @@ const MobileApp: React.FC = () => {
         <p className="font-bold text-sm text-black dark:text-white mb-3">Próximo Cliente</p>
         <div className="flex items-center gap-3">
           <div className="size-10 bg-gray-200 rounded-full overflow-hidden shrink-0">
-             <img src="https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&q=80&w=100" alt="Dog" className="w-full h-full object-cover"/>
+            <img src="https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&q=80&w=100" alt="Dog" className="w-full h-full object-cover" />
           </div>
           <div className="flex-1 min-w-0">
             <p className="font-bold text-xs text-black dark:text-white truncate">Thor (Golden)</p>
@@ -31,9 +31,9 @@ const MobileApp: React.FC = () => {
       </div>
 
       <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-white/5 h-32 flex items-end justify-between px-2 pb-2 animate-[fadeIn_0.3s_ease-out_0.2s_both]">
-          {[40, 65, 30, 80, 55, 90, 70].map((h, i) => (
-            <div key={i} style={{ height: `${h}%` }} className="w-4 md:w-6 bg-primary/20 rounded-t-sm hover:bg-primary transition-colors"></div>
-          ))}
+        {[40, 65, 30, 80, 55, 90, 70].map((h, i) => (
+          <div key={i} style={{ height: `${h}%` }} className="w-4 md:w-6 bg-primary/20 rounded-t-sm hover:bg-primary transition-colors"></div>
+        ))}
       </div>
     </>
   );
@@ -69,7 +69,7 @@ const MobileApp: React.FC = () => {
         'https://images.unsplash.com/photo-1588943211346-0908a1fb0b01?auto=format&fit=crop&q=80&w=150',
       ].map((img, i) => (
         <div key={i} className="aspect-square rounded-xl overflow-hidden relative group">
-          <img src={img} alt="Pet" className="w-full h-full object-cover"/>
+          <img src={img} alt="Pet" className="w-full h-full object-cover" />
           <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
             <span className="material-symbols-outlined text-white">edit</span>
           </div>
@@ -101,21 +101,21 @@ const MobileApp: React.FC = () => {
     <section className="py-24 bg-subtle dark:bg-[#0f0f0f] overflow-hidden transition-colors duration-300">
       <div className="max-w-7xl mx-auto px-6 lg:px-8">
         <div className="flex flex-col lg:flex-row items-center gap-16">
-          
+
           {/* Text Side */}
           <div className="lg:w-1/2 order-2 lg:order-1">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 mb-6">
               <span className="material-symbols-outlined text-primary text-sm">smartphone</span>
               <span className="text-xs font-bold uppercase tracking-wider text-primary">Disponível para iOS e Android</span>
             </div>
-            
+
             <h2 className="text-4xl md:text-6xl font-black uppercase italic tracking-tighter text-black dark:text-white mb-6">
-              Gestão na <br/>
+              Gestão na <br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-primary-light">
                 Palma da Mão
               </span>
             </h2>
-            
+
             <p className="text-lg text-gray-500 dark:text-gray-400 mb-8 leading-relaxed">
               Não fique preso ao balcão. Com o app do Flow Pet CRM, você acompanha o faturamento, responde clientes e aprova agendamentos de onde estiver.
             </p>
@@ -123,7 +123,7 @@ const MobileApp: React.FC = () => {
             <ul className="space-y-4 mb-10">
               {[
                 { icon: 'notifications_active', text: 'Notificações de agenda em tempo real' },
-                { icon: 'dashboard', text: 'Dashboards financeiros resumidos' },
+                { icon: 'palette', text: 'App do Cliente White-label totalmente seu' },
                 { icon: 'qr_code_scanner', text: 'Check-in rápido de pets via câmera' }
               ].map((item, i) => (
                 <li key={i} className="flex items-center gap-4">
@@ -136,7 +136,7 @@ const MobileApp: React.FC = () => {
             </ul>
 
             <div className="flex flex-wrap gap-4">
-              <a 
+              <a
                 href="https://apps.apple.com"
                 target="_blank"
                 rel="noopener noreferrer"
@@ -148,7 +148,7 @@ const MobileApp: React.FC = () => {
                   <p className="text-sm font-black leading-none">App Store</p>
                 </div>
               </a>
-              <a 
+              <a
                 href="https://play.google.com"
                 target="_blank"
                 rel="noopener noreferrer"
@@ -169,10 +169,10 @@ const MobileApp: React.FC = () => {
             <div className="relative w-full max-w-[280px] md:max-w-[320px] h-[550px] md:h-[650px] bg-black rounded-[2.5rem] md:rounded-[3rem] border-4 md:border-8 border-gray-800 shadow-2xl overflow-hidden ring-1 ring-white/10 shrink-0">
               {/* Notch */}
               <div className="absolute top-0 left-1/2 -translate-x-1/2 w-24 md:w-32 h-5 md:h-6 bg-black rounded-b-2xl z-20"></div>
-              
+
               {/* Screen Content */}
               <div className="w-full h-full bg-subtle dark:bg-gray-900 overflow-hidden flex flex-col relative">
-                
+
                 {/* Header */}
                 <div className="bg-primary pt-8 md:pt-10 pb-4 md:pb-6 px-4 md:px-6 rounded-b-3xl shadow-lg z-10 shrink-0">
                   <div className="flex justify-between items-center text-white mb-4">
@@ -202,7 +202,7 @@ const MobileApp: React.FC = () => {
                   {activeScreen === 'profile' && (
                     <div className="text-center py-10 animate-[fadeIn_0.3s_ease-out]">
                       <div className="size-20 bg-gray-200 dark:bg-gray-700 rounded-full mx-auto mb-4 overflow-hidden">
-                        <img src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=200" alt="Profile" className="w-full h-full object-cover"/>
+                        <img src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=200" alt="Profile" className="w-full h-full object-cover" />
                       </div>
                       <h4 className="font-bold text-black dark:text-white text-lg">Fernanda Paiva</h4>
                       <p className="text-gray-500 text-sm">Bicho Chic</p>
@@ -214,34 +214,34 @@ const MobileApp: React.FC = () => {
 
                 {/* Bottom Nav */}
                 <div className="mt-auto bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-white/5 p-3 md:p-4 flex justify-between items-center shrink-0">
-                  <button 
+                  <button
                     onClick={() => setActiveScreen('home')}
                     className={`material-symbols-outlined transition-colors ${activeScreen === 'home' ? 'text-primary' : 'text-gray-400'}`}
                   >
                     home
                   </button>
-                  <button 
+                  <button
                     onClick={() => setActiveScreen('calendar')}
                     className={`material-symbols-outlined transition-colors ${activeScreen === 'calendar' ? 'text-primary' : 'text-gray-400'}`}
                   >
                     calendar_month
                   </button>
-                  
+
                   {/* Floating Action Button */}
-                  <button 
+                  <button
                     onClick={() => setActiveScreen('add')}
                     className={`size-10 md:size-12 rounded-full flex items-center justify-center text-white shadow-lg -mt-8 border-4 border-gray-50 dark:border-gray-900 transition-transform hover:scale-110 ${activeScreen === 'add' ? 'bg-black' : 'bg-primary'}`}
                   >
                     <span className="material-symbols-outlined">add</span>
                   </button>
 
-                  <button 
+                  <button
                     onClick={() => setActiveScreen('pets')}
                     className={`material-symbols-outlined transition-colors ${activeScreen === 'pets' ? 'text-primary' : 'text-gray-400'}`}
                   >
                     pets
                   </button>
-                  <button 
+                  <button
                     onClick={() => setActiveScreen('profile')}
                     className={`material-symbols-outlined transition-colors ${activeScreen === 'profile' ? 'text-primary' : 'text-gray-400'}`}
                   >

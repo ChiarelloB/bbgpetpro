@@ -18,9 +18,9 @@ const features = [
     desc: 'Controle total da frota de busca e entrega. Rastreamento em tempo real para tutores.'
   },
   {
-    icon: 'forum',
-    title: 'Comunicação',
-    desc: 'Chat interno para sua equipe. Conecte recepção, banho e tosa e veterinários.'
+    icon: 'palette',
+    title: 'Marca Própria',
+    desc: 'App do Cliente (White Label). Personalize cores, logos e funcionalidades para seus tutores.'
   }
 ];
 

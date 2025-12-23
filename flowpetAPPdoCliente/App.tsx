@@ -21,6 +21,14 @@ interface PetShop {
   address?: string;
   phone?: string;
   logo_url?: string;
+  primary_color?: string;
+  settings?: {
+    appName?: string;
+    theme?: 'dark' | 'light' | 'system';
+    showVeterinary?: boolean;
+    showGallery?: boolean;
+    showTracking?: boolean;
+  };
 }
 
 function App() {
@@ -48,16 +56,24 @@ function App() {
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
         setUser(session.user);
-        // Try to restore pet shop from local storage
-        const savedPetShop = localStorage.getItem('flowpet_petshop');
-        if (savedPetShop) {
-          setSelectedPetShop(JSON.parse(savedPetShop));
-        }
       }
       setLoadingAuth(false);
     };
 
     checkAuth();
+
+    // Fetch full tenant info if we have a saved one
+    const savedPetShop = localStorage.getItem('flowpet_petshop');
+    if (savedPetShop) {
+      const parsed = JSON.parse(savedPetShop);
+      supabase.from('tenants').select('*').eq('id', parsed.id).single()
+        .then(({ data }) => {
+          if (data) {
+            setSelectedPetShop(data);
+            localStorage.setItem('flowpet_petshop', JSON.stringify(data));
+          }
+        });
+    }
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_OUT') {
@@ -71,6 +87,49 @@ function App() {
 
     return () => subscription.unsubscribe();
   }, []);
+
+  const [userTheme, setUserTheme] = useState<'dark' | 'light' | 'system'>(
+    (localStorage.getItem('flowpet_theme') as any) || 'system'
+  );
+
+  // Apply theme and colors when pet shop or theme changes
+  useEffect(() => {
+    if (!selectedPetShop) return;
+
+    // Apply primary color
+    if (selectedPetShop.primary_color) {
+      const root = document.documentElement;
+      root.style.setProperty('--primary-color', selectedPetShop.primary_color);
+
+      // Convert hex to RGB for tailwind alpha support
+      const hex = selectedPetShop.primary_color.replace('#', '');
+      const r = parseInt(hex.substring(0, 2), 16);
+      const g = parseInt(hex.substring(2, 4), 16);
+      const b = parseInt(hex.substring(4, 6), 16);
+      root.style.setProperty('--primary-rgb', `${r}, ${g}, ${b}`);
+    }
+
+    const mq = window.matchMedia('(prefers-color-scheme: dark)');
+    const applyTheme = () => {
+      const effectiveTheme = userTheme !== 'system' ? userTheme : (selectedPetShop.settings?.theme || 'system');
+      if (effectiveTheme === 'system') {
+        if (mq.matches) document.documentElement.classList.add('dark');
+        else document.documentElement.classList.remove('dark');
+      } else if (effectiveTheme === 'dark') {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+    };
+    applyTheme();
+    mq.addEventListener('change', applyTheme);
+    return () => mq.removeEventListener('change', applyTheme);
+  }, [selectedPetShop, userTheme]);
+
+  const handleUpdateTheme = (theme: 'dark' | 'light' | 'system') => {
+    setUserTheme(theme);
+    localStorage.setItem('flowpet_theme', theme);
+  };
 
   // Fetch client data when user and petshop are set
   useEffect(() => {
@@ -215,9 +274,17 @@ function App() {
     return 'valid';
   };
 
-  const handlePetShopSelect = (petShop: PetShop) => {
-    setSelectedPetShop(petShop);
-    localStorage.setItem('flowpet_petshop', JSON.stringify(petShop));
+  const handlePetShopSelect = async (petShop: PetShop) => {
+    // Fetch full tenant details to get settings
+    const { data } = await supabase
+      .from('tenants')
+      .select('*')
+      .eq('id', petShop.id)
+      .single();
+
+    const fullPetShop = data || petShop;
+    setSelectedPetShop(fullPetShop);
+    localStorage.setItem('flowpet_petshop', JSON.stringify(fullPetShop));
   };
 
   const handleLogin = (loggedUser: any) => {
@@ -530,6 +597,8 @@ function App() {
             pet={currentPet}
             onEdit={handleEditPetClick}
             onScheduleVaccine={handleScheduleVaccine}
+            showVeterinary={selectedPetShop?.settings?.showVeterinary !== false}
+            showGallery={selectedPetShop?.settings?.showGallery !== false}
           />
         ) : (
           <div className="flex flex-col items-center justify-center h-[50vh] text-white/40">
@@ -543,7 +612,7 @@ function App() {
       case 'tracking':
         return <ServiceTrackingView clientId={clientId || undefined} petIds={pets.map(p => p.id)} />;
       case 'profile':
-        return <UserProfileView onLogout={handleLogout} />;
+        return <UserProfileView onLogout={handleLogout} currentTheme={userTheme} onThemeChange={handleUpdateTheme} />;
       case 'add-pet':
         return <AddPetView onCancel={() => setActiveTab('home')} onSave={handleSavePet} onDelete={handleDeletePet} initialData={editingPet} />;
       case 'add-appointment':
@@ -562,7 +631,7 @@ function App() {
       case 'profile': return 'Minha Conta';
       case 'add-pet': return editingPet ? 'Editar Pet' : 'Novo Pet';
       case 'add-appointment': return 'Novo Agendamento';
-      default: return 'Flow Pet';
+      default: return selectedPetShop?.settings?.appName || 'Flow Pet';
     }
   };
 
@@ -597,7 +666,7 @@ function App() {
       <div className="flex justify-center min-h-screen bg-dark-950">
         <div className="w-full max-w-md bg-dark-900 shadow-2xl overflow-hidden border-x border-dark-800 relative min-h-screen">
           <LoginView
-            petShopName={selectedPetShop.name}
+            petShopName={selectedPetShop.settings?.appName || selectedPetShop.name}
             petShopId={selectedPetShop.id}
             onLogin={handleLogin}
             onBack={() => setSelectedPetShop(null)}
@@ -620,6 +689,9 @@ function App() {
           showBack={activeTab !== 'home'}
           onBack={() => setActiveTab('home')}
           onNotificationsClick={() => setActiveTab('notifications')}
+          appName={selectedPetShop?.settings?.appName || selectedPetShop?.name}
+          logoUrl={selectedPetShop?.logo_url || undefined}
+          showShopName={selectedPetShop?.settings?.showShopName !== false}
         />
 
         <main className="relative z-10 px-6 pb-32 pt-4 min-h-[calc(100vh-160px)]">
@@ -631,6 +703,7 @@ function App() {
             activeTab={activeTab}
             onTabChange={setActiveTab}
             onAddClick={handleAddClick}
+            showTracking={selectedPetShop?.settings?.showTracking !== false}
           />
         )}
 

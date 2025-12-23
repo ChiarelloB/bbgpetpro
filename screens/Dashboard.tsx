@@ -344,17 +344,17 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
             </div>
             <div className="relative z-10">
               <div className="flex items-center gap-2 mb-3">
-                <span className="px-2 py-0.5 bg-primary text-white text-[8px] font-black rounded-md uppercase tracking-widest">v4.0.0</span>
+                <span className="px-2 py-0.5 bg-primary text-white text-[8px] font-black rounded-md uppercase tracking-widest">v4.1.0</span>
                 <h3 className="text-[9px] font-black text-white uppercase tracking-widest italic">Lançamentos</h3>
               </div>
               <div className="space-y-3 mb-4">
                 <div className="flex gap-2 items-start">
-                  <span className="material-symbols-outlined text-primary text-[16px]">check_circle</span>
-                  <p className="text-white text-[10px] font-bold leading-tight">Gestão de Entrega</p>
+                  <span className="material-symbols-outlined text-primary text-[16px]">palette</span>
+                  <p className="text-white text-[10px] font-bold leading-tight">Customização do App</p>
                 </div>
                 <div className="flex gap-2 items-start">
-                  <span className="material-symbols-outlined text-primary text-[16px]">print</span>
-                  <p className="text-white text-[10px] font-bold leading-tight">Impressão de Recibo</p>
+                  <span className="material-symbols-outlined text-primary text-[16px]">touch_app</span>
+                  <p className="text-white text-[10px] font-bold leading-tight">Gestão de Visibilidade</p>
                 </div>
               </div>
               <button
