@@ -169,6 +169,54 @@ export const Plans: React.FC = () => {
     }
   };
 
+  // State for Coupons
+  const [isCouponModalOpen, setIsCouponModalOpen] = useState(false);
+  const [loadingCoupon, setLoadingCoupon] = useState(false);
+  const [newCoupon, setNewCoupon] = useState({
+    name: '',
+    type: 'percent' as 'percent' | 'amount',
+    value: '',
+    duration: 'once',
+    months: ''
+  });
+
+  const handleCreateCoupon = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoadingCoupon(true);
+    try {
+      const body: any = {
+        action: 'create_coupon',
+        name: newCoupon.name,
+        duration: newCoupon.duration
+      };
+
+      if (newCoupon.duration === 'repeating') {
+        body.duration_in_months = parseInt(newCoupon.months);
+      }
+
+      if (newCoupon.type === 'percent') {
+        body.percent_off = parseFloat(newCoupon.value);
+      } else {
+        body.amount_off = parseFloat(newCoupon.value);
+      }
+
+      const { data, error } = await supabase.functions.invoke('manage-plans', {
+        body: body
+      });
+
+      if (error) throw error;
+
+      alert(`Cupom ${newCoupon.name} criado com sucesso!`);
+      setIsCouponModalOpen(false);
+      setNewCoupon({ name: '', type: 'percent', value: '', duration: 'once', months: '' });
+
+    } catch (err: any) {
+      alert('Erro ao criar cupom: ' + err.message);
+    } finally {
+      setLoadingCoupon(false);
+    }
+  };
+
   return (
     <div className="flex flex-col h-full animate-fade-in relative">
       {/* Modal Change Plan */}
@@ -410,6 +458,127 @@ export const Plans: React.FC = () => {
         </div>
       </section>
 
+
+
+      {/* -- COUPONS SECTION START -- */}
+      <section className="mt-12 mb-10 border-t border-white/10 pt-10">
+        <div className="flex justify-between items-end mb-6">
+          <h3 className="text-lg font-bold text-white flex items-center gap-2">
+            <span className="w-1.5 h-6 rounded-full bg-orange-500 block"></span>
+            Cupons de Desconto
+          </h3>
+          <div className="flex gap-4">
+            <button
+              onClick={() => setIsCouponModalOpen(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-primary/20 hover:bg-primary/30 text-primary border border-primary/30 rounded-full transition-all text-xs font-bold uppercase tracking-wider shadow-[0_0_15px_rgba(234,88,12,0.2)]"
+            >
+              <span className="material-symbols-outlined text-[18px]">confirmation_number</span>
+              Criar Cupom
+            </button>
+          </div>
+        </div>
+
+        <div className="glass-panel p-8 text-center rounded-4xl border-dashed border-2 border-white/10">
+          <p className="text-text-muted mb-2">Gerencie aqui os códigos promocionais para suas campanhas.</p>
+          <p className="text-xs text-text-muted opacity-60">Os cupons criados são sincronizados automaticamente com o Stripe.</p>
+        </div>
+      </section>
+
+      {/* Modal Create Coupon */}
+      {
+        isCouponModalOpen && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[80] flex items-center justify-center p-4">
+            <div className="glass-panel w-full max-w-md p-8 rounded-4xl border border-white/10 animate-zoom-in">
+              <h3 className="text-xl font-bold text-white mb-2">Novo Cupom</h3>
+              <p className="text-sm text-text-muted mb-6">Crie um código de desconto para seus clientes.</p>
+
+              <form onSubmit={handleCreateCoupon} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-text-muted uppercase mb-2 ml-1">Código do Cupom</label>
+                  <input
+                    className="w-full bg-black/40 border border-white/10 rounded-2xl px-4 py-3 text-sm text-white focus:ring-primary outline-none uppercase font-mono tracking-wider placeholder:normal-case placeholder:tracking-normal placeholder:font-sans"
+                    placeholder="Ex: BLACKFRIDAY20"
+                    value={newCoupon.name}
+                    onChange={(e) => setNewCoupon({ ...newCoupon, name: e.target.value.toUpperCase() })}
+                    required
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-text-muted uppercase mb-2 ml-1">Tipo Desconto</label>
+                    <select
+                      className="w-full bg-black/40 border border-white/10 rounded-2xl px-4 py-3 text-sm text-white focus:ring-primary outline-none appearance-none"
+                      value={newCoupon.type}
+                      onChange={(e) => setNewCoupon({ ...newCoupon, type: e.target.value as 'percent' | 'amount' })}
+                    >
+                      <option className="bg-surface-dark" value="percent">Porcentagem (%)</option>
+                      <option className="bg-surface-dark" value="amount">Valor Fixo (R$)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-text-muted uppercase mb-2 ml-1">Valor</label>
+                    <input
+                      type="number"
+                      className="w-full bg-black/40 border border-white/10 rounded-2xl px-4 py-3 text-sm text-white focus:ring-primary outline-none"
+                      placeholder={newCoupon.type === 'percent' ? "20" : "50.00"}
+                      value={newCoupon.value}
+                      onChange={(e) => setNewCoupon({ ...newCoupon, value: e.target.value })}
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-text-muted uppercase mb-2 ml-1">Duração</label>
+                  <select
+                    className="w-full bg-black/40 border border-white/10 rounded-2xl px-4 py-3 text-sm text-white focus:ring-primary outline-none appearance-none"
+                    value={newCoupon.duration}
+                    onChange={(e) => setNewCoupon({ ...newCoupon, duration: e.target.value })}
+                  >
+                    <option className="bg-surface-dark" value="once">Uma vez (Primeira fatura)</option>
+                    <option className="bg-surface-dark" value="forever">Para sempre (Recorrente)</option>
+                    <option className="bg-surface-dark" value="repeating">Por alguns meses...</option>
+                  </select>
+                </div>
+
+                {newCoupon.duration === 'repeating' && (
+                  <div>
+                    <label className="block text-xs font-bold text-text-muted uppercase mb-2 ml-1">Meses de Duração</label>
+                    <input
+                      type="number"
+                      className="w-full bg-black/40 border border-white/10 rounded-2xl px-4 py-3 text-sm text-white focus:ring-primary outline-none"
+                      placeholder="Ex: 3"
+                      value={newCoupon.months}
+                      onChange={(e) => setNewCoupon({ ...newCoupon, months: e.target.value })}
+                      required
+                    />
+                  </div>
+                )}
+
+                <div className="flex gap-3 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => setIsCouponModalOpen(false)}
+                    className="flex-1 py-3 rounded-2xl border border-white/10 text-text-muted hover:text-white hover:bg-white/5 font-bold transition-all"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={loadingCoupon}
+                    className="flex-1 py-3 rounded-2xl bg-primary hover:bg-primary-hover text-white font-bold shadow-lg shadow-primary/20 transition-all disabled:opacity-50"
+                  >
+                    {loadingCoupon ? 'Criando...' : 'Criar Cupom'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )
+      }
+      {/* -- COUPONS SECTION END -- */}
+
       <section className="flex flex-col flex-1 min-h-[400px]">
         <div className="flex justify-between items-end mb-6">
           <h3 className="text-lg font-bold text-white flex items-center gap-2">
@@ -479,6 +648,6 @@ export const Plans: React.FC = () => {
           </div>
         </div>
       </section>
-    </div>
+    </div >
   );
 };
