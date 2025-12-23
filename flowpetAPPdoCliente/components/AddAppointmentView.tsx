@@ -70,15 +70,27 @@ export const AddAppointmentView: React.FC<AddAppointmentViewProps> = ({ pets, on
 
       setLoadingSlots(true);
 
-      // Get existing appointments for this date
-      const { data: existingApts } = await supabase
+      // Get existing appointments for this date using start_time range
+      const dateStart = `${selectedDate}T00:00:00`;
+      const dateEnd = `${selectedDate}T23:59:59`;
+
+      const { data: existingApts, error } = await supabase
         .from('appointments')
         .select('start_time')
         .eq('tenant_id', petShop.id)
-        .eq('date', selectedDate)
+        .gte('start_time', dateStart)
+        .lte('start_time', dateEnd)
         .not('status', 'eq', 'cancelled');
 
-      const bookedTimes = existingApts?.map(a => a.start_time) || [];
+      console.log('Existing appointments:', { existingApts, error });
+
+      // Extract just the time portion (HH:MM) from start_time
+      const bookedTimes = existingApts?.map(a => {
+        const time = a.start_time?.split('T')[1]?.substring(0, 5);
+        return time;
+      }).filter(Boolean) || [];
+
+      console.log('Booked times:', bookedTimes);
 
       // Generate time slots (8:00 to 18:00)
       const slots: TimeSlot[] = [];
@@ -98,6 +110,7 @@ export const AddAppointmentView: React.FC<AddAppointmentViewProps> = ({ pets, on
 
     checkAvailability();
   }, [selectedDate]);
+
 
   const handleSubmit = () => {
     if (!formData.title || !selectedDate || !formData.time) {

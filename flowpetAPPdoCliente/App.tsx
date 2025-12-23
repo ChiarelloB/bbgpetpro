@@ -113,9 +113,9 @@ function App() {
             .select('*, pets(name)')
             .in('pet_id', petIds)
             .eq('tenant_id', selectedPetShop.id)
-            .gte('date', new Date().toISOString().split('T')[0])
+            .gte('start_time', new Date().toISOString())
             .neq('status', 'cancelled')
-            .order('date', { ascending: true });
+            .order('start_time', { ascending: true });
 
           const transformedPets: PetProfile[] = petsData.map(pet => {
             // Get vaccines for this pet
@@ -150,8 +150,8 @@ function App() {
               },
               nextAppointment: nextApt ? {
                 title: nextApt.service || 'Agendamento',
-                date: new Date(nextApt.date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }),
-                time: nextApt.start_time || '',
+                date: new Date(nextApt.start_time).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }),
+                time: new Date(nextApt.start_time).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
                 type: 'grooming' as 'bath' | 'vet' | 'grooming'
               } : null,
             };
@@ -160,32 +160,43 @@ function App() {
           if (transformedPets.length > 0 && !selectedPetId) {
             setSelectedPetId(transformedPets[0].id);
           }
-        }
+          // Fetch all appointments for the agenda view
+          const { data: appointmentsData } = await supabase
+            .from('appointments')
+            .select('*, pets(name)')
+            .eq('tenant_id', selectedPetShop.id)
+            .in('pet_id', petsData.map(p => p.id))
+            .order('start_time', { ascending: true });
 
-        // Fetch all appointments for the agenda view
-        const { data: appointmentsData } = await supabase
-          .from('appointments')
-          .select('*, pets(name)')
-          .eq('tenant_id', selectedPetShop.id)
-          .in('pet_id', petsData?.map(p => p.id) || [])
-          .order('date', { ascending: true });
+          console.log('--- DEBUG AGENDA FETCH ---');
+          console.log('Pet Shop ID:', selectedPetShop.id);
+          console.log('Pet IDs:', petsData.map(p => p.id));
+          console.log('Raw DB Appointments:', appointmentsData);
 
-        if (appointmentsData) {
-          const transformedAppointments: Appointment[] = appointmentsData.map(apt => ({
-            id: apt.id,
-            title: apt.service || 'Serviço',
-            date: new Date(apt.date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }),
-            time: apt.start_time || '',
-            type: 'grooming',
-            petId: apt.pet_id,
-            petName: apt.pets?.name || '',
-            status: apt.status === 'completed' || apt.status === 'finished' ? 'completed' : 'upcoming',
-            completed: apt.status === 'completed' || apt.status === 'finished',
-          }));
-          setAppointments(transformedAppointments);
+          if (appointmentsData) {
+            const transformedAppointments: Appointment[] = appointmentsData.map(apt => {
+              const startDate = new Date(apt.start_time);
+              const isCompleted = ['completed', 'finished'].includes(apt.status);
+
+              return {
+                id: apt.id,
+                title: apt.service || 'Serviço',
+                date: startDate.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }),
+                time: startDate.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+                type: 'grooming',
+                petId: apt.pet_id,
+                petName: apt.pets?.name || '',
+                status: isCompleted ? 'completed' : 'upcoming',
+                completed: isCompleted,
+              };
+            });
+            console.log('Transformed Appointments:', transformedAppointments);
+            setAppointments(transformedAppointments);
+          }
         }
       }
     };
+
 
     // Helper function to calculate pet age from birth date
     const calculateAge = (birthDate: string | null): number => {
@@ -376,15 +387,27 @@ function App() {
 
   const handleSaveAppointment = async (formData: any) => {
     const pet = pets.find(p => p.id === formData.petId);
-    if (!pet || !selectedPetShop) return;
+    if (!pet || !selectedPetShop || !clientId) {
+      console.error('Missing required data:', { pet, selectedPetShop, clientId });
+      alert('Erro: Dados incompletos. Por favor, tente novamente.');
+      return;
+    }
 
-    // Check availability first
+    // Combine date and time into a full timestamp
+    const startTimestamp = `${formData.date}T${formData.time}:00`;
+    console.log('Creating appointment with:', { startTimestamp, formData });
+
+    // Check availability first - query by date range
+    const dateStart = `${formData.date}T00:00:00`;
+    const dateEnd = `${formData.date}T23:59:59`;
+
     const { data: existingAppointments } = await supabase
       .from('appointments')
       .select('*')
       .eq('tenant_id', selectedPetShop.id)
-      .eq('date', formData.date)
-      .eq('start_time', formData.time);
+      .gte('start_time', dateStart)
+      .lte('start_time', dateEnd)
+      .like('start_time', `%T${formData.time}%`);
 
     if (existingAppointments && existingAppointments.length > 0) {
       alert('Horário não disponível. Por favor, escolha outro.');
@@ -398,16 +421,22 @@ function App() {
         tenant_id: selectedPetShop.id,
         pet_id: pet.id,
         client_id: clientId,
-        date: formData.date,
-        start_time: formData.time,
+        start_time: startTimestamp,
         service: formData.title,
-        status: 'scheduled',
+        status: 'pending',
         notes: formData.notes || '',
       })
       .select()
       .single();
 
+    if (error) {
+      console.error('Error creating appointment:', error);
+      alert(`Erro ao agendar: ${error.message}`);
+      return;
+    }
+
     if (newAptData) {
+
       const newApt: Appointment = {
         id: newAptData.id,
         title: formData.title,

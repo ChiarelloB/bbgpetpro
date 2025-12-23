@@ -7,6 +7,8 @@ interface AgendaViewProps {
 }
 
 export const AgendaView: React.FC<AgendaViewProps> = ({ appointments }) => {
+  console.log('--- AgendaView RENDER ---');
+  console.log('Received appointments:', appointments);
   const [activeTab, setActiveTab] = useState<'upcoming' | 'history'>('upcoming');
 
   // Get pet shop name from localStorage
@@ -20,14 +22,16 @@ export const AgendaView: React.FC<AgendaViewProps> = ({ appointments }) => {
     }
   });
 
+  console.log(`Filtered appointments for ${activeTab}:`, filteredAppointments);
+
   return (
     <div className="animate-[fadeIn_0.5s_ease-out]">
       <div className="bg-white/5 border border-white/10 rounded-3xl p-2 mb-6 flex items-center justify-between">
         <button
           onClick={() => setActiveTab('upcoming')}
           className={`flex-1 py-2 rounded-2xl text-xs font-bold uppercase tracking-wide transition-all ${activeTab === 'upcoming'
-              ? 'bg-indigo-600 text-white shadow-lg'
-              : 'text-white/40 hover:text-white'
+            ? 'bg-indigo-600 text-white shadow-lg'
+            : 'text-white/40 hover:text-white'
             }`}
         >
           Próximos
@@ -35,8 +39,8 @@ export const AgendaView: React.FC<AgendaViewProps> = ({ appointments }) => {
         <button
           onClick={() => setActiveTab('history')}
           className={`flex-1 py-2 rounded-2xl text-xs font-bold uppercase tracking-wide transition-all ${activeTab === 'history'
-              ? 'bg-indigo-600 text-white shadow-lg'
-              : 'text-white/40 hover:text-white'
+            ? 'bg-indigo-600 text-white shadow-lg'
+            : 'text-white/40 hover:text-white'
             }`}
         >
           Histórico
@@ -53,8 +57,8 @@ export const AgendaView: React.FC<AgendaViewProps> = ({ appointments }) => {
 
               {/* Timeline Dot */}
               <div className={`relative z-10 w-6 h-6 rounded-full mt-1 border-4 transition-transform group-hover:scale-110 ${activeTab === 'upcoming'
-                  ? 'bg-dark-900 border-indigo-500 shadow-[0_0_10px_rgba(99,102,241,0.5)]'
-                  : 'bg-dark-900 border-white/20'
+                ? 'bg-dark-900 border-indigo-500 shadow-[0_0_10px_rgba(99,102,241,0.5)]'
+                : 'bg-dark-900 border-white/20'
                 }`}></div>
 
               {/* Card */}

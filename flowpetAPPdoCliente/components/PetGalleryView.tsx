@@ -64,9 +64,9 @@ export const PetGalleryView: React.FC<PetGalleryViewProps> = ({ pet }) => {
             // 2. Fetch service photos from appointments
             const { data: appointments } = await supabase
                 .from('appointments')
-                .select('id, date, service, checklist_state')
+                .select('id, start_time, service, checklist_state')
                 .eq('pet_id', pet.id)
-                .order('date', { ascending: false });
+                .order('start_time', { ascending: false });
 
             if (appointments) {
                 for (const apt of appointments) {
@@ -83,9 +83,9 @@ export const PetGalleryView: React.FC<PetGalleryViewProps> = ({ pet }) => {
                                                 allPhotos.push({
                                                     id: `service-${apt.id}-${i}`,
                                                     url,
-                                                    date: apt.date,
+                                                    date: apt.start_time,
                                                     type: 'service',
-                                                    caption: `${apt.service} - ${new Date(apt.date).toLocaleDateString('pt-BR')}`
+                                                    caption: `${apt.service} - ${new Date(apt.start_time).toLocaleDateString('pt-BR')}`
                                                 });
                                             });
                                         }
@@ -112,9 +112,9 @@ export const PetGalleryView: React.FC<PetGalleryViewProps> = ({ pet }) => {
                                 allPhotos.push({
                                     id: `storage-${apt.id}-${file.name}`,
                                     url: publicUrl,
-                                    date: apt.date,
+                                    date: apt.start_time,
                                     type: 'service',
-                                    caption: `${apt.service} - ${new Date(apt.date).toLocaleDateString('pt-BR')}`
+                                    caption: `${apt.service} - ${new Date(apt.start_time).toLocaleDateString('pt-BR')}`
                                 });
                             }
                         }
