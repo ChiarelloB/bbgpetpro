@@ -28,6 +28,7 @@ interface SecurityContextType {
   tenant: Tenant | null;
   tenantId: string | null;
   hasActiveSubscription: boolean;
+  isPro: boolean;
 }
 
 const SecurityContext = createContext<SecurityContextType | undefined>(undefined);
@@ -124,8 +125,14 @@ export const SecurityProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             .eq('name', subData.plan_name)
             .maybeSingle();
 
-          isPro = planData?.is_pro || false;
-          maxUsers = planData?.max_users || 1;
+          // Fallback logic if plan data is missing or incomplete
+          isPro = planData?.is_pro ||
+            subData.plan_name?.toLowerCase().includes('profissional') ||
+            subData.plan_name?.toLowerCase().includes('elite') ||
+            subData.plan_name?.toLowerCase().includes('pro') ||
+            false;
+
+          maxUsers = planData?.max_users || (isPro ? 30 : 1);
         } else {
           setHasActiveSubscription(false);
         }
@@ -162,7 +169,8 @@ export const SecurityProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     setDbPassword,
     tenant,
     tenantId,
-    hasActiveSubscription
+    hasActiveSubscription,
+    isPro: tenant?.is_pro || false
   };
 
   return (

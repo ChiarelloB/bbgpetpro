@@ -518,11 +518,10 @@ export const PetProfile: React.FC<{ onNavigate?: (screen: any) => void }> = ({ o
     const [visibleCount, setVisibleCount] = useState(20);
     const listEndRef = useRef<HTMLDivElement>(null);
     const { showNotification } = useNotification();
-    const { tenant } = useSecurity();
+    const { tenant, isPro } = useSecurity();
     const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
 
     const checkPetLimit = () => {
-        const isPro = (tenant as any)?.is_pro === true;
         if (isPro) return true;
 
         if (pets.length >= FREE_LIMIT) {

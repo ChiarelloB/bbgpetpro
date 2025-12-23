@@ -260,13 +260,12 @@ export const Clients: React.FC<ClientsProps> = ({ onNavigate }) => {
   const [visibleCount, setVisibleCount] = useState(20);
   const listEndRef = useRef<HTMLDivElement>(null);
   const { showNotification } = useNotification();
-  const { tenant } = useSecurity();
+  const { tenant, isPro } = useSecurity();
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
   const [upgradeType, setUpgradeType] = useState<'clientes' | 'pets'>('clientes');
 
   const checkLimit = (type: 'clientes' | 'pets') => {
-    // Check if the tenant is PRO (is_pro = true)
-    const isPro = (tenant as any)?.is_pro === true;
+    // Check if the tenant is PRO (isPro = true)
     if (isPro) return true;
 
     if (type === 'clientes') {

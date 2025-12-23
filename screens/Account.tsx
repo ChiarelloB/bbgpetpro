@@ -44,7 +44,11 @@ export const Account: React.FC = () => {
                 setActiveSubscription({
                     ...subData,
                     plan_name: subData.plan_name || 'Plano Personalizado',
-                    is_pro: planData?.is_pro || false
+                    is_pro: planData?.is_pro ||
+                        subData.plan_name?.toLowerCase().includes('profissional') ||
+                        subData.plan_name?.toLowerCase().includes('elite') ||
+                        subData.plan_name?.toLowerCase().includes('pro') ||
+                        false
                 });
             }
 

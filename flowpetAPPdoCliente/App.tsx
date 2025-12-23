@@ -12,6 +12,7 @@ import { LoginView } from './components/LoginView';
 import { NotificationsView } from './components/NotificationsView';
 import { ServiceTrackingView } from './components/ServiceTrackingView';
 import { SelectPetShopView } from './components/SelectPetShopView';
+import { AiChatView } from './components/AiChatView';
 import { PetProfile, Appointment } from './types';
 import { Plus, X, CalendarPlus, Dog, Loader2 } from 'lucide-react';
 
@@ -40,6 +41,7 @@ function App() {
   // App state
   const [activeTab, setActiveTab] = useState('home');
   const [showCreationMenu, setShowCreationMenu] = useState(false);
+  const [showAiChat, setShowAiChat] = useState(false);
 
   // Data State
   const [pets, setPets] = useState<PetProfile[]>([]);
@@ -590,6 +592,8 @@ function App() {
           onSelectPet={handlePetSelection}
           onAddPet={() => handleMenuSelection('pet')}
           onToggleAppointment={handleToggleAppointment}
+          onOpenAiChat={() => setShowAiChat(true)}
+          onNavigate={setActiveTab}
         />;
       case 'pets':
         return currentPet ? (
@@ -608,11 +612,23 @@ function App() {
           </div>
         );
       case 'agenda':
-        return <AgendaView appointments={appointments} />;
+        return <AgendaView
+          appointments={appointments}
+          onSelectPet={handlePetSelection}
+          onNavigate={setActiveTab}
+        />;
       case 'tracking':
         return <ServiceTrackingView clientId={clientId || undefined} petIds={pets.map(p => p.id)} />;
       case 'profile':
-        return <UserProfileView onLogout={handleLogout} currentTheme={userTheme} onThemeChange={handleUpdateTheme} />;
+        return (
+          <UserProfileView
+            onLogout={handleLogout}
+            currentTheme={userTheme}
+            onThemeChange={handleUpdateTheme}
+            onSwitchPetShop={() => setSelectedPetShop(null)}
+            onNavigate={setActiveTab}
+          />
+        );
       case 'add-pet':
         return <AddPetView onCancel={() => setActiveTab('home')} onSave={handleSavePet} onDelete={handleDeletePet} initialData={editingPet} />;
       case 'add-appointment':
@@ -735,6 +751,15 @@ function App() {
                 </button>
               </div>
             </div>
+          </div>
+        )}
+        {/* AI Chat Overlay */}
+        {showAiChat && (
+          <div className="absolute inset-0 z-[150] bg-dark-900 animate-in slide-in-from-bottom duration-500">
+            <AiChatView
+              currentPet={currentPet}
+              onClose={() => setShowAiChat(false)}
+            />
           </div>
         )}
       </div>

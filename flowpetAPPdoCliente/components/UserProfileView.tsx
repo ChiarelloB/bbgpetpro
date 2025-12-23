@@ -7,6 +7,8 @@ interface UserProfileViewProps {
   onLogout: () => void;
   currentTheme: 'dark' | 'light' | 'system';
   onThemeChange: (theme: 'dark' | 'light' | 'system') => void;
+  onSwitchPetShop: () => void;
+  onNavigate: (tab: string) => void;
 }
 
 interface ClientData {
@@ -22,7 +24,7 @@ interface PetShop {
   name: string;
 }
 
-export const UserProfileView: React.FC<UserProfileViewProps> = ({ onLogout, currentTheme, onThemeChange }) => {
+export const UserProfileView: React.FC<UserProfileViewProps> = ({ onLogout, currentTheme, onThemeChange, onSwitchPetShop, onNavigate }) => {
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
@@ -196,17 +198,26 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({ onLogout, curr
 
       {/* Stats Cards */}
       <div className="grid grid-cols-3 gap-3">
-        <div className="bg-white/5 border border-white/10 rounded-2xl p-4 text-center">
+        <div
+          className="bg-white/5 border border-white/10 rounded-2xl p-4 text-center cursor-pointer hover:bg-white/10 transition-colors"
+          onClick={() => onNavigate('pets')}
+        >
           <PawPrint size={20} className="mx-auto mb-1 text-indigo-400" />
           <p className="text-xl font-black text-white">{petsCount}</p>
           <p className="text-[10px] font-bold uppercase text-white/40">Pets</p>
         </div>
-        <div className="bg-white/5 border border-white/10 rounded-2xl p-4 text-center">
+        <div
+          className="bg-white/5 border border-white/10 rounded-2xl p-4 text-center cursor-pointer hover:bg-white/10 transition-colors"
+          onClick={() => onNavigate('agenda')}
+        >
           <Calendar size={20} className="mx-auto mb-1 text-purple-400" />
           <p className="text-xl font-black text-white">{appointmentsCount}</p>
           <p className="text-[10px] font-bold uppercase text-white/40">Agendamentos</p>
         </div>
-        <div className="bg-white/5 border border-white/10 rounded-2xl p-4 text-center">
+        <div
+          className="bg-white/5 border border-white/10 rounded-2xl p-4 text-center cursor-pointer hover:bg-white/10 transition-colors"
+          onClick={onSwitchPetShop}
+        >
           <Store size={20} className="mx-auto mb-1 text-cyan-400" />
           <p className="text-xs font-black text-white truncate">{petShop?.name?.split(' ')[0] || '-'}</p>
           <p className="text-[10px] font-bold uppercase text-white/40">Pet Shop</p>
@@ -314,7 +325,10 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({ onLogout, curr
                 </div>
               </div>
 
-              <div className="p-4 flex items-center gap-4 hover:bg-white/5 transition-colors cursor-pointer group">
+              <div
+                className="p-4 flex items-center gap-4 hover:bg-white/5 transition-colors cursor-pointer group"
+                onClick={onSwitchPetShop}
+              >
                 <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-white/80 group-hover:text-indigo-400 transition-colors">
                   <Settings size={20} />
                 </div>

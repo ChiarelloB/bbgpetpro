@@ -4,9 +4,11 @@ import { Appointment } from '../types';
 
 interface AgendaViewProps {
   appointments: Appointment[];
+  onSelectPet: (id: string) => void;
+  onNavigate: (tab: string) => void;
 }
 
-export const AgendaView: React.FC<AgendaViewProps> = ({ appointments }) => {
+export const AgendaView: React.FC<AgendaViewProps> = ({ appointments, onSelectPet, onNavigate }) => {
   console.log('--- AgendaView RENDER ---');
   console.log('Received appointments:', appointments);
   const [activeTab, setActiveTab] = useState<'upcoming' | 'history'>('upcoming');
@@ -53,7 +55,11 @@ export const AgendaView: React.FC<AgendaViewProps> = ({ appointments }) => {
 
         {filteredAppointments.length > 0 ? (
           filteredAppointments.map((apt) => (
-            <div key={apt.id} className="relative flex items-start gap-4 group animate-[slideUp_0.3s_ease-out]">
+            <div
+              key={apt.id}
+              className="relative flex items-start gap-4 group animate-[slideUp_0.3s_ease-out] cursor-pointer"
+              onClick={() => onSelectPet(apt.petId)}
+            >
 
               {/* Timeline Dot */}
               <div className={`relative z-10 w-6 h-6 rounded-full mt-1 border-4 transition-transform group-hover:scale-110 ${activeTab === 'upcoming'
@@ -89,8 +95,18 @@ export const AgendaView: React.FC<AgendaViewProps> = ({ appointments }) => {
             </div>
           ))
         ) : (
-          <div className="text-center py-10 text-white/30 italic">
-            {activeTab === 'upcoming' ? 'Nenhum agendamento futuro.' : 'Nenhum histórico encontrado.'}
+          <div className="text-center py-10 flex flex-col items-center gap-4">
+            <p className="text-white/30 italic">
+              {activeTab === 'upcoming' ? 'Nenhum agendamento futuro.' : 'Nenhum histórico encontrado.'}
+            </p>
+            {activeTab === 'upcoming' && (
+              <button
+                onClick={() => onNavigate('add-appointment')}
+                className="px-6 py-2 rounded-xl bg-indigo-600/20 text-indigo-400 font-bold text-xs uppercase tracking-widest border border-indigo-500/20 hover:bg-indigo-600 hover:text-white transition-all shadow-lg shadow-indigo-500/10"
+              >
+                Agendar Agora
+              </button>
+            )}
           </div>
         )}
 
