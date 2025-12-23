@@ -20,6 +20,19 @@ export const Users: React.FC = () => {
         setLoading(false);
     };
 
+    const handleUpdateRole = async (userId: string, newRole: string) => {
+        const { error } = await supabase
+            .from('profiles')
+            .update({ role: newRole })
+            .eq('id', userId);
+
+        if (error) {
+            alert('Erro ao atualizar cargo: ' + error.message);
+        } else {
+            fetchUsers();
+        }
+    };
+
     return (
         <div className="flex flex-col h-full animate-fade-in">
             <header className="flex justify-between items-center mb-8">
@@ -78,9 +91,32 @@ export const Users: React.FC = () => {
                                         </div>
                                     </td>
                                     <td className="px-6 py-4 text-right">
-                                        <button className="p-2 hover:bg-white/10 rounded-full text-text-muted hover:text-white transition-colors">
-                                            <span className="material-symbols-outlined">more_vert</span>
-                                        </button>
+                                        <div className="flex justify-end gap-2">
+                                            {user.email !== 'brunochiarellolaw@gmail.com' && (
+                                                user.role === 'super_admin' ? (
+                                                    <button
+                                                        onClick={() => handleUpdateRole(user.id, 'admin')}
+                                                        className="px-3 py-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-500 text-xs font-bold transition-all flex items-center gap-1"
+                                                        title="Remover acesso Super Admin"
+                                                    >
+                                                        <span className="material-symbols-outlined text-sm">person_off</span>
+                                                        Revogar
+                                                    </button>
+                                                ) : (
+                                                    <button
+                                                        onClick={() => handleUpdateRole(user.id, 'super_admin')}
+                                                        className="px-3 py-1.5 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary text-xs font-bold transition-all flex items-center gap-1"
+                                                        title="Promover a Super Admin"
+                                                    >
+                                                        <span className="material-symbols-outlined text-sm">security</span>
+                                                        Promover
+                                                    </button>
+                                                )
+                                            )}
+                                            <button className="p-2 hover:bg-white/10 rounded-full text-text-muted hover:text-white transition-colors">
+                                                <span className="material-symbols-outlined">more_vert</span>
+                                            </button>
+                                        </div>
                                     </td>
                                 </tr>
                             ))}

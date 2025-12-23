@@ -1,6 +1,16 @@
 import React, { useState, useEffect } from 'react';
 
-const Hero: React.FC = () => {
+interface HeroProps {
+  data?: {
+    title: string;
+    subtitle: string;
+    ctaText: string;
+    ctaLink: string;
+    imageUrl: string;
+  };
+}
+
+const Hero: React.FC<HeroProps> = ({ data }) => {
   const [isVideoOpen, setIsVideoOpen] = useState(false);
 
   // Close video on Escape key
@@ -11,6 +21,12 @@ const Hero: React.FC = () => {
     window.addEventListener('keydown', handleEsc);
     return () => window.removeEventListener('keydown', handleEsc);
   }, []);
+
+  const title = data?.title || 'Domine o seu Negócio Pet';
+  const subtitle = data?.subtitle || 'Gestão completa, clientes felizes e mais tempo para o que importa. A plataforma definitiva para escalar seu Pet Shop com a simplicidade que você precisa.';
+  const ctaText = data?.ctaText || 'Começar Agora Grátis';
+  const ctaLink = data?.ctaLink || '#precos';
+  const imageUrl = data?.imageUrl || 'https://images.unsplash.com/photo-1516733725897-1aa73b87c8e8?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80';
 
   return (
     <>
@@ -27,21 +43,18 @@ const Hero: React.FC = () => {
 
           {/* Headline */}
           <h1 className="text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-black tracking-tighter uppercase italic leading-[0.9] text-black dark:text-white mb-8 transition-colors duration-300">
-            Domine o seu <br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-primary-dark">
-              Negócio Pet
-            </span>
+            {title}
           </h1>
 
           {/* Subtext */}
           <p className="text-base sm:text-lg md:text-xl text-gray-500 dark:text-gray-400 font-medium max-w-2xl mx-auto mb-10 leading-relaxed transition-colors duration-300">
-            Gestão completa, clientes felizes e mais tempo para o que importa. A plataforma definitiva para escalar seu Pet Shop com a simplicidade que você precisa.
+            {subtitle}
           </p>
 
           {/* Buttons */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-20">
-            <a href="#precos" className="w-full sm:w-auto bg-primary text-white px-8 py-4 rounded-full text-base font-black uppercase tracking-wide shadow-xl shadow-primary/30 hover:bg-primary-dark transition-all transform hover:-translate-y-1">
-              Começar Agora Grátis
+            <a href={ctaLink} className="w-full sm:w-auto bg-primary text-white px-8 py-4 rounded-full text-base font-black uppercase tracking-wide shadow-xl shadow-primary/30 hover:bg-primary-dark transition-all transform hover:-translate-y-1">
+              {ctaText}
             </a>
             <button
               onClick={() => setIsVideoOpen(true)}
@@ -52,60 +65,59 @@ const Hero: React.FC = () => {
             </button>
           </div>
 
-          {/* Mock Dashboard UI */}
-          <div className="relative max-w-5xl mx-auto">
-            {/* Glow Effect behind dashboard */}
-            <div className="absolute -inset-1 bg-gradient-to-r from-primary via-purple-400 to-primary rounded-2xl blur opacity-20"></div>
+          {/* Featured Image / Mock Dashboard UI */}
+          <div className="relative max-w-5xl mx-auto mt-20 group">
+            {/* Glow Effect behind dashboard/image */}
+            <div className="absolute -inset-1 bg-gradient-to-r from-primary via-purple-400 to-primary rounded-3xl blur opacity-20 group-hover:opacity-40 transition-opacity"></div>
 
-            <div className="relative bg-white dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-2xl shadow-2xl overflow-hidden flex flex-col aspect-[16/9] md:aspect-auto md:h-[600px] transition-colors duration-300">
-              {/* Window Controls */}
-              <div className="bg-gray-50 dark:bg-black/40 border-b border-gray-100 dark:border-white/5 px-4 py-3 flex gap-2">
-                <div className="size-3 bg-red-400 rounded-full"></div>
-                <div className="size-3 bg-yellow-400 rounded-full"></div>
-                <div className="size-3 bg-green-400 rounded-full"></div>
-              </div>
-
-              {/* Dashboard Content */}
-              <div className="flex-1 bg-subtle dark:bg-black/80 p-6 flex gap-6 overflow-hidden transition-colors duration-300">
-                {/* Sidebar Mockup */}
-                <div className="hidden sm:flex w-16 md:w-64 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-white/5 flex-col p-4 gap-4 transition-colors duration-300">
-                  <div className="h-8 bg-gray-100 dark:bg-gray-700 rounded-md w-3/4 mb-4"></div>
-                  <div className="space-y-2">
-                    <div className="h-10 bg-primary/10 rounded-lg w-full"></div>
-                    <div className="h-10 bg-gray-50 dark:bg-gray-700/50 rounded-lg w-full"></div>
-                    <div className="h-10 bg-gray-50 dark:bg-gray-700/50 rounded-lg w-full"></div>
-                    <div className="h-10 bg-gray-50 dark:bg-gray-700/50 rounded-lg w-full"></div>
+            <div className="relative bg-white dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-3xl shadow-2xl overflow-hidden aspect-[16/9] md:h-[600px] transition-all duration-300">
+              {data?.imageUrl ? (
+                <div className="w-full h-full relative group">
+                  <img
+                    alt="Featured"
+                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                    src={imageUrl}
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 flex items-end p-8">
+                    <p className="text-white font-bold text-xl uppercase italic tracking-tighter">Transforme seu Pet Shop hoje</p>
                   </div>
                 </div>
-
-                {/* Main Area Mockup */}
-                <div className="flex-1 flex flex-col gap-6">
-                  {/* Stats Row */}
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                    {[
-                      { color: 'bg-primary/20', bar: 'bg-primary' },
-                      { color: 'bg-green-100 dark:bg-green-500/20', bar: 'bg-green-500' },
-                      { color: 'bg-blue-100 dark:bg-blue-500/20', bar: 'bg-blue-500' }
-                    ].map((stat, i) => (
-                      <div key={i} className={`h-24 md:h-32 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-white/5 p-4 transition-colors duration-300 ${i === 2 ? 'hidden md:block' : ''}`}>
-                        <div className={`h-6 w-6 md:h-8 md:w-8 ${stat.color} rounded-full mb-3`}></div>
-                        <div className="h-3 md:h-4 bg-gray-100 dark:bg-gray-700 w-1/2 rounded mb-2"></div>
-                        <div className="h-6 md:h-8 bg-gray-200 dark:bg-gray-600 w-3/4 rounded"></div>
-                      </div>
-                    ))}
+              ) : (
+                <div className="flex flex-col h-full">
+                  {/* Window Controls */}
+                  <div className="bg-gray-50 dark:bg-black/40 border-b border-gray-100 dark:border-white/5 px-4 py-3 flex gap-2">
+                    <div className="size-3 bg-red-400 rounded-full"></div>
+                    <div className="size-3 bg-yellow-400 rounded-full"></div>
+                    <div className="size-3 bg-green-400 rounded-full"></div>
                   </div>
-
-                  {/* Main Table/List Area */}
-                  <div className="flex-1 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-white/5 p-6 flex flex-col transition-colors duration-300">
-                    <div className="h-6 bg-gray-100 dark:bg-gray-700 w-1/4 rounded mb-6"></div>
-                    <div className="space-y-3">
-                      {[1, 2, 3, 4].map((item) => (
-                        <div key={item} className="h-10 md:h-12 bg-gray-50 dark:bg-gray-700/50 rounded-lg w-full animate-pulse" style={{ animationDelay: `${item * 100}ms` }}></div>
-                      ))}
+                  {/* Dashboard Content */}
+                  <div className="flex-1 bg-subtle dark:bg-black/80 p-6 flex gap-6 overflow-hidden transition-colors duration-300">
+                    <div className="hidden sm:flex w-64 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-white/5 flex-col p-4 gap-4 transition-colors duration-300">
+                      <div className="h-8 bg-gray-100 dark:bg-gray-700 rounded-md w-3/4 mb-4"></div>
+                      <div className="space-y-2">
+                        <div className="h-10 bg-primary/10 rounded-lg w-full"></div>
+                        <div className="h-10 bg-gray-50 dark:bg-gray-700/50 rounded-lg w-full"></div>
+                        <div className="h-10 bg-gray-50 dark:bg-gray-700/50 rounded-lg w-full"></div>
+                      </div>
+                    </div>
+                    <div className="flex-1 flex flex-col gap-6">
+                      <div className="grid grid-cols-3 gap-4">
+                        <div className="h-32 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-white/5 p-4"></div>
+                        <div className="h-32 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-white/5 p-4"></div>
+                        <div className="h-32 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-white/5 p-4"></div>
+                      </div>
+                      <div className="flex-1 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-white/5 p-6 flex flex-col">
+                        <div className="h-6 bg-gray-100 dark:bg-gray-700 w-1/4 rounded mb-6"></div>
+                        <div className="space-y-3">
+                          {[1, 2, 3].map((item) => (
+                            <div key={item} className="h-10 bg-gray-50 dark:bg-gray-700/50 rounded-lg w-full"></div>
+                          ))}
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
+              )}
             </div>
           </div>
         </div>

@@ -1,7 +1,18 @@
 import React from 'react';
 import SpotlightCard from './SpotlightCard';
 
-const features = [
+interface FeaturesProps {
+  data?: {
+    title: string;
+    items: Array<{
+      title: string;
+      description: string;
+      icon: string;
+    }>;
+  };
+}
+
+const defaultFeatures = [
   {
     icon: 'groups',
     title: 'Gestão de Clientes',
@@ -24,14 +35,20 @@ const features = [
   }
 ];
 
-const Features: React.FC = () => {
+const Features: React.FC<FeaturesProps> = ({ data }) => {
+  const title = data?.title || 'Tudo o que você precisa. Nada que atrapalhe.';
+  const items = data?.items?.map(item => ({
+    icon: item.icon,
+    title: item.title,
+    desc: item.description
+  })) || defaultFeatures;
+
   return (
     <section className="py-24 bg-white dark:bg-black relative transition-colors duration-300" id="funcionalidades">
       <div className="max-w-7xl mx-auto px-6 lg:px-8">
         <div className="mb-16 max-w-3xl">
           <h2 className="text-4xl md:text-5xl font-black uppercase italic tracking-tighter text-black dark:text-white mb-6 transition-colors duration-300">
-            Tudo o que você precisa. <br />
-            <span className="text-primary">Nada que atrapalhe.</span>
+            {title}
           </h2>
           <p className="text-gray-500 dark:text-gray-400 text-lg transition-colors duration-300">
             Ferramentas poderosas integradas em uma interface intuitiva, projetada para a velocidade do dia a dia no pet shop.
@@ -39,7 +56,7 @@ const Features: React.FC = () => {
         </div>
 
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {features.map((feature, idx) => (
+          {items.map((feature, idx) => (
             <SpotlightCard key={idx} className="group p-8">
               <div className="size-14 bg-white dark:bg-white/10 rounded-2xl flex items-center justify-center text-primary shadow-sm mb-6 group-hover:bg-primary group-hover:text-white transition-colors duration-300">
                 <span className="material-symbols-outlined text-3xl">{feature.icon}</span>

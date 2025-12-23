@@ -50,15 +50,15 @@
           },
           colors: {
             primary: {
-              DEFAULT: '#7c3aed', // Vivid Purple
-              dark: '#6d28d9',
-              light: '#8b5cf6',
+              DEFAULT: 'var(--primary, #6366f1)',
+              dark: 'var(--primary-dark, #4f46e5)',
+              light: 'var(--primary-light, #818cf8)',
             },
             dark: '#111111',
             subtle: '#f8f7fa',
           },
           backgroundImage: {
-            'hero-pattern': 'radial-gradient(#7c3aed 1px, transparent 1px)',
+            'hero-pattern': 'radial-gradient(var(--primary, #6366f1) 1px, transparent 1px)',
           },
           backgroundSize: {
             'hero-pattern': '24px 24px',

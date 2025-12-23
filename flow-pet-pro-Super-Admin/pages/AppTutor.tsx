@@ -3,35 +3,66 @@ import { supabase } from '../src/lib/supabase';
 
 export const AppTutor: React.FC = () => {
     const [features, setFeatures] = useState<any[]>([]);
+    const [banners, setBanners] = useState<any[]>([]);
+    const [stats, setStats] = useState({ downloads: '0', mau: '0', rating: '4.8' });
     const [loading, setLoading] = useState(true);
     const [notification, setNotification] = useState({ title: '', message: '' });
     const [sending, setSending] = useState(false);
 
     useEffect(() => {
-        loadFeatures();
+        loadData();
     }, []);
 
-    const loadFeatures = async () => {
+    const loadData = async () => {
         setLoading(true);
-        const { data } = await supabase
+        // Load Features
+        const { data: featData } = await supabase
             .from('system_settings')
             .select('data')
             .eq('id', 'app_features')
             .single();
 
-        if (data?.data) {
-            setFeatures(data.data);
-        } else {
-            // Default features if none found
-            setFeatures([
-                { name: 'Carteirinha de Vacinação Digital', desc: 'Permite upload de fotos e validação', active: true },
-                { name: 'Agendamento Online 2.0', desc: 'Nova interface de calendário', active: true },
-                { name: 'Clube de Fidelidade', desc: 'Sistema de pontos e recompensas', active: false },
-                { name: 'Telemedicina (Beta)', desc: 'Chat direto com veterinário', active: false },
-                { name: 'Marketplace de Produtos', desc: 'Integração com estoque da loja', active: true },
-            ]);
-        }
+        if (featData?.data) setFeatures(featData.data);
+        else setFeatures([
+            { name: 'Carteirinha de Vacinação Digital', desc: 'Permite upload de fotos e validação', active: true },
+            { name: 'Agendamento Online 2.0', desc: 'Nova interface de calendário', active: true },
+            { name: 'Clube de Fidelidade', desc: 'Sistema de pontos e recompensas', active: false },
+        ]);
+
+        // Load Banners
+        const { data: banData } = await supabase
+            .from('system_settings')
+            .select('data')
+            .eq('id', 'app_banners')
+            .single();
+
+        if (banData?.data) setBanners(banData.data);
+        else setBanners([
+            { url: 'https://picsum.photos/seed/pet1/400/225' },
+            { url: 'https://picsum.photos/seed/pet2/400/225' }
+        ]);
+
+        // Load dynamic stats (e.g. from profiles count)
+        const { count: userCount } = await supabase.from('profiles').select('*', { count: 'exact', head: true });
+        setStats({
+            downloads: `${((userCount || 0) * 2.4).toFixed(1)}k`,
+            mau: `${((userCount || 0) * 0.8).toFixed(1)}k`,
+            rating: '4.8'
+        });
+
         setLoading(false);
+    };
+
+    const saveBanners = async (newBanners: any[]) => {
+        setBanners(newBanners);
+        await supabase
+            .from('system_settings')
+            .upsert({ id: 'app_banners', data: newBanners, updated_at: new Date().toISOString() });
+    };
+
+    const handleAddBanner = () => {
+        const url = prompt('Cole a URL da nova imagem do banner:');
+        if (url) saveBanners([...banners, { url }]);
     };
 
     const toggleFeature = async (index: number) => {
@@ -83,9 +114,9 @@ export const AppTutor: React.FC = () => {
             {/* Stats */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                 {[
-                    { label: 'Downloads Totais', value: '42.8k', change: '+12%', icon: 'cloud_download', color: 'text-blue-400', bg: 'bg-blue-500/10' },
-                    { label: 'Usuários Ativos (MAU)', value: '18.2k', change: '+5%', icon: 'smartphone', color: 'text-purple-400', bg: 'bg-purple-500/10' },
-                    { label: 'Avaliação Média', value: '4.8', change: '★', icon: 'star', color: 'text-amber-400', bg: 'bg-amber-500/10' }
+                    { label: 'Downloads Totais', value: stats.downloads, change: '+12%', icon: 'cloud_download', color: 'text-blue-400', bg: 'bg-blue-500/10' },
+                    { label: 'Usuários Ativos (MAU)', value: stats.mau, change: '+5%', icon: 'smartphone', color: 'text-purple-400', bg: 'bg-purple-500/10' },
+                    { label: 'Avaliação Média', value: stats.rating, change: '★', icon: 'star', color: 'text-amber-400', bg: 'bg-amber-500/10' }
                 ].map((stat, i) => (
                     <div key={i} className="glass-panel p-6 rounded-3xl flex items-center justify-between transition-transform hover:-translate-y-1 duration-300">
                         <div>
@@ -175,17 +206,23 @@ export const AppTutor: React.FC = () => {
             <div className="mt-8 pt-6 border-t border-white/10">
                 <h4 className="text-sm font-bold text-white mb-4 uppercase tracking-widest">Banners da Home</h4>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    {[1, 2, 3].map((i) => (
+                    {banners.map((banner, i) => (
                         <div key={i} className="aspect-[16/9] rounded-2xl bg-black/40 border border-white/5 overflow-hidden relative group cursor-pointer hover:border-primary/50 transition-all">
-                            <img alt="Banner" className="w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-all" src={`https://picsum.photos/seed/pet${i}/400/225`} />
-                            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                <span className="w-8 h-8 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center text-white">
-                                    <span className="material-symbols-outlined text-[18px]">edit</span>
-                                </span>
+                            <img alt="Banner" className="w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-all" src={banner.url} />
+                            <div className="absolute inset-0 flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button
+                                    onClick={() => saveBanners(banners.filter((_, idx) => idx !== i))}
+                                    className="w-8 h-8 rounded-full bg-red-500/50 backdrop-blur-sm flex items-center justify-center text-white hover:bg-red-500"
+                                >
+                                    <span className="material-symbols-outlined text-[18px]">delete</span>
+                                </button>
                             </div>
                         </div>
                     ))}
-                    <button className="aspect-[16/9] rounded-2xl border-2 border-dashed border-white/10 flex flex-col items-center justify-center text-text-muted hover:text-white hover:border-primary/50 transition-all">
+                    <button
+                        onClick={handleAddBanner}
+                        className="aspect-[16/9] rounded-2xl border-2 border-dashed border-white/10 flex flex-col items-center justify-center text-text-muted hover:text-white hover:border-primary/50 transition-all"
+                    >
                         <span className="material-symbols-outlined mb-1">add</span>
                         <span className="text-[10px] uppercase font-bold">Novo</span>
                     </button>

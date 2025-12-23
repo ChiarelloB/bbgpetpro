@@ -32,13 +32,18 @@ import AdminPanel from './components/AdminPanel';
 import Success from './components/Success';
 import InteractiveCursor from './components/InteractiveCursor';
 import { UserProfile } from './components/UserProfile';
+import { supabase } from './lib/supabase';
 
 const App: React.FC = () => {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [isAdminOpen, setIsAdminOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [lpConfig, setLpConfig] = useState<any>(null);
+  const [isConfigLoading, setIsConfigLoading] = useState(true);
 
   useEffect(() => {
+    fetchLPConfig();
+
     // Check local storage or system preference
     const savedTheme = localStorage.getItem('theme');
     const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -51,6 +56,46 @@ const App: React.FC = () => {
       document.documentElement.classList.remove('dark');
     }
   }, []);
+
+  const fetchLPConfig = async () => {
+    setIsConfigLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('system_settings')
+        .select('data')
+        .eq('id', 'landing_page')
+        .single();
+
+      if (data?.data) {
+        setLpConfig(data.data);
+
+        // Apply primary color globally via CSS variables
+        if (data.data.style?.primaryColor) {
+          const color = data.data.style.primaryColor;
+          document.documentElement.style.setProperty('--primary', color);
+          document.documentElement.style.setProperty('--primary-dark', color); // Fallback to same color
+          document.documentElement.style.setProperty('--primary-light', color); // Fallback to same color
+        }
+
+        // Handle Dark Mode priority if set in config
+        if (data.data.style?.darkMode !== undefined) {
+          const shouldBeDark = data.data.style.darkMode;
+          setIsDarkMode(shouldBeDark);
+          if (shouldBeDark) {
+            document.documentElement.classList.add('dark');
+            localStorage.setItem('theme', 'dark');
+          } else {
+            document.documentElement.classList.remove('dark');
+            localStorage.setItem('theme', 'light');
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Error fetching LP config:', err);
+    } finally {
+      setIsConfigLoading(false);
+    }
+  };
 
   const toggleDarkMode = () => {
     const newMode = !isDarkMode;
@@ -73,6 +118,14 @@ const App: React.FC = () => {
     );
   }
 
+  if (isConfigLoading) {
+    return (
+      <div className="min-h-screen bg-white dark:bg-black flex items-center justify-center">
+        <div className="size-12 border-4 border-primary/30 border-t-primary rounded-full animate-spin"></div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-white dark:bg-black transition-colors duration-300">
       <InteractiveCursor />
@@ -84,10 +137,10 @@ const App: React.FC = () => {
       />
       {isProfileOpen && <UserProfile onClose={() => setIsProfileOpen(false)} />}
       <main>
-        <Hero />
+        <Hero data={lpConfig?.hero} />
         <Press />
         <Stats />
-        <Features />
+        <Features data={lpConfig?.benefits} />
         <ScreenGallery />
         <Integrations />
         <Workflow />
@@ -102,11 +155,11 @@ const App: React.FC = () => {
         <Pricing />
         <Courses />
         <Roadmap />
-        <Testimonials />
+        <Testimonials data={lpConfig?.testimonials} />
         <BlogPreview />
         <LeadGen />
         <FAQ />
-        <CTA />
+        <CTA data={lpConfig?.ctaFooter} />
       </main>
       <Footer />
       <CookieBanner />

@@ -3,10 +3,13 @@ import { supabase } from '../src/lib/supabase';
 
 export const Plans: React.FC = () => {
   const [plans, setPlans] = useState<any[]>([]);
+  const [subscriptions, setSubscriptions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingSubs, setLoadingSubs] = useState(true);
 
   useEffect(() => {
     fetchPlans();
+    fetchSubscriptions();
   }, []);
 
   const fetchPlans = async () => {
@@ -22,7 +25,23 @@ export const Plans: React.FC = () => {
     setLoading(false);
   };
 
+  const fetchSubscriptions = async () => {
+    setLoadingSubs(true);
+    const { data } = await supabase
+      .from('subscriptions')
+      .select(`
+        *,
+        tenants (name),
+        subscription_plans (name)
+      `)
+      .order('created_at', { ascending: false });
+
+    if (data) setSubscriptions(data);
+    setLoadingSubs(false);
+  };
+
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingPlan, setEditingPlan] = useState<any>(null);
   const [newPlan, setNewPlan] = useState({ name: '', price: '', frequency: 'monthly', description: '' });
 
   const handleCreate = async (e: React.FormEvent) => {
@@ -39,9 +58,33 @@ export const Plans: React.FC = () => {
     if (!error) {
       setIsModalOpen(false);
       setNewPlan({ name: '', price: '', frequency: 'monthly', description: '' });
+      setEditingPlan(null);
       fetchPlans();
     } else {
       alert('Erro ao criar plano: ' + error.message);
+    }
+  };
+
+  const handleUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingPlan || !editingPlan.name || !editingPlan.price) return;
+
+    const { error } = await supabase
+      .from('subscription_plans')
+      .update({
+        name: editingPlan.name,
+        price: parseFloat(editingPlan.price),
+        frequency: editingPlan.frequency,
+        description: editingPlan.description
+      })
+      .eq('id', editingPlan.id);
+
+    if (!error) {
+      setIsModalOpen(false);
+      setEditingPlan(null);
+      fetchPlans();
+    } else {
+      alert('Erro ao atualizar plano: ' + error.message);
     }
   };
 
@@ -66,15 +109,18 @@ export const Plans: React.FC = () => {
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
           <div className="glass-panel w-full max-w-md p-8 rounded-4xl border border-white/10 animate-zoom-in">
-            <h3 className="text-xl font-bold text-white mb-6">Novo Plano</h3>
-            <form onSubmit={handleCreate} className="space-y-4">
+            <h3 className="text-xl font-bold text-white mb-6">{editingPlan ? 'Editar Plano' : 'Novo Plano'}</h3>
+            <form onSubmit={editingPlan ? handleUpdate : handleCreate} className="space-y-4">
               <div>
                 <label className="block text-xs font-bold text-text-muted uppercase mb-2 ml-1">Nome do Plano</label>
                 <input
                   className="w-full bg-black/40 border border-white/10 rounded-2xl px-4 py-3 text-sm text-white focus:ring-primary outline-none"
                   placeholder="Ex: Flow Starter"
-                  value={newPlan.name}
-                  onChange={(e) => setNewPlan({ ...newPlan, name: e.target.value })}
+                  value={editingPlan ? editingPlan.name : newPlan.name}
+                  onChange={(e) => {
+                    if (editingPlan) setEditingPlan({ ...editingPlan, name: e.target.value });
+                    else setNewPlan({ ...newPlan, name: e.target.value });
+                  }}
                   required
                 />
               </div>
@@ -84,8 +130,11 @@ export const Plans: React.FC = () => {
                   className="w-full bg-black/40 border border-white/10 rounded-2xl px-4 py-3 text-sm text-white focus:ring-primary outline-none resize-none"
                   placeholder="Descrição breve dos recursos..."
                   rows={2}
-                  value={newPlan.description}
-                  onChange={(e) => setNewPlan({ ...newPlan, description: e.target.value })}
+                  value={editingPlan ? editingPlan.description : newPlan.description}
+                  onChange={(e) => {
+                    if (editingPlan) setEditingPlan({ ...editingPlan, description: e.target.value });
+                    else setNewPlan({ ...newPlan, description: e.target.value });
+                  }}
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -96,8 +145,11 @@ export const Plans: React.FC = () => {
                     step="0.01"
                     className="w-full bg-black/40 border border-white/10 rounded-2xl px-4 py-3 text-sm text-white focus:ring-primary outline-none"
                     placeholder="0.00"
-                    value={newPlan.price}
-                    onChange={(e) => setNewPlan({ ...newPlan, price: e.target.value })}
+                    value={editingPlan ? editingPlan.price : newPlan.price}
+                    onChange={(e) => {
+                      if (editingPlan) setEditingPlan({ ...editingPlan, price: e.target.value });
+                      else setNewPlan({ ...newPlan, price: e.target.value });
+                    }}
                     required
                   />
                 </div>
@@ -105,8 +157,11 @@ export const Plans: React.FC = () => {
                   <label className="block text-xs font-bold text-text-muted uppercase mb-2 ml-1">Frequência</label>
                   <select
                     className="w-full bg-black/40 border border-white/10 rounded-2xl px-4 py-3 text-sm text-white focus:ring-primary outline-none appearance-none"
-                    value={newPlan.frequency}
-                    onChange={(e) => setNewPlan({ ...newPlan, frequency: e.target.value })}
+                    value={editingPlan ? editingPlan.frequency : newPlan.frequency}
+                    onChange={(e) => {
+                      if (editingPlan) setEditingPlan({ ...editingPlan, frequency: e.target.value });
+                      else setNewPlan({ ...newPlan, frequency: e.target.value });
+                    }}
                   >
                     <option className="bg-surface-dark" value="monthly">Mensal</option>
                     <option className="bg-surface-dark" value="yearly">Anual</option>
@@ -116,7 +171,10 @@ export const Plans: React.FC = () => {
               <div className="flex gap-3 pt-4">
                 <button
                   type="button"
-                  onClick={() => setIsModalOpen(false)}
+                  onClick={() => {
+                    setIsModalOpen(false);
+                    setEditingPlan(null);
+                  }}
                   className="flex-1 py-3 rounded-2xl border border-white/10 text-text-muted hover:text-white hover:bg-white/5 font-bold transition-all"
                 >
                   Cancelar
@@ -125,7 +183,7 @@ export const Plans: React.FC = () => {
                   type="submit"
                   className="flex-1 py-3 rounded-2xl bg-primary hover:bg-primary-hover text-white font-bold shadow-lg shadow-primary/20 transition-all"
                 >
-                  Criar Plano
+                  {editingPlan ? 'Atualizar Plano' : 'Criar Plano'}
                 </button>
               </div>
             </form>
@@ -195,7 +253,15 @@ export const Plans: React.FC = () => {
               </ul>
 
               <div className="grid grid-cols-2 gap-3 mt-auto">
-                <button className="py-2.5 rounded-xl border border-white/10 hover:bg-white/5 text-xs font-bold uppercase tracking-wider text-text-muted hover:text-white transition-colors">Editar</button>
+                <button
+                  onClick={() => {
+                    setEditingPlan(plan);
+                    setIsModalOpen(true);
+                  }}
+                  className="py-2.5 rounded-xl border border-white/10 hover:bg-white/5 text-xs font-bold uppercase tracking-wider text-text-muted hover:text-white transition-colors"
+                >
+                  Editar
+                </button>
                 <button
                   onClick={() => handleDelete(plan.id)}
                   className="py-2.5 rounded-xl border border-white/10 hover:bg-white/5 text-xs font-bold uppercase tracking-wider text-text-muted hover:text-rose-400 transition-colors"
@@ -249,22 +315,38 @@ export const Plans: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="text-sm divide-y divide-white/5">
-                <tr className="group hover:bg-white/[0.02] transition-colors">
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-orange-500/20 flex items-center justify-center text-orange-500 font-bold border border-orange-500/30">PT</div>
-                      <div>
-                        <p className="font-semibold text-white">Pet Top Services</p>
-                        <p className="text-xs text-text-muted">CNPJ: 12.345.678/0001-90</p>
+                {loadingSubs ? (
+                  <tr><td colSpan={6} className="px-6 py-10 text-center text-text-muted uppercase text-xs font-bold">Carregando assinaturas...</td></tr>
+                ) : subscriptions.length === 0 ? (
+                  <tr><td colSpan={6} className="px-6 py-10 text-center text-text-muted uppercase text-xs font-bold">Nenhuma assinatura encontrada.</td></tr>
+                ) : subscriptions.map((sub) => (
+                  <tr key={sub.id} className="group hover:bg-white/[0.02] transition-colors">
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center text-primary font-bold border border-primary/30">
+                          {sub.tenants?.name.substring(0, 2).toUpperCase()}
+                        </div>
+                        <div>
+                          <p className="font-semibold text-white">{sub.tenants?.name}</p>
+                          <p className="text-xs text-text-muted">ID: {sub.id.substring(0, 8)}</p>
+                        </div>
                       </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4"><span className="font-medium text-white">Flow Professional</span></td>
-                  <td className="px-6 py-4"><span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"><span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> Ativo</span></td>
-                  <td className="px-6 py-4 text-text-muted font-mono">349,00</td>
-                  <td className="px-6 py-4 text-text-muted">15 Set 2024</td>
-                  <td className="px-6 py-4 text-right"><button className="w-8 h-8 rounded-full hover:bg-white/10 flex items-center justify-center text-text-muted hover:text-white transition-colors"><span className="material-symbols-outlined text-[20px]">more_vert</span></button></td>
-                </tr>
+                    </td>
+                    <td className="px-6 py-4"><span className="font-medium text-white">{sub.subscription_plans?.name}</span></td>
+                    <td className="px-6 py-4">
+                      <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${sub.status === 'active' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-red-500/10 text-red-400 border border-red-500/20'}`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${sub.status === 'active' ? 'bg-emerald-400' : 'bg-red-400'}`}></span> {sub.status.toUpperCase()}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-text-muted font-mono">{sub.price_at_start?.toLocaleString() || '---'}</td>
+                    <td className="px-6 py-4 text-text-muted">{sub.next_billing ? new Date(sub.next_billing).toLocaleDateString() : '---'}</td>
+                    <td className="px-6 py-4 text-right">
+                      <button className="w-8 h-8 rounded-full hover:bg-white/10 flex items-center justify-center text-text-muted hover:text-white transition-colors">
+                        <span className="material-symbols-outlined text-[20px]">more_vert</span>
+                      </button>
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
