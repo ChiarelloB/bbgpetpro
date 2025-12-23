@@ -3,7 +3,9 @@ import { useNotification } from '../NotificationContext';
 import { getGeminiModel } from '../src/lib/gemini';
 import { useResources } from '../ResourceContext';
 import { supabase } from '../src/lib/supabase';
-import { useTheme } from '../ThemeContext'; // Ensure this exists or access theme from context
+import { useTheme } from '../ThemeContext';
+import { DOG_BREEDS, CAT_BREEDS } from '../constants';
+
 
 // --- Interfaces ---
 interface Pet {
@@ -170,10 +172,35 @@ const EditPetModal: React.FC<{ isOpen: boolean; onClose: () => void; onSave: (p:
                         <div className="space-y-6 animate-in fade-in slide-in-from-right-4">
                             <div className="grid grid-cols-2 gap-6">
                                 <div><label className="block text-[10px] font-black uppercase text-slate-400 tracking-widest mb-2">Nome do Pet</label><input type="text" required value={formData.name || ''} onChange={e => setFormData({ ...formData, name: e.target.value })} className="w-full rounded-2xl border-slate-200 dark:border-gray-700 bg-white dark:bg-[#1a1a1a] dark:text-white text-sm px-5 py-4 font-bold focus:ring-2 focus:ring-primary outline-none" /></div>
-                                <div><label className="block text-[10px] font-black uppercase text-slate-400 tracking-widest mb-2">Espécie</label><select value={formData.species || 'Cachorro'} onChange={e => setFormData({ ...formData, species: e.target.value })} className="w-full rounded-2xl border-slate-200 dark:border-gray-700 bg-white dark:bg-[#1a1a1a] dark:text-white text-sm px-5 py-4 font-bold focus:ring-2 focus:ring-primary outline-none"><option value="Cachorro">🐕 Cachorro</option><option value="Gato">🐈 Gato</option><option value="Outro">🐾 Outro</option></select></div>
+                                <div><label className="block text-[10px] font-black uppercase text-slate-400 tracking-widest mb-2">Espécie</label><select value={formData.species || 'Cachorro'} onChange={e => setFormData({ ...formData, species: e.target.value, breed: '' })} className="w-full rounded-2xl border-slate-200 dark:border-gray-700 bg-white dark:bg-[#1a1a1a] dark:text-white text-sm px-5 py-4 font-bold focus:ring-2 focus:ring-primary outline-none"><option value="Cachorro">🐕 Cachorro</option><option value="Gato">🐈 Gato</option><option value="Outro">🐾 Outro</option></select></div>
+
                             </div>
                             <div className="grid grid-cols-3 gap-6">
-                                <div><label className="block text-[10px] font-black uppercase text-slate-400 tracking-widest mb-2">Raça</label><input type="text" required value={formData.breed || ''} onChange={e => setFormData({ ...formData, breed: e.target.value })} className="w-full rounded-2xl border-slate-200 dark:border-gray-700 bg-white dark:bg-[#1a1a1a] dark:text-white text-sm px-5 py-4 font-bold focus:ring-2 focus:ring-primary outline-none" /></div>
+                                <div>
+                                    <label className="block text-[10px] font-black uppercase text-slate-400 tracking-widest mb-2">Raça</label>
+                                    {formData.species === 'Outro' ? (
+                                        <input
+                                            type="text"
+                                            required
+                                            value={formData.breed || ''}
+                                            onChange={e => setFormData({ ...formData, breed: e.target.value })}
+                                            className="w-full rounded-2xl border-slate-200 dark:border-gray-700 bg-white dark:bg-[#1a1a1a] dark:text-white text-sm px-5 py-4 font-bold focus:ring-2 focus:ring-primary outline-none"
+                                            placeholder="Digite a raça/espécie..."
+                                        />
+                                    ) : (
+                                        <select
+                                            required
+                                            value={formData.breed || ''}
+                                            onChange={e => setFormData({ ...formData, breed: e.target.value })}
+                                            className="w-full rounded-2xl border-slate-200 dark:border-gray-700 bg-white dark:bg-[#1a1a1a] dark:text-white text-sm px-5 py-4 font-bold focus:ring-2 focus:ring-primary outline-none"
+                                        >
+                                            <option value="">Selecione...</option>
+                                            {(formData.species === 'Gato' ? CAT_BREEDS : DOG_BREEDS).map(breed => (
+                                                <option key={breed} value={breed}>{breed}</option>
+                                            ))}
+                                        </select>
+                                    )}
+                                </div>
                                 <div><label className="block text-[10px] font-black uppercase text-slate-400 tracking-widest mb-2">Gênero</label><select value={formData.gender || 'M'} onChange={e => setFormData({ ...formData, gender: e.target.value })} className="w-full rounded-2xl border-slate-200 dark:border-gray-700 bg-white dark:bg-[#1a1a1a] dark:text-white text-sm px-5 py-4 font-bold focus:ring-2 focus:ring-primary outline-none"><option value="M">♂ Macho</option><option value="F">♀ Fêmea</option></select></div>
                                 <div><label className="block text-[10px] font-black uppercase text-slate-400 tracking-widest mb-2">Data de Nascimento</label><input type="date" value={formData.birthDate || ''} onChange={e => setFormData({ ...formData, birthDate: e.target.value })} className="w-full rounded-2xl border-slate-200 dark:border-gray-700 bg-white dark:bg-[#1a1a1a] dark:text-white text-sm px-5 py-4 font-bold focus:ring-2 focus:ring-primary outline-none" /></div>
                             </div>
@@ -227,6 +254,7 @@ const AddPetModal: React.FC<{ isOpen: boolean; onClose: () => void; onSave: (p: 
         notes: '',
         img: `https://placedog.net/150/150?id=${Math.floor(Math.random() * 1000)}`
     });
+
     const [clients, setClients] = useState<any[]>([]);
     const { calculateSize } = useResources();
 
@@ -274,6 +302,7 @@ const AddPetModal: React.FC<{ isOpen: boolean; onClose: () => void; onSave: (p: 
         }]).select();
 
 
+
         if (!error && data) {
             onSave(data[0]);
             onClose();
@@ -300,6 +329,23 @@ const AddPetModal: React.FC<{ isOpen: boolean; onClose: () => void; onSave: (p: 
                     </div>
 
                     <div>
+                        <label className="block text-[10px] font-black uppercase text-slate-400 tracking-widest mb-2">Espécie</label>
+                        <div className="flex bg-slate-100 dark:bg-white/5 p-1 rounded-xl">
+                            {['Cachorro', 'Gato', 'Outro'].map(type => (
+                                <button
+                                    key={type}
+                                    type="button"
+                                    onClick={() => setFormData({ ...formData, species: type, breed: '', img: type === 'Gato' ? `https://placekitten.com/150/150?image=${Math.floor(Math.random() * 1000)}` : `https://placedog.net/150/150?id=${Math.floor(Math.random() * 1000)}` })}
+                                    className={`flex-1 py-2 rounded-lg text-xs font-black uppercase transition-all ${formData.species === type ? 'bg-white dark:bg-[#252525] text-primary shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                                >
+                                    {type}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div>
+
                         <label className="block text-[10px] font-black uppercase text-slate-400 tracking-widest mb-2">Tutor</label>
                         <select required value={formData.clientId} onChange={e => setFormData({ ...formData, clientId: e.target.value })} className="w-full rounded-xl border-slate-200 dark:border-gray-700 bg-white dark:bg-[#252525] dark:text-white text-sm px-4 py-3 font-bold focus:ring-1 focus:ring-primary outline-none">
                             <option value="">Selecione um tutor...</option>
@@ -313,8 +359,31 @@ const AddPetModal: React.FC<{ isOpen: boolean; onClose: () => void; onSave: (p: 
                         </div>
                         <div>
                             <label className="block text-[10px] font-black uppercase text-slate-400 tracking-widest mb-2">Raça</label>
-                            <input type="text" required value={formData.breed} onChange={e => setFormData({ ...formData, breed: e.target.value })} className="w-full rounded-xl border-slate-200 dark:border-gray-700 bg-white dark:bg-[#252525] dark:text-white text-sm px-4 py-3 font-bold focus:ring-1 focus:ring-primary outline-none" />
+                            {formData.species === 'Outro' ? (
+                                <input
+                                    type="text"
+                                    required
+                                    value={formData.breed}
+                                    onChange={e => setFormData({ ...formData, breed: e.target.value })}
+                                    className="w-full rounded-xl border-slate-200 dark:border-gray-700 bg-white dark:bg-[#252525] dark:text-white text-sm px-4 py-3 font-bold focus:ring-1 focus:ring-primary outline-none"
+                                    placeholder="Digite a raça..."
+                                />
+                            ) : (
+                                <select
+                                    required
+                                    value={formData.breed}
+                                    onChange={e => setFormData({ ...formData, breed: e.target.value })}
+                                    className="w-full rounded-xl border-slate-200 dark:border-gray-700 bg-white dark:bg-[#252525] dark:text-white text-sm px-4 py-3 font-bold focus:ring-1 focus:ring-primary outline-none"
+                                >
+                                    <option value="">Selecione...</option>
+                                    {(formData.species === 'Gato' ? CAT_BREEDS : DOG_BREEDS).map(breed => (
+                                        <option key={breed} value={breed}>{breed}</option>
+                                    ))}
+                                </select>
+                            )}
+
                         </div>
+
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                         <div>
