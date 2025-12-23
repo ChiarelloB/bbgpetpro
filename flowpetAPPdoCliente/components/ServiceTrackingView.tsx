@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase';
 import {
     Clock, CheckCircle2, Loader2, Dog, Scissors, Droplets,
     Sparkles, Truck, Bell, RefreshCw, ChevronRight, Play,
-    Timer, MapPin
+    Timer, MapPin, X, Info, Camera, ClipboardCheck
 } from 'lucide-react';
 
 interface ServiceExecution {
@@ -17,7 +17,9 @@ interface ServiceExecution {
     totalSteps: number;
     startedAt?: string;
     estimatedEndTime?: string;
-    checkinData?: any;
+    checkinTime?: string;
+    checkoutTime?: string;
+    rawChecklist?: string[];
 }
 
 interface ServiceTrackingViewProps {
@@ -74,7 +76,13 @@ export const ServiceTrackingView: React.FC<ServiceTrackingViewProps> = ({ client
                 totalSteps: 4,
                 startedAt: apt.execution_started_at,
                 estimatedEndTime: apt.start_time,
-                checkinData: apt.checklist_state,
+                checkinTime: apt.checklist_state?.find((s: string) => s.startsWith('CHECKIN:'))
+                    ? JSON.parse(apt.checklist_state.find((s: string) => s.startsWith('CHECKIN:')).replace('CHECKIN:', '')).timestamp
+                    : null,
+                checkoutTime: apt.checklist_state?.find((s: string) => s.startsWith('CHECKOUT:'))
+                    ? JSON.parse(apt.checklist_state.find((s: string) => s.startsWith('CHECKOUT:')).replace('CHECKOUT:', '')).timestamp
+                    : null,
+                rawChecklist: apt.checklist_state || [],
             }));
             setExecutions(mapped);
         } else if (error) {
@@ -178,6 +186,8 @@ export const ServiceTrackingView: React.FC<ServiceTrackingViewProps> = ({ client
     const activeExecutions = executions.filter(e => e.status !== 'finished');
     const recentFinished = executions.filter(e => e.status === 'finished').slice(0, 2);
 
+    const [selectedExecution, setSelectedExecution] = useState<ServiceExecution | null>(null);
+
     if (loading) {
         return (
             <div className="flex flex-col items-center justify-center py-20 animate-pulse">
@@ -189,6 +199,12 @@ export const ServiceTrackingView: React.FC<ServiceTrackingViewProps> = ({ client
 
     return (
         <div className="animate-[fadeIn_0.5s_ease-out]">
+            {selectedExecution && (
+                <ServiceDetailsModal
+                    execution={selectedExecution}
+                    onClose={() => setSelectedExecution(null)}
+                />
+            )}
             {/* Header */}
             <div className="flex items-center justify-between mb-6">
                 <div>
@@ -212,7 +228,8 @@ export const ServiceTrackingView: React.FC<ServiceTrackingViewProps> = ({ client
                     {activeExecutions.map((exec) => (
                         <div
                             key={exec.id}
-                            className="bg-gradient-to-br from-white/5 to-white/[0.02] border border-white/10 rounded-3xl p-5 backdrop-blur-md"
+                            onClick={() => setSelectedExecution(exec)}
+                            className="bg-gradient-to-br from-white/5 to-white/[0.02] border border-white/10 rounded-3xl p-5 backdrop-blur-md cursor-pointer hover:bg-white/[0.08] transition-all active:scale-[0.98]"
                         >
                             {/* Pet Info Row */}
                             <div className="flex items-center gap-4 mb-4">
@@ -293,6 +310,21 @@ export const ServiceTrackingView: React.FC<ServiceTrackingViewProps> = ({ client
                                     </div>
                                 )}
 
+                                {exec.checkinTime && (
+                                    <div className="flex flex-col items-center gap-1">
+                                        <div className="flex items-center gap-1 text-emerald-400">
+                                            <MapPin size={12} />
+                                            <span className="text-[10px] font-bold">Entrada: {new Date(exec.checkinTime).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>
+                                        </div>
+                                        {exec.checkoutTime && (
+                                            <div className="flex items-center gap-1 text-purple-400">
+                                                <CheckCircle2 size={12} />
+                                                <span className="text-[10px] font-bold">Pronto: {new Date(exec.checkoutTime).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
                                 {exec.status === 'in-progress' && exec.startedAt && (
                                     <div className="flex items-center gap-1 text-blue-400">
                                         <Timer size={14} />
@@ -330,7 +362,8 @@ export const ServiceTrackingView: React.FC<ServiceTrackingViewProps> = ({ client
                         {recentFinished.map((exec) => (
                             <div
                                 key={exec.id}
-                                className="flex items-center gap-3 p-3 bg-white/5 rounded-2xl border border-white/5"
+                                onClick={() => setSelectedExecution(exec)}
+                                className="flex items-center gap-3 p-3 bg-white/5 rounded-2xl border border-white/5 cursor-pointer hover:bg-white/10 transition-all"
                             >
                                 {exec.petImage ? (
                                     <img src={exec.petImage} alt="" className="w-10 h-10 rounded-full object-cover opacity-60" />
@@ -361,6 +394,206 @@ export const ServiceTrackingView: React.FC<ServiceTrackingViewProps> = ({ client
                         </p>
                     </div>
                 </div>
+            </div>
+        </div>
+    );
+};
+
+const ServiceDetailsModal: React.FC<{
+    execution: ServiceExecution;
+    onClose: () => void;
+}> = ({ execution, onClose }) => {
+    const checkinRaw = execution.rawChecklist?.find(i => i.startsWith('CHECKIN:'));
+    const checkinData = checkinRaw ? JSON.parse(checkinRaw.replace('CHECKIN:', '')) : null;
+
+    const checkoutRaw = execution.rawChecklist?.find(i => i.startsWith('CHECKOUT:'));
+    const checkoutData = checkoutRaw ? JSON.parse(checkoutRaw.replace('CHECKOUT:', '')) : null;
+
+    return (
+        <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center animate-in fade-in duration-300">
+            <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={onClose} />
+            <div className="relative w-full max-w-lg bg-[#1a1a1a] rounded-t-[2.5rem] sm:rounded-[2.5rem] p-6 border-t sm:border border-white/10 max-h-[90vh] overflow-y-auto animate-in slide-in-from-bottom duration-500">
+                {/* Handle for mobile */}
+                <div className="w-12 h-1.5 bg-white/10 rounded-full mx-auto mb-6 sm:hidden" />
+
+                <div className="flex items-center justify-between mb-8">
+                    <div className="flex items-center gap-4">
+                        {execution.petImage ? (
+                            <img src={execution.petImage} alt="" className="w-16 h-16 rounded-2xl object-cover border-2 border-indigo-500/50" />
+                        ) : (
+                            <div className="w-16 h-16 rounded-2xl bg-indigo-500/10 flex items-center justify-center border-2 border-indigo-500/50">
+                                <Dog size={32} className="text-indigo-400" />
+                            </div>
+                        )}
+                        <div>
+                            <h2 className="text-2xl font-bold text-white tracking-tight">{execution.petName}</h2>
+                            <p className="text-indigo-400 font-medium">{execution.service}</p>
+                        </div>
+                    </div>
+                    <button onClick={onClose} className="p-2 rounded-full bg-white/5 text-white/40 hover:text-white transition-colors">
+                        <X size={24} />
+                    </button>
+                </div>
+
+                <div className="space-y-6">
+                    {/* Check-in Section */}
+                    {checkinData && (
+                        <div className="space-y-4">
+                            <div className="flex items-center gap-2 text-emerald-400">
+                                <MapPin size={18} />
+                                <h3 className="font-bold uppercase tracking-wider text-sm">Check-in</h3>
+                                <span className="text-xs text-white/40 ml-auto">
+                                    {new Date(checkinData.timestamp).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                                </span>
+                            </div>
+
+                            <div className="bg-white/5 rounded-3xl p-5 border border-white/5 space-y-4">
+                                {checkinData.dynamicValues && Object.entries(checkinData.dynamicValues).length > 0 ? (
+                                    <div className="grid grid-cols-1 gap-2">
+                                        {Object.entries(checkinData.dynamicValues).map(([key, value]: [string, any]) => (
+                                            <div key={key} className="flex items-center justify-between p-3 bg-white/5 rounded-2xl">
+                                                <span className="text-xs text-white/40 font-bold uppercase">{key.replace(/_/g, ' ')}</span>
+                                                <span className="text-xs text-white font-bold">
+                                                    {typeof value === 'boolean' ? (value ? '✅ Sim' : '❌ Não') : value}
+                                                </span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="space-y-3">
+                                        {checkinData.analysis && (
+                                            <div className="grid grid-cols-2 gap-3">
+                                                <div className="p-3 bg-white/5 rounded-2xl">
+                                                    <p className="text-[10px] text-white/40 font-black uppercase mb-1">Pelo</p>
+                                                    <p className="text-xs text-white font-bold">{checkinData.analysis.hairState || 'N/A'}</p>
+                                                </div>
+                                                <div className="p-3 bg-white/5 rounded-2xl">
+                                                    <p className="text-[10px] text-white/40 font-black uppercase mb-1">Sujeira</p>
+                                                    <p className="text-xs text-white font-bold">{checkinData.analysis.dirtLevel || 'N/A'}</p>
+                                                </div>
+                                            </div>
+                                        )}
+                                        {checkinData.belongings && (
+                                            <div className="p-3 bg-white/5 rounded-2xl">
+                                                <p className="text-[10px] text-white/40 font-black uppercase mb-2">Pertences</p>
+                                                <div className="flex flex-wrap gap-2">
+                                                    {Object.entries(checkinData.belongings).map(([k, v]) => v && (
+                                                        <span key={k} className="px-2 py-1 bg-indigo-500/10 text-indigo-400 rounded-lg text-[10px] font-bold uppercase border border-indigo-500/20">
+                                                            {k === 'outros' ? (checkinData.belongings as any).outros : k}
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                                {checkinData.photos?.length > 0 && (
+                                    <div className="flex gap-2 overflow-x-auto py-2">
+                                        {checkinData.photos.map((url: string, i: number) => (
+                                            <img key={i} src={url} alt="" className="w-20 h-20 rounded-xl object-cover border border-white/10" />
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Progress / Checklist section */}
+                    <div className="space-y-4">
+                        <div className="flex items-center gap-2 text-blue-400">
+                            <ClipboardCheck size={18} />
+                            <h3 className="font-bold uppercase tracking-wider text-sm">Serviços Realizados</h3>
+                        </div>
+                        <div className="bg-white/5 rounded-3xl p-5 border border-white/5 space-y-3">
+                            {execution.rawChecklist?.filter(i => !i.startsWith('CHECKIN:') && !i.startsWith('CHECKOUT:') && !i.startsWith('TIMER:')).map((item, idx) => (
+                                <div key={idx} className="flex items-center gap-3 text-white/60">
+                                    <CheckCircle2 size={16} className="text-emerald-500" />
+                                    <span className="text-sm">{item}</span>
+                                </div>
+                            ))}
+                            {execution.rawChecklist?.filter(i => !i.startsWith('CHECKIN:') && !i.startsWith('CHECKOUT:') && !i.startsWith('TIMER:')).length === 0 && (
+                                <p className="text-sm text-white/20 italic">Aguardando execução...</p>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Check-out Section */}
+                    {checkoutData && (
+                        <div className="space-y-4">
+                            <div className="flex items-center gap-2 text-purple-400">
+                                <CheckCircle2 size={18} />
+                                <h3 className="font-bold uppercase tracking-wider text-sm">Check-out / Pronto</h3>
+                                <span className="text-xs text-white/40 ml-auto">
+                                    {new Date(checkoutData.timestamp).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                                </span>
+                            </div>
+
+                            <div className="bg-white/5 rounded-3xl p-5 border border-white/5 space-y-4">
+                                {checkoutData.dynamicValues && Object.entries(checkoutData.dynamicValues).length > 0 ? (
+                                    <div className="grid grid-cols-1 gap-2">
+                                        {Object.entries(checkoutData.dynamicValues).map(([key, value]: [string, any]) => (
+                                            <div key={key} className="flex items-center justify-between p-3 bg-white/5 rounded-2xl">
+                                                <span className="text-xs text-white/40 font-bold uppercase">{key.replace(/_/g, ' ')}</span>
+                                                <span className="text-xs text-white font-bold">
+                                                    {typeof value === 'boolean' ? (value ? '✅ Sim' : '❌ Não') : value}
+                                                </span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="grid grid-cols-2 gap-3">
+                                        {checkoutData.quality && Object.entries(checkoutData.quality).map(([k, v]) => (
+                                            <div key={k} className="p-3 bg-white/5 rounded-2xl flex justify-between items-center">
+                                                <span className="text-[10px] text-white/40 font-black uppercase">{k}</span>
+                                                <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-lg ${v === 'Bom' ? 'text-emerald-400 bg-emerald-500/10' : 'text-rose-400 bg-rose-500/10'}`}>
+                                                    {v as string}
+                                                </span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+
+                                {(checkoutData.behavior || checkoutData.recommendations || checkoutData.generalNotes) && (
+                                    <div className="space-y-3 p-4 bg-indigo-500/5 rounded-2xl border border-indigo-500/10">
+                                        {checkoutData.behavior && (
+                                            <div>
+                                                <p className="text-[10px] text-indigo-400 font-black uppercase mb-1">Comportamento</p>
+                                                <p className="text-xs text-white/80 italic">{checkoutData.behavior}</p>
+                                            </div>
+                                        )}
+                                        {checkoutData.recommendations && (
+                                            <div>
+                                                <p className="text-[10px] text-indigo-400 font-black uppercase mb-1">Dicas/Recomendações</p>
+                                                <p className="text-xs text-white/80 italic">{checkoutData.recommendations}</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
+                                {checkoutData.photos?.length > 0 && (
+                                    <div className="space-y-3">
+                                        <div className="flex items-center gap-2 text-white/40">
+                                            <Camera size={14} />
+                                            <span className="text-[10px] font-black uppercase">Fotos do Resultado</span>
+                                        </div>
+                                        <div className="flex gap-2 overflow-x-auto py-2">
+                                            {checkoutData.photos.map((url: string, i: number) => (
+                                                <img key={i} src={url} alt="" className="w-full h-48 rounded-2xl object-cover border border-white/10" />
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+                </div>
+
+                <button
+                    onClick={onClose}
+                    className="w-full mt-8 py-4 bg-white text-black font-bold rounded-2xl hover:bg-white/90 transition-all active:scale-95"
+                >
+                    Fechar Detalhes
+                </button>
             </div>
         </div>
     );

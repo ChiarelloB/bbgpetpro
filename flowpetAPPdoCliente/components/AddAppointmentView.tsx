@@ -28,7 +28,8 @@ export const AddAppointmentView: React.FC<AddAppointmentViewProps> = ({ pets, on
     date: '',
     time: '',
     type: 'grooming' as 'vet' | 'bath' | 'grooming' | 'vaccine',
-    notes: ''
+    notes: '',
+    duration: 60 // Default duration
   });
 
   const [services, setServices] = useState<Service[]>([]);
@@ -54,7 +55,11 @@ export const AddAppointmentView: React.FC<AddAppointmentViewProps> = ({ pets, on
       if (data) {
         setServices(data);
         if (data.length > 0) {
-          setFormData(prev => ({ ...prev, title: data[0].name }));
+          setFormData(prev => ({
+            ...prev,
+            title: data[0].name,
+            duration: data[0].duration_minutes || 60
+          }));
         }
       }
       setLoadingServices(false);
@@ -190,7 +195,11 @@ export const AddAppointmentView: React.FC<AddAppointmentViewProps> = ({ pets, on
               {services.slice(0, 8).map(service => (
                 <button
                   key={service.id}
-                  onClick={() => setFormData({ ...formData, title: service.name })}
+                  onClick={() => setFormData({
+                    ...formData,
+                    title: service.name,
+                    duration: service.duration_minutes || 60
+                  })}
                   className={`px-4 py-2 rounded-xl border whitespace-nowrap transition-all ${formData.title === service.name
                     ? 'bg-indigo-600 border-indigo-500 text-white'
                     : 'bg-white/5 border-white/10 text-white/60 hover:bg-white/10'

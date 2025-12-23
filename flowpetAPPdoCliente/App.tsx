@@ -108,13 +108,13 @@ function App() {
             .order('date', { ascending: false });
 
           // Get upcoming appointments for each pet
+          const UPCOMING_STATUS_LIST = ['confirmed', 'pending', 'in-progress', 'waiting'];
           const { data: upcomingApts } = await supabase
             .from('appointments')
             .select('*, pets(name)')
             .in('pet_id', petIds)
             .eq('tenant_id', selectedPetShop.id)
-            .gte('start_time', new Date().toISOString())
-            .neq('status', 'cancelled')
+            .in('status', UPCOMING_STATUS_LIST)
             .order('start_time', { ascending: true });
 
           const transformedPets: PetProfile[] = petsData.map(pet => {
@@ -169,14 +169,11 @@ function App() {
             .order('start_time', { ascending: true });
 
           console.log('--- DEBUG AGENDA FETCH ---');
-          console.log('Pet Shop ID:', selectedPetShop.id);
-          console.log('Pet IDs:', petsData.map(p => p.id));
-          console.log('Raw DB Appointments:', appointmentsData);
-
           if (appointmentsData) {
             const transformedAppointments: Appointment[] = appointmentsData.map(apt => {
               const startDate = new Date(apt.start_time);
-              const isCompleted = ['completed', 'finished'].includes(apt.status);
+              const UPCOMING_STATUS_LIST = ['confirmed', 'pending', 'in-progress', 'waiting'];
+              const isCompleted = !UPCOMING_STATUS_LIST.includes(apt.status);
 
               return {
                 id: apt.id,
@@ -190,35 +187,33 @@ function App() {
                 completed: isCompleted,
               };
             });
-            console.log('Transformed Appointments:', transformedAppointments);
             setAppointments(transformedAppointments);
           }
         }
       }
     };
 
-
-    // Helper function to calculate pet age from birth date
-    const calculateAge = (birthDate: string | null): number => {
-      if (!birthDate) return 0;
-      const birth = new Date(birthDate);
-      const now = new Date();
-      return Math.floor((now.getTime() - birth.getTime()) / (365.25 * 24 * 60 * 60 * 1000));
-    };
-
-    // Helper function to determine vaccine status
-    const getVaccineStatus = (date: string, expiresAt?: string): 'valid' | 'expiring' | 'expired' => {
-      const now = new Date();
-      const expires = expiresAt ? new Date(expiresAt) : new Date(new Date(date).setFullYear(new Date(date).getFullYear() + 1));
-      const thirtyDaysFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
-
-      if (expires < now) return 'expired';
-      if (expires < thirtyDaysFromNow) return 'expiring';
-      return 'valid';
-    };
-
     fetchClientData();
-  }, [user, selectedPetShop]);
+  }, [user, selectedPetShop, selectedPetId]);
+
+  // Helper function to calculate pet age from birth date
+  const calculateAge = (birthDate: string | null): number => {
+    if (!birthDate) return 0;
+    const birth = new Date(birthDate);
+    const now = new Date();
+    return Math.floor((now.getTime() - birth.getTime()) / (365.25 * 24 * 60 * 60 * 1000));
+  };
+
+  // Helper function to determine vaccine status
+  const getVaccineStatus = (date: string, expiresAt?: string): 'valid' | 'expiring' | 'expired' => {
+    const now = new Date();
+    const expires = expiresAt ? new Date(expiresAt) : new Date(new Date(date).setFullYear(new Date(date).getFullYear() + 1));
+    const thirtyDaysFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+
+    if (expires < now) return 'expired';
+    if (expires < thirtyDaysFromNow) return 'expiring';
+    return 'valid';
+  };
 
   const handlePetShopSelect = (petShop: PetShop) => {
     setSelectedPetShop(petShop);
@@ -274,6 +269,37 @@ function App() {
     setActiveTab('add-appointment');
   };
 
+  const uploadPetPhoto = async (base64: string, petId: string): Promise<string | null> => {
+    try {
+      if (!base64.startsWith('data:image')) return base64;
+
+      const fileExt = base64.split(';')[0].split('/')[1] || 'jpg';
+      const fileName = `${petId}/${Date.now()}.${fileExt}`;
+      const base64Data = base64.split(',')[1];
+
+      // Convert base64 to Blob
+      const byteCharacters = atob(base64Data);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      const blob = new Blob([byteArray], { type: `image/${fileExt}` });
+
+      const { error: uploadError } = await supabase.storage
+        .from('pets')
+        .upload(fileName, blob, { contentType: `image/${fileExt}` });
+
+      if (uploadError) throw uploadError;
+
+      const { data } = supabase.storage.from('pets').getPublicUrl(fileName);
+      return data.publicUrl;
+    } catch (error) {
+      console.error('Error uploading pet photo:', error);
+      return null;
+    }
+  };
+
   const handleSavePet = async (formData: any) => {
     if (!clientId || !selectedPetShop) {
       console.error('Missing clientId or selectedPetShop:', { clientId, selectedPetShop });
@@ -285,6 +311,12 @@ function App() {
 
     if (editingPet) {
       // Update existing pet
+      let imageUrl = editingPet.imageUrl;
+      if (formData.photo_url && formData.photo_url.startsWith('data:image')) {
+        const uploadedUrl = await uploadPetPhoto(formData.photo_url, editingPet.id);
+        if (uploadedUrl) imageUrl = uploadedUrl;
+      }
+
       const { error } = await supabase
         .from('pets')
         .update({
@@ -293,6 +325,7 @@ function App() {
           weight: parseFloat(formData.weight) || 0,
           gender: formData.sex === 'male' ? 'Macho' : 'Fêmea',
           size_category: formData.size,
+          img: imageUrl
         })
         .eq('id', editingPet.id);
 
@@ -307,6 +340,7 @@ function App() {
         name: formData.name,
         breed: formData.breed,
         age: parseInt(formData.age) || p.age,
+        imageUrl: imageUrl,
         stats: {
           ...p.stats,
           sex: formData.sex,
@@ -320,7 +354,7 @@ function App() {
       const birthYear = formData.age ? currentYear - parseInt(formData.age) : null;
       const birthDate = birthYear ? `${birthYear}-01-01` : null;
 
-      const { data: newPetData, error } = await supabase
+      const { data: newPetData, error: insertError } = await supabase
         .from('pets')
         .insert({
           tenant_id: selectedPetShop.id,
@@ -336,19 +370,30 @@ function App() {
         .select()
         .single();
 
-      if (error) {
-        console.error('Error creating pet:', error);
-        alert(`Erro ao criar pet: ${error.message}`);
+      if (insertError) {
+        console.error('Error creating pet:', insertError);
+        alert(`Erro ao criar pet: ${insertError.message}`);
         return;
       }
 
       if (newPetData) {
+        // Upload photo after pet is created to use its ID
+        let imageUrl = 'https://images.unsplash.com/photo-1583337130417-3346a1be7dee?q=80&w=800';
+        if (formData.photo_url && formData.photo_url.startsWith('data:image')) {
+          const uploadedUrl = await uploadPetPhoto(formData.photo_url, newPetData.id);
+          if (uploadedUrl) {
+            imageUrl = uploadedUrl;
+            // Update the pet record with the image URL
+            await supabase.from('pets').update({ img: imageUrl }).eq('id', newPetData.id);
+          }
+        }
+
         const newPet: PetProfile = {
           id: newPetData.id,
           name: formData.name,
           breed: formData.breed,
           age: parseInt(formData.age) || 0,
-          imageUrl: 'https://images.unsplash.com/photo-1583337130417-3346a1be7dee?q=80&w=800',
+          imageUrl: imageUrl,
           stats: {
             weight: parseFloat(formData.weight) || 0,
             sex: formData.sex,
@@ -422,6 +467,7 @@ function App() {
         pet_id: pet.id,
         client_id: clientId,
         start_time: startTimestamp,
+        duration: formData.duration || 60,
         service: formData.title,
         status: 'pending',
         notes: formData.notes || '',
