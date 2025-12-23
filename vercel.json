@@ -1,11 +1,11 @@
 {
     "rewrites": [
         {
-            "source": "/landingpage/(.*)",
-            "destination": "/landingpage/index.html"
+            "source": "/flowpetpro/(.*)",
+            "destination": "/flowpetpro/index.html"
         },
         {
-            "source": "/((?!landingpage/).*)",
+            "source": "/((?!flowpetpro/).*)",
             "destination": "/index.html"
         }
     ]

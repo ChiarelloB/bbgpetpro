@@ -45,7 +45,7 @@ const Header: React.FC<HeaderProps> = ({ isDarkMode, toggleDarkMode, onOpenAdmin
   const [password, setPassword] = useState('');
 
   // CRM URL
-  const CRM_URL = '/';
+  const CRM_URL = '/flowpetpro';
 
   useEffect(() => {
     const handleScroll = () => {
