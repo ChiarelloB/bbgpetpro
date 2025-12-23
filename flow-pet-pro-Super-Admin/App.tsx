@@ -23,15 +23,52 @@ function App() {
 
   useEffect(() => {
     console.log('App Mounted - Checking session...');
-    // Check active session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
+
+    async function checkUser() {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', session.user.id)
+          .single();
+
+        const isMainAdmin = session.user.email === 'brunochiarellolaw@gmail.com';
+        const isSuperAdmin = profile?.role === 'super_admin';
+
+        if (isMainAdmin || isSuperAdmin) {
+          setUser({ ...session.user, role: isSuperAdmin ? 'super_admin' : 'admin' });
+        } else {
+          await supabase.auth.signOut();
+          setUser(null);
+        }
+      }
       setLoading(false);
-    });
+    }
+
+    checkUser();
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (session?.user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', session.user.id)
+          .single();
+
+        const isMainAdmin = session.user.email === 'brunochiarellolaw@gmail.com';
+        const isSuperAdmin = profile?.role === 'super_admin';
+
+        if (isMainAdmin || isSuperAdmin) {
+          setUser({ ...session.user, role: isSuperAdmin ? 'super_admin' : 'admin' });
+        } else {
+          await supabase.auth.signOut();
+          setUser(null);
+        }
+      } else {
+        setUser(null);
+      }
     });
 
     return () => subscription.unsubscribe();
