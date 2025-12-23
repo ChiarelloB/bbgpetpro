@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="scroll-smooth">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Flow Pet CRM - O Sistema de Gestão Definitivo para Pet Shops</title>
+  <meta name="description"
+    content="Transforme seu Pet Shop com o Flow Pet CRM. Gestão de agendamentos, controle financeiro, histórico veterinário e muito mais em uma plataforma simples e poderosa." />
+  <meta name="keywords"
+    content="CRM pet shop, sistema veterinário, gestão de banho e tosa, software pet shop, agendamento pet" />
+  <meta name="theme-color" content="#7c3aed" />
+
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://flowpet.com.br/" />
+  <meta property="og:title" content="Flow Pet CRM - Gestão Inteligente para Pet Shops" />
+  <meta property="og:description"
+    content="Aumente seus lucros e organize sua agenda com o sistema mais completo do mercado." />
+  <meta property="og:image"
+    content="https://images.unsplash.com/photo-1516734212186-a967f81ad0d7?auto=format&fit=crop&q=80&w=1200" />
+
+  <!-- Twitter -->
+  <meta property="twitter:card" content="summary_large_image" />
+  <meta property="twitter:url" content="https://flowpet.com.br/" />
+  <meta property="twitter:title" content="Flow Pet CRM - Gestão Inteligente para Pet Shops" />
+  <meta property="twitter:description"
+    content="Aumente seus lucros e organize sua agenda com o sistema mais completo do mercado." />
+  <meta property="twitter:image"
+    content="https://images.unsplash.com/photo-1516734212186-a967f81ad0d7?auto=format&fit=crop&q=80&w=1200" />
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"
+    rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0"
+    rel="stylesheet" />
+  <link rel="icon" href="https://fonts.gstatic.com/s/e/notoemoji/latest/1f43e/512.png" type="image/png">
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+          },
+          colors: {
+            primary: {
+              DEFAULT: '#7c3aed', // Vivid Purple
+              dark: '#6d28d9',
+              light: '#8b5cf6',
+            },
+            dark: '#111111',
+            subtle: '#f8f7fa',
+          },
+          backgroundImage: {
+            'hero-pattern': 'radial-gradient(#7c3aed 1px, transparent 1px)',
+          },
+          backgroundSize: {
+            'hero-pattern': '24px 24px',
+          },
+          animation: {
+            'marquee': 'marquee 40s linear infinite',
+            'marquee-reverse': 'marquee-reverse 40s linear infinite',
+          },
+          keyframes: {
+            marquee: {
+              '0%': { transform: 'translateX(0%)' },
+              '100%': { transform: 'translateX(-100%)' },
+            },
+            'marquee-reverse': {
+              '0%': { transform: 'translateX(-100%)' },
+              '100%': { transform: 'translateX(0%)' },
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* Custom scrollbar for webkit */
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background-color: #d1d5db;
+      border-radius: 20px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background-color: #9ca3af;
+    }
+
+    /* Dark mode scrollbar override via CSS since tailwind variants for scrollbar are tricky without plugin */
+    .dark ::-webkit-scrollbar-thumb {
+      background-color: #4b5563;
+    }
+
+    .dark ::-webkit-scrollbar-thumb:hover {
+      background-color: #6b7280;
+    }
+  </style>
+
+  <link rel="stylesheet" href="/index.css">
+</head>
+
+<body class="bg-white dark:bg-black text-gray-900 dark:text-white antialiased transition-colors duration-300">
+  <div id="root"></div>
+  <script type="module" src="/index.tsx"></script>
+</body>
+
+</html>
