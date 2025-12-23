@@ -264,21 +264,32 @@ function App() {
   };
 
   const handleSavePet = async (formData: any) => {
-    if (!clientId || !selectedPetShop) return;
+    if (!clientId || !selectedPetShop) {
+      console.error('Missing clientId or selectedPetShop:', { clientId, selectedPetShop });
+      alert('Erro: Não foi possível identificar seu cadastro. Faça logout e login novamente.');
+      return;
+    }
+
+    console.log('Creating pet with:', { clientId, tenantId: selectedPetShop.id, formData });
 
     if (editingPet) {
       // Update existing pet
-      await supabase
+      const { error } = await supabase
         .from('pets')
         .update({
           name: formData.name,
           breed: formData.breed,
-          age: parseInt(formData.age) || 0,
           weight: parseFloat(formData.weight) || 0,
           gender: formData.sex === 'male' ? 'Macho' : 'Fêmea',
-          size: formData.size,
+          size_category: formData.size,
         })
         .eq('id', editingPet.id);
+
+      if (error) {
+        console.error('Error updating pet:', error);
+        alert(`Erro ao atualizar pet: ${error.message}`);
+        return;
+      }
 
       setPets(prev => prev.map(p => p.id === editingPet.id ? {
         ...p,
@@ -293,7 +304,11 @@ function App() {
         }
       } : p));
     } else {
-      // Create new pet
+      // Create new pet - calculate birth_date from age
+      const currentYear = new Date().getFullYear();
+      const birthYear = formData.age ? currentYear - parseInt(formData.age) : null;
+      const birthDate = birthYear ? `${birthYear}-01-01` : null;
+
       const { data: newPetData, error } = await supabase
         .from('pets')
         .insert({
@@ -302,13 +317,19 @@ function App() {
           name: formData.name,
           breed: formData.breed,
           species: 'Cachorro',
-          age: parseInt(formData.age) || 0,
           weight: parseFloat(formData.weight) || 0,
-          gender: formData.sex === 'male' ? 'Macho' : 'Fêmea',
-          size: formData.size,
+          gender: formData.sex === 'male' ? 'M' : 'F',
+          size_category: formData.size,
+          birth_date: birthDate,
         })
         .select()
         .single();
+
+      if (error) {
+        console.error('Error creating pet:', error);
+        alert(`Erro ao criar pet: ${error.message}`);
+        return;
+      }
 
       if (newPetData) {
         const newPet: PetProfile = {
@@ -334,6 +355,7 @@ function App() {
         if (!selectedPetId) setSelectedPetId(newPet.id);
       }
     }
+    setEditingPet(null);
     setActiveTab('home');
   };
 

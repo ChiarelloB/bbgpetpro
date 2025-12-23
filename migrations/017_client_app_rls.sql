@@ -81,3 +81,25 @@ DROP POLICY IF EXISTS services_public_read ON services;
 CREATE POLICY services_public_read ON services
     FOR SELECT
     USING (true);
+
+-- 10. Allow anyone to read subscription_plans (for viewing available plans)
+DROP POLICY IF EXISTS subscription_plans_client_read ON subscription_plans;
+CREATE POLICY subscription_plans_client_read ON subscription_plans
+    FOR SELECT
+    USING (true);
+
+-- 11. Allow clients to read subscriptions for their pet shop
+DROP POLICY IF EXISTS subscriptions_client_read ON subscriptions;
+CREATE POLICY subscriptions_client_read ON subscriptions
+    FOR SELECT
+    USING (
+        -- Allow if pet_name belongs to one of their pets (client-level subscription)
+        pet_name IN (SELECT name FROM pets WHERE client_id IN (SELECT id FROM clients WHERE email = auth.jwt() ->> 'email'))
+        OR
+        -- Or if authenticated staff from tenant
+        tenant_id = (SELECT tenant_id FROM profiles WHERE id = auth.uid())
+        OR
+        -- Allow reading plans from their pet shop (for viewing available plans)
+        tenant_id IN (SELECT tenant_id FROM clients WHERE email = auth.jwt() ->> 'email')
+    );
+

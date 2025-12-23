@@ -45,15 +45,22 @@ export const ServiceTrackingView: React.FC<ServiceTrackingViewProps> = ({ client
             return;
         }
 
-        const today = new Date().toISOString().split('T')[0];
+        // Get today's date at midnight for comparison
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const todayISO = today.toISOString();
+
+        console.log('Fetching appointments for petIds:', petIds);
 
         const { data, error } = await supabase
             .from('appointments')
             .select('*, pets(name, img)')
             .in('pet_id', petIds)
-            .gte('date', today)
+            .gte('start_time', todayISO)
             .in('status', ['confirmed', 'pending', 'in-progress', 'ready', 'finished'])
             .order('start_time', { ascending: true });
+
+        console.log('Appointments result:', { data, error });
 
         if (!error && data) {
             const mapped: ServiceExecution[] = data.map(apt => ({
@@ -70,39 +77,52 @@ export const ServiceTrackingView: React.FC<ServiceTrackingViewProps> = ({ client
                 checkinData: apt.checklist_state,
             }));
             setExecutions(mapped);
+        } else if (error) {
+            console.error('Error fetching appointments:', error);
         }
 
         setLoading(false);
         setLastUpdated(new Date());
     };
 
+
+
     useEffect(() => {
         fetchExecutions();
 
-        // Set up real-time subscription
-        const channel = supabase
-            .channel('appointments-tracking')
-            .on(
-                'postgres_changes',
-                {
-                    event: '*',
-                    schema: 'public',
-                    table: 'appointments',
-                    filter: `pet_id=in.(${petIds.join(',')})`
-                },
-                (payload) => {
-                    console.log('Real-time update:', payload);
-                    fetchExecutions();
-                }
-            )
-            .subscribe();
+        // Only set up real-time subscription if we have valid petIds
+        let channel: any = null;
+
+        if (petIds.length > 0) {
+            // Set up real-time subscription without complex filter
+            // We'll filter client-side after receiving the update
+            channel = supabase
+                .channel('appointments-tracking-' + clientId)
+                .on(
+                    'postgres_changes',
+                    {
+                        event: '*',
+                        schema: 'public',
+                        table: 'appointments'
+                    },
+                    (payload) => {
+                        console.log('Real-time update:', payload);
+                        // Refresh when any appointment changes
+                        fetchExecutions();
+                    }
+                )
+                .subscribe();
+        }
 
         // Auto-refresh every 30 seconds
         const interval = setInterval(fetchExecutions, 30000);
 
         return () => {
-            supabase.removeChannel(channel);
+            if (channel) {
+                supabase.removeChannel(channel);
+            }
             clearInterval(interval);
+
         };
     }, [petIds]);
 
@@ -231,10 +251,10 @@ export const ServiceTrackingView: React.FC<ServiceTrackingViewProps> = ({ client
                                             <div key={step.key} className="flex flex-col items-center flex-1">
                                                 <div
                                                     className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${isCompleted
-                                                            ? isCurrent
-                                                                ? `${step.color} bg-white/10 ring-2 ring-white/20`
-                                                                : 'text-emerald-400 bg-emerald-500/20'
-                                                            : 'text-white/20 bg-white/5'
+                                                        ? isCurrent
+                                                            ? `${step.color} bg-white/10 ring-2 ring-white/20`
+                                                            : 'text-emerald-400 bg-emerald-500/20'
+                                                        : 'text-white/20 bg-white/5'
                                                         }`}
                                                 >
                                                     {isCompleted && !isCurrent ? (

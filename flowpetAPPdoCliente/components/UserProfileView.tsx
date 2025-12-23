@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { User, Settings, Bell, Shield, LogOut, ChevronRight, MapPin, Phone, Mail, Edit2, Check, X, Store, Calendar, PawPrint, Loader2 } from 'lucide-react';
+import { SubscriptionSection } from './SubscriptionSection';
 
 interface UserProfileViewProps {
   onLogout: () => void;
@@ -24,12 +25,14 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({ onLogout }) =>
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [activeSection, setActiveSection] = useState<'profile' | 'subscriptions'>('profile');
 
   const [user, setUser] = useState<any>(null);
   const [clientData, setClientData] = useState<ClientData | null>(null);
   const [petShop, setPetShop] = useState<PetShop | null>(null);
   const [petsCount, setPetsCount] = useState(0);
   const [appointmentsCount, setAppointmentsCount] = useState(0);
+
 
   // Form state
   const [formName, setFormName] = useState('');
@@ -208,58 +211,89 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({ onLogout }) =>
         </div>
       </div>
 
-      {/* Menu Groups */}
-      <div className="space-y-4">
-        {/* Settings Group */}
-        <div className="bg-white/5 border border-white/10 rounded-3xl overflow-hidden">
-          <div
-            className="p-4 border-b border-white/5 flex items-center gap-4 hover:bg-white/5 transition-colors cursor-pointer select-none"
-            onClick={() => setNotificationsEnabled(!notificationsEnabled)}
-          >
-            <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-white/80">
-              <Bell size={20} />
-            </div>
-            <div className="flex-1">
-              <p className="text-sm font-bold text-white">Notificações</p>
-              <p className="text-xs text-white/40">Receber lembretes de agendamentos</p>
-            </div>
-            <div className={`w-10 h-6 rounded-full relative transition-colors ${notificationsEnabled ? 'bg-indigo-600 shadow-neon' : 'bg-white/10'}`}>
-              <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm transition-all ${notificationsEnabled ? 'right-1' : 'left-1'}`}></div>
-            </div>
-          </div>
-
-          <div className="p-4 border-b border-white/5 flex items-center gap-4 hover:bg-white/5 transition-colors cursor-pointer group">
-            <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-white/80 group-hover:text-indigo-400 transition-colors">
-              <Shield size={20} />
-            </div>
-            <div className="flex-1">
-              <p className="text-sm font-bold text-white group-hover:text-indigo-400 transition-colors">Alterar Senha</p>
-              <p className="text-xs text-white/40">Atualizar credenciais de acesso</p>
-            </div>
-            <ChevronRight size={20} className="text-white/20 group-hover:text-indigo-400 transition-colors" />
-          </div>
-
-          <div className="p-4 flex items-center gap-4 hover:bg-white/5 transition-colors cursor-pointer group">
-            <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-white/80 group-hover:text-indigo-400 transition-colors">
-              <Settings size={20} />
-            </div>
-            <div className="flex-1">
-              <p className="text-sm font-bold text-white group-hover:text-indigo-400 transition-colors">Trocar Pet Shop</p>
-              <p className="text-xs text-white/40">Acessar outro estabelecimento</p>
-            </div>
-            <ChevronRight size={20} className="text-white/20 group-hover:text-indigo-400 transition-colors" />
-          </div>
-        </div>
-
-        {/* Logout */}
+      {/* Tab Switcher */}
+      <div className="flex gap-2 bg-white/5 rounded-2xl p-1">
         <button
-          onClick={onLogout}
-          className="w-full p-4 rounded-3xl bg-red-500/10 border border-red-500/20 flex items-center justify-center gap-2 text-red-400 font-bold hover:bg-red-500/20 transition-colors active:scale-95"
+          onClick={() => setActiveSection('profile')}
+          className={`flex-1 py-3 rounded-xl font-bold text-sm transition-all ${activeSection === 'profile'
+              ? 'bg-indigo-500 text-white shadow-lg'
+              : 'text-white/40 hover:text-white/60'
+            }`}
         >
-          <LogOut size={20} />
-          Sair da Conta
+          Configurações
+        </button>
+        <button
+          onClick={() => setActiveSection('subscriptions')}
+          className={`flex-1 py-3 rounded-xl font-bold text-sm transition-all ${activeSection === 'subscriptions'
+              ? 'bg-indigo-500 text-white shadow-lg'
+              : 'text-white/40 hover:text-white/60'
+            }`}
+        >
+          Assinaturas
         </button>
       </div>
+
+      {activeSection === 'profile' ? (
+        <>
+          {/* Menu Groups */}
+          <div className="space-y-4">
+            {/* Settings Group */}
+            <div className="bg-white/5 border border-white/10 rounded-3xl overflow-hidden">
+              <div
+                className="p-4 border-b border-white/5 flex items-center gap-4 hover:bg-white/5 transition-colors cursor-pointer select-none"
+                onClick={() => setNotificationsEnabled(!notificationsEnabled)}
+              >
+                <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-white/80">
+                  <Bell size={20} />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-bold text-white">Notificações</p>
+                  <p className="text-xs text-white/40">Receber lembretes de agendamentos</p>
+                </div>
+                <div className={`w-10 h-6 rounded-full relative transition-colors ${notificationsEnabled ? 'bg-indigo-600 shadow-neon' : 'bg-white/10'}`}>
+                  <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm transition-all ${notificationsEnabled ? 'right-1' : 'left-1'}`}></div>
+                </div>
+              </div>
+
+              <div className="p-4 border-b border-white/5 flex items-center gap-4 hover:bg-white/5 transition-colors cursor-pointer group">
+                <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-white/80 group-hover:text-indigo-400 transition-colors">
+                  <Shield size={20} />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-bold text-white group-hover:text-indigo-400 transition-colors">Alterar Senha</p>
+                  <p className="text-xs text-white/40">Atualizar credenciais de acesso</p>
+                </div>
+                <ChevronRight size={20} className="text-white/20 group-hover:text-indigo-400 transition-colors" />
+              </div>
+
+              <div className="p-4 flex items-center gap-4 hover:bg-white/5 transition-colors cursor-pointer group">
+                <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-white/80 group-hover:text-indigo-400 transition-colors">
+                  <Settings size={20} />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-bold text-white group-hover:text-indigo-400 transition-colors">Trocar Pet Shop</p>
+                  <p className="text-xs text-white/40">Acessar outro estabelecimento</p>
+                </div>
+                <ChevronRight size={20} className="text-white/20 group-hover:text-indigo-400 transition-colors" />
+              </div>
+            </div>
+
+            {/* Logout */}
+            <button
+              onClick={onLogout}
+              className="w-full p-4 rounded-3xl bg-red-500/10 border border-red-500/20 flex items-center justify-center gap-2 text-red-400 font-bold hover:bg-red-500/20 transition-colors active:scale-95"
+            >
+              <LogOut size={20} />
+              Sair da Conta
+            </button>
+          </div>
+        </>
+      ) : (
+        <SubscriptionSection
+          clientId={clientData?.id || null}
+          petShopId={petShop?.id || ''}
+        />
+      )}
     </div>
   );
 };
