@@ -130,8 +130,103 @@ export const Plans: React.FC = () => {
     }
   };
 
+  // State for Plan Change Modal
+  const [isChangePlanModalOpen, setIsChangePlanModalOpen] = useState(false);
+  const [selectedSubscription, setSelectedSubscription] = useState<any>(null);
+  const [selectedNewPlanId, setSelectedNewPlanId] = useState('');
+
+  const handleOpenChangePlan = (sub: any) => {
+    setSelectedSubscription(sub);
+    setSelectedNewPlanId(sub.subscription_plans?.id || '');
+    setIsChangePlanModalOpen(true);
+  };
+
+  const handleChangePlan = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedSubscription || !selectedNewPlanId) return;
+
+    if (!confirm('Tem certeza que deseja alterar o plano desta empresa?')) return;
+
+    // Find price of new plan
+    const newPlan = plans.find(p => p.id === selectedNewPlanId);
+    const newPrice = newPlan ? newPlan.price : 0;
+
+    const { error } = await supabase
+      .from('subscriptions')
+      .update({
+        plan_id: selectedNewPlanId,
+        price_at_start: newPrice // Update the locked-in price to the new plan's current price
+      })
+      .eq('id', selectedSubscription.id);
+
+    if (!error) {
+      alert('Plano alterado com sucesso!');
+      setIsChangePlanModalOpen(false);
+      setSelectedSubscription(null);
+      fetchSubscriptions();
+    } else {
+      alert('Erro ao alterar plano: ' + error.message);
+    }
+  };
+
   return (
     <div className="flex flex-col h-full animate-fade-in relative">
+      {/* Modal Change Plan */}
+      {isChangePlanModalOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[70] flex items-center justify-center p-4">
+          <div className="glass-panel w-full max-w-md p-8 rounded-4xl border border-white/10 animate-zoom-in">
+            <h3 className="text-xl font-bold text-white mb-2">Alterar Plano</h3>
+            <p className="text-sm text-text-muted mb-6">Empresa: <span className="text-white font-medium">{selectedSubscription?.tenants?.name}</span></p>
+
+            <form onSubmit={handleChangePlan} className="space-y-6">
+              <div>
+                <label className="block text-xs font-bold text-text-muted uppercase mb-2 ml-1">Selecione o Novo Plano</label>
+                <div className="space-y-3">
+                  {plans.map(plan => (
+                    <label key={plan.id} className={`flex items-center justify-between p-4 rounded-2xl border cursor-pointer transition-all ${selectedNewPlanId === plan.id ? 'bg-primary/20 border-primary' : 'bg-black/20 border-white/5 hover:bg-white/10'}`}>
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="radio"
+                          name="plan"
+                          value={plan.id}
+                          checked={selectedNewPlanId === plan.id}
+                          onChange={() => setSelectedNewPlanId(plan.id)}
+                          className="w-4 h-4 text-primary bg-transparent border-white/30 focus:ring-primary"
+                        />
+                        <div>
+                          <p className="font-bold text-white text-sm">{plan.name}</p>
+                          <p className="text-xs text-text-muted">{plan.description}</p>
+                        </div>
+                      </div>
+                      <span className="text-sm font-bold text-white">R$ {parseFloat(plan.price).toFixed(2)}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsChangePlanModalOpen(false);
+                    setSelectedSubscription(null);
+                  }}
+                  className="flex-1 py-3 rounded-2xl border border-white/10 text-text-muted hover:text-white hover:bg-white/5 font-bold transition-all"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-3 rounded-2xl bg-primary hover:bg-primary-hover text-white font-bold shadow-lg shadow-primary/20 transition-all"
+                >
+                  Confirmar Mudança
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* Modal Novo Plano */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
@@ -368,8 +463,13 @@ export const Plans: React.FC = () => {
                     <td className="px-6 py-4 text-text-muted font-mono">{sub.price_at_start?.toLocaleString() || '---'}</td>
                     <td className="px-6 py-4 text-text-muted">{sub.next_billing ? new Date(sub.next_billing).toLocaleDateString() : '---'}</td>
                     <td className="px-6 py-4 text-right">
-                      <button className="w-8 h-8 rounded-full hover:bg-white/10 flex items-center justify-center text-text-muted hover:text-white transition-colors">
-                        <span className="material-symbols-outlined text-[20px]">more_vert</span>
+                      <button
+                        onClick={() => handleOpenChangePlan(sub)}
+                        className="px-3 py-1 rounded-full bg-white/5 hover:bg-primary/20 flex items-center justify-center gap-1 text-text-muted hover:text-white transition-colors text-xs font-bold border border-white/10 hover:border-primary/50"
+                        title="Alterar Plano"
+                      >
+                        <span className="material-symbols-outlined text-[16px]">swap_horiz</span>
+                        Alterar
                       </button>
                     </td>
                   </tr>
