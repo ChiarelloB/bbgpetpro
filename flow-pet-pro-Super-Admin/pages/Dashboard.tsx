@@ -16,27 +16,30 @@ export const Dashboard: React.FC = () => {
 
   const fetchStats = async () => {
     setLoading(true);
+    try {
+      const [
+        { count: companyCount },
+        { count: petCount },
+        { data: subData },
+        { count: appointCount }
+      ] = await Promise.all([
+        supabase.from('tenants').select('*', { count: 'exact', head: true }),
+        supabase.from('pets').select('*', { count: 'exact', head: true }),
+        supabase.from('subscriptions').select('subscription_plans(price)').eq('status', 'active'),
+        supabase.from('appointments').select('*', { count: 'exact', head: true })
+      ]);
 
-    const [
-      { count: companyCount },
-      { count: petCount },
-      { data: subData },
-      { count: appointCount }
-    ] = await Promise.all([
-      supabase.from('tenants').select('*', { count: 'exact', head: true }),
-      supabase.from('pets').select('*', { count: 'exact', head: true }),
-      supabase.from('subscriptions').select('subscription_plans(price)').eq('status', 'active'),
-      supabase.from('appointments').select('*', { count: 'exact', head: true })
-    ]);
+      const totalMRR = subData?.reduce((acc, sub: any) => acc + (parseFloat(sub.subscription_plans?.price) || 0), 0) || 0;
 
-    const totalMRR = subData?.reduce((acc, sub: any) => acc + (parseFloat(sub.subscription_plans?.price) || 0), 0) || 0;
-
-    setStats({
-      companies: companyCount || 0,
-      pets: petCount || 0,
-      mrr: totalMRR,
-      appointments: appointCount || 0
-    });
+      setStats({
+        companies: companyCount || 0,
+        pets: petCount || 0,
+        mrr: totalMRR,
+        appointments: appointCount || 0
+      });
+    } catch (err) {
+      console.error('Error fetching dashboard stats:', err);
+    }
     setLoading(false);
   };
 

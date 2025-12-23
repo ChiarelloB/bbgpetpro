@@ -32,13 +32,94 @@ export const Companies: React.FC = () => {
     setLoading(false);
   };
 
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [newTenant, setNewTenant] = useState({ name: '', slug: '' });
+
+  const handleCreate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newTenant.name || !newTenant.slug) return;
+
+    const { error } = await supabase
+      .from('tenants')
+      .insert([newTenant]);
+
+    if (!error) {
+      setIsModalOpen(false);
+      setNewTenant({ name: '', slug: '' });
+      fetchTenants();
+    } else {
+      alert('Erro ao criar empresa: ' + error.message);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Tem certeza que deseja excluir esta empresa?')) return;
+
+    const { error } = await supabase
+      .from('tenants')
+      .delete()
+      .eq('id', id);
+
+    if (!error) {
+      fetchTenants();
+    } else {
+      alert('Erro ao excluir: ' + error.message);
+    }
+  };
+
   const filteredTenants = tenants.filter(t =>
     t.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     t.slug?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
-    <div className="flex flex-col h-full animate-fade-in">
+    <div className="flex flex-col h-full animate-fade-in relative">
+      {/* Modal Nova Empresa */}
+      {isModalOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
+          <div className="glass-panel w-full max-w-md p-8 rounded-4xl border border-white/10 animate-zoom-in">
+            <h3 className="text-xl font-bold text-white mb-6">Nova Empresa</h3>
+            <form onSubmit={handleCreate} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-text-muted uppercase mb-2 ml-1">Nome da Empresa</label>
+                <input
+                  className="w-full bg-black/40 border border-white/10 rounded-2xl px-4 py-3 text-sm text-white focus:ring-primary outline-none"
+                  placeholder="Ex: Pet Shop do Bairro"
+                  value={newTenant.name}
+                  onChange={(e) => setNewTenant({ ...newTenant, name: e.target.value, slug: e.target.value.toLowerCase().replace(/\s+/g, '-') })}
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-text-muted uppercase mb-2 ml-1">URL (Slug)</label>
+                <input
+                  className="w-full bg-black/40 border border-white/10 rounded-2xl px-4 py-3 text-sm text-white focus:ring-primary outline-none"
+                  placeholder="ex-pet-shop"
+                  value={newTenant.slug}
+                  onChange={(e) => setNewTenant({ ...newTenant, slug: e.target.value })}
+                  required
+                />
+              </div>
+              <div className="flex gap-3 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setIsModalOpen(false)}
+                  className="flex-1 py-3 rounded-2xl border border-white/10 text-text-muted hover:text-white hover:bg-white/5 font-bold transition-all"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-3 rounded-2xl bg-primary hover:bg-primary-hover text-white font-bold shadow-lg shadow-primary/20 transition-all"
+                >
+                  Criar Empresa
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       <header className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
         <div>
           <h2 className="text-3xl font-bold tracking-tight mb-1 text-white">Gerenciamento de Empresas</h2>
@@ -65,7 +146,10 @@ export const Companies: React.FC = () => {
             <span className="material-symbols-outlined absolute left-3 top-2.5 text-text-muted group-focus-within:text-primary transition-colors text-[20px]">search</span>
           </div>
         </div>
-        <button className="w-full md:w-auto px-6 py-3 bg-primary text-white text-sm font-semibold rounded-full hover:bg-primary-hover transition-colors flex items-center justify-center gap-2 shadow-lg shadow-primary/20 group">
+        <button
+          onClick={() => setIsModalOpen(true)}
+          className="w-full md:w-auto px-6 py-3 bg-primary text-white text-sm font-semibold rounded-full hover:bg-primary-hover transition-colors flex items-center justify-center gap-2 shadow-lg shadow-primary/20 group"
+        >
           <span className="material-symbols-outlined group-hover:rotate-90 transition-transform duration-300">add</span>
           Nova Empresa
         </button>
@@ -144,7 +228,11 @@ export const Companies: React.FC = () => {
                         <button className="p-2 hover:bg-white/10 rounded-full text-text-muted hover:text-white transition-colors" title="Editar">
                           <span className="material-symbols-outlined text-[20px]">edit</span>
                         </button>
-                        <button className="p-2 hover:bg-white/10 rounded-full text-text-muted hover:text-rose-400 transition-colors" title="Deletar">
+                        <button
+                          onClick={() => handleDelete(row.id)}
+                          className="p-2 hover:bg-white/10 rounded-full text-text-muted hover:text-rose-400 transition-colors"
+                          title="Deletar"
+                        >
                           <span className="material-symbols-outlined text-[20px]">delete</span>
                         </button>
                       </div>

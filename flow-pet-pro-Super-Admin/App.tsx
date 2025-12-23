@@ -19,7 +19,10 @@ function App() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [loading, setLoading] = useState(true);
 
+  console.log('App Rendering - User:', user, 'Loading:', loading);
+
   useEffect(() => {
+    console.log('App Mounted - Checking session...');
     // Check active session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);

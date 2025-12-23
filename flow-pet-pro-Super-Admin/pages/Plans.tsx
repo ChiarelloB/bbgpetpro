@@ -22,15 +22,127 @@ export const Plans: React.FC = () => {
     setLoading(false);
   };
 
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [newPlan, setNewPlan] = useState({ name: '', price: '', frequency: 'monthly', description: '' });
+
+  const handleCreate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newPlan.name || !newPlan.price) return;
+
+    const { error } = await supabase
+      .from('subscription_plans')
+      .insert([{
+        ...newPlan,
+        price: parseFloat(newPlan.price)
+      }]);
+
+    if (!error) {
+      setIsModalOpen(false);
+      setNewPlan({ name: '', price: '', frequency: 'monthly', description: '' });
+      fetchPlans();
+    } else {
+      alert('Erro ao criar plano: ' + error.message);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Tem certeza que deseja excluir este plano?')) return;
+
+    const { error } = await supabase
+      .from('subscription_plans')
+      .delete()
+      .eq('id', id);
+
+    if (!error) {
+      fetchPlans();
+    } else {
+      alert('Erro ao excluir: ' + error.message);
+    }
+  };
+
   return (
-    <div className="flex flex-col h-full animate-fade-in">
+    <div className="flex flex-col h-full animate-fade-in relative">
+      {/* Modal Novo Plano */}
+      {isModalOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
+          <div className="glass-panel w-full max-w-md p-8 rounded-4xl border border-white/10 animate-zoom-in">
+            <h3 className="text-xl font-bold text-white mb-6">Novo Plano</h3>
+            <form onSubmit={handleCreate} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-text-muted uppercase mb-2 ml-1">Nome do Plano</label>
+                <input
+                  className="w-full bg-black/40 border border-white/10 rounded-2xl px-4 py-3 text-sm text-white focus:ring-primary outline-none"
+                  placeholder="Ex: Flow Starter"
+                  value={newPlan.name}
+                  onChange={(e) => setNewPlan({ ...newPlan, name: e.target.value })}
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-text-muted uppercase mb-2 ml-1">Descrição</label>
+                <textarea
+                  className="w-full bg-black/40 border border-white/10 rounded-2xl px-4 py-3 text-sm text-white focus:ring-primary outline-none resize-none"
+                  placeholder="Descrição breve dos recursos..."
+                  rows={2}
+                  value={newPlan.description}
+                  onChange={(e) => setNewPlan({ ...newPlan, description: e.target.value })}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-text-muted uppercase mb-2 ml-1">Preço (R$)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    className="w-full bg-black/40 border border-white/10 rounded-2xl px-4 py-3 text-sm text-white focus:ring-primary outline-none"
+                    placeholder="0.00"
+                    value={newPlan.price}
+                    onChange={(e) => setNewPlan({ ...newPlan, price: e.target.value })}
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-text-muted uppercase mb-2 ml-1">Frequência</label>
+                  <select
+                    className="w-full bg-black/40 border border-white/10 rounded-2xl px-4 py-3 text-sm text-white focus:ring-primary outline-none appearance-none"
+                    value={newPlan.frequency}
+                    onChange={(e) => setNewPlan({ ...newPlan, frequency: e.target.value })}
+                  >
+                    <option className="bg-surface-dark" value="monthly">Mensal</option>
+                    <option className="bg-surface-dark" value="yearly">Anual</option>
+                  </select>
+                </div>
+              </div>
+              <div className="flex gap-3 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setIsModalOpen(false)}
+                  className="flex-1 py-3 rounded-2xl border border-white/10 text-text-muted hover:text-white hover:bg-white/5 font-bold transition-all"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-3 rounded-2xl bg-primary hover:bg-primary-hover text-white font-bold shadow-lg shadow-primary/20 transition-all"
+                >
+                  Criar Plano
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       <header className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
         <div>
           <h2 className="text-3xl font-bold tracking-tight mb-1 text-white">Planos e Assinaturas</h2>
           <p className="text-text-muted text-sm font-light">Gerencie os pacotes comerciais e monitore a base de clientes ativos.</p>
         </div>
         <div className="flex items-center gap-4">
-          <button className="flex items-center gap-2 px-5 py-2.5 bg-primary hover:bg-primary-hover text-white rounded-full transition-all shadow-lg shadow-primary/25 font-medium text-sm">
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="flex items-center gap-2 px-5 py-2.5 bg-primary hover:bg-primary-hover text-white rounded-full transition-all shadow-lg shadow-primary/25 font-medium text-sm"
+          >
             <span className="material-symbols-outlined text-[20px]">add</span>
             Criar Novo Plano
           </button>
@@ -84,14 +196,22 @@ export const Plans: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3 mt-auto">
                 <button className="py-2.5 rounded-xl border border-white/10 hover:bg-white/5 text-xs font-bold uppercase tracking-wider text-text-muted hover:text-white transition-colors">Editar</button>
-                <button className="py-2.5 rounded-xl border border-white/10 hover:bg-white/5 text-xs font-bold uppercase tracking-wider text-text-muted hover:text-white transition-colors">Deletar</button>
+                <button
+                  onClick={() => handleDelete(plan.id)}
+                  className="py-2.5 rounded-xl border border-white/10 hover:bg-white/5 text-xs font-bold uppercase tracking-wider text-text-muted hover:text-rose-400 transition-colors"
+                >
+                  Deletar
+                </button>
               </div>
             </div>
           ))}
 
           {/* Add New Placeholder */}
           {!loading && (
-            <button className="glass-panel rounded-4xl p-6 flex flex-col items-center justify-center relative group border-dashed border-2 border-white/10 hover:border-primary/50 hover:bg-white/5 transition-all duration-300 min-h-[350px]">
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="glass-panel rounded-4xl p-6 flex flex-col items-center justify-center relative group border-dashed border-2 border-white/10 hover:border-primary/50 hover:bg-white/5 transition-all duration-300 min-h-[350px]"
+            >
               <div className="w-16 h-16 rounded-full bg-white/5 group-hover:bg-primary/20 flex items-center justify-center mb-4 transition-colors">
                 <span className="material-symbols-outlined text-3xl text-text-muted group-hover:text-primary transition-colors">add</span>
               </div>

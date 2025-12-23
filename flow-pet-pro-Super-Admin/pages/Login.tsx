@@ -25,9 +25,23 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
       if (authError) throw authError;
 
       if (data.user) {
-        // Here we could add a check for a "super_admin" role in a 'profiles' table
-        // For now, we trust the authentication
-        onLogin(data.user);
+        // Multi-tenant check: Get profile to verify role
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', data.user.id)
+          .single();
+
+        const isMainAdmin = data.user.email === 'brunochiarellolaw@gmail.com';
+        const isSuperAdmin = profile?.role === 'super_admin';
+
+        if (isMainAdmin || isSuperAdmin) {
+          // If it's the main admin but role is not set, we can implicitly trust it for this panel
+          onLogin({ ...data.user, role: isSuperAdmin ? 'super_admin' : 'admin' });
+        } else {
+          await supabase.auth.signOut();
+          throw new Error('Acesso restrito: Apenas administradores do sistema podem acessar este painel.');
+        }
       }
     } catch (err: any) {
       setError(err.message || 'Erro ao fazer login. Verifique suas credenciais.');
