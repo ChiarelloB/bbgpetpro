@@ -9,7 +9,11 @@
             "destination": "/tutor/index.html"
         },
         {
-            "source": "/((?!flowpetpro/|tutor/).*)",
+            "source": "/admin/(.*)",
+            "destination": "/admin/index.html"
+        },
+        {
+            "source": "/((?!flowpetpro/|tutor/|admin/).*)",
             "destination": "/index.html"
         }
     ]
