@@ -17,6 +17,7 @@ export const Plans: React.FC = () => {
     const { data, error } = await supabase
       .from('subscription_plans')
       .select('*')
+      .eq('tenant_id', '00000000-0000-0000-0000-000000000001') // Only Global Plans
       .order('price', { ascending: true });
 
     if (data) {
@@ -47,21 +48,47 @@ export const Plans: React.FC = () => {
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newPlan.name || !newPlan.price) return;
+    setLoading(true);
 
-    const { error } = await supabase
-      .from('subscription_plans')
-      .insert([{
-        ...newPlan,
-        price: parseFloat(newPlan.price)
-      }]);
+    try {
+      // 1. Call Secure Edge Function to create in Stripe
+      // Note: For local development, this needs supabase functions serve running,
+      // or it will try to hit the deployed ID.
+      const { data: stripeData, error: stripeError } = await supabase.functions.invoke('manage-plans', {
+        body: {
+          action: 'create_plan',
+          name: newPlan.name,
+          description: newPlan.description,
+          price: parseFloat(newPlan.price),
+          frequency: newPlan.frequency
+        }
+      });
 
-    if (!error) {
+      if (stripeError) throw new Error('Stripe API Error: ' + stripeError.message);
+      if (!stripeData?.stripe_product_id) throw new Error('Failed to get Stripe IDs');
+
+      // 2. Insert into Supabase with Stripe IDs
+      const { error: dbError } = await supabase
+        .from('subscription_plans')
+        .insert([{
+          ...newPlan,
+          price: parseFloat(newPlan.price),
+          stripe_product_id: stripeData.stripe_product_id,
+          stripe_price_id: stripeData.stripe_price_id,
+          stripe_payment_link: stripeData.stripe_payment_link
+        }]);
+
+      if (dbError) throw dbError;
+
       setIsModalOpen(false);
       setNewPlan({ name: '', price: '', frequency: 'monthly', description: '' });
       setEditingPlan(null);
       fetchPlans();
-    } else {
-      alert('Erro ao criar plano: ' + error.message);
+
+    } catch (err: any) {
+      alert('Erro ao criar plano: ' + err.message);
+    } finally {
+      setLoading(false);
     }
   };
 

@@ -1,58 +1,56 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import RegisterModal from './RegisterModal';
 import SpotlightCard from './SpotlightCard';
+import { supabase } from '../lib/supabase';
 
-const plans = [
-  {
-    name: 'Inicial',
-    monthlyPrice: 89.90,
-    description: 'Para quem está começando agora.',
-    features: ['Até 50 clientes', 'Agenda básica', 'Histórico de vacinas', 'Suporte por email'],
-    cta: 'Começar Agora',
-    highlight: false,
-    links: {
-      monthly: 'https://buy.stripe.com/test_00w6oJ1vhfNU95acsG1gs00',
-      yearly: 'https://buy.stripe.com/test_7sY28t5LxeJQ0yE0JY1gs01'
-    }
-  },
-  {
-    name: 'Profissional',
-    monthlyPrice: 199.90,
-    description: 'Para pet shops em crescimento acelerado.',
-    features: ['Clientes ilimitados', 'Lembretes via WhatsApp', 'Controle financeiro', 'Módulo de Banho e Tosa', 'Suporte prioritário'],
-    cta: 'Testar por 7 dias',
-    highlight: true,
-    links: {
-      monthly: 'https://buy.stripe.com/test_8x2eVffm7bxE3KQeAO1gs02',
-      yearly: 'https://buy.stripe.com/test_dRmeVfddZ59gchmboC1gs03'
-    }
-  },
-  {
-    name: 'Elite',
-    monthlyPrice: 399.90,
-    description: 'Gestão completa para grandes redes.',
-    features: ['Multi-lojas', 'API de integração', 'Relatórios avançados', 'Gerente de conta dedicado', 'Treinamento para equipe'],
-    cta: 'Falar com Consultor',
-    highlight: false,
-    links: {
-      monthly: 'https://buy.stripe.com/test_eVq8wRc9VcBIepu9gu1gs04',
-      yearly: 'https://buy.stripe.com/test_eVq14pfm7gRYa9edwK1gs05'
-    }
-  }
-];
+interface Plan {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  frequency: string;
+  services: string[] | null;
+  stripe_payment_link: string | null;
+  is_pro: boolean;
+  color: string;
+  stripe_product_id: string;
+}
 
 const Pricing: React.FC = () => {
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
   const [loadingPlan, setLoadingPlan] = useState<number | null>(null);
+  const [plans, setPlans] = useState<Plan[]>([]);
+  const [loadingFetch, setLoadingFetch] = useState(true);
 
   // Registration Modal State
   const [isRegisterOpen, setIsRegisterOpen] = useState(false);
   const [selectedPlanLink, setSelectedPlanLink] = useState('');
   const [selectedPlanName, setSelectedPlanName] = useState('');
 
-  const handleSelectPlan = (index: number) => {
-    const plan = plans[index];
-    const link = billingCycle === 'monthly' ? plan.links.monthly : plan.links.yearly;
+  useEffect(() => {
+    fetchPlans();
+  }, []);
+
+  const fetchPlans = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('subscription_plans')
+        .select('*')
+        .eq('is_active', true)
+        .eq('tenant_id', '00000000-0000-0000-0000-000000000001') // Only Global Plans
+        .order('price', { ascending: true });
+
+      if (error) throw error;
+      setPlans(data || []);
+    } catch (error) {
+      console.error('Error fetching plans:', error);
+    } finally {
+      setLoadingFetch(false);
+    }
+  };
+
+  const handleSelectPlan = (plan: Plan, index: number) => {
+    const link = plan.stripe_payment_link || '#';
 
     setSelectedPlanLink(link);
     setSelectedPlanName(plan.name);
@@ -96,21 +94,34 @@ const Pricing: React.FC = () => {
         </div>
 
         <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto items-center">
-          {plans.map((plan, idx) => {
-            const price = billingCycle === 'monthly'
-              ? plan.monthlyPrice
-              : plan.monthlyPrice * 0.8; // 20% discount
+          {loadingFetch ? (
+            <div className="col-span-full text-center py-20 text-gray-500">Carregando planos...</div>
+          ) : plans.map((plan, idx) => {
+            // Apply 20% discount logic if Yearly is selected
+            // Note: In a real scenario, you probably want precise Stripe Price IDs for yearly.
+            // Here we respect the user's request to "Make discount calc on landing".
+            // So we take the base Monthly price and discount it visually.
+            // The Stripe Link usually is fixed to one price. 
+            // FIXME: If the link is for Monthly, paying Yearly via that link won't work unless the link supports adjustable quantity or coupon.
+            // For now, we follow the visual instructions. 
+
+            const basePrice = plan.price;
+            const displayPrice = billingCycle === 'monthly'
+              ? basePrice
+              : basePrice * 0.8; // 20% discount
+
+            const isHighlight = plan.name === 'Profissional'; // Highlight middle plan or by flag
 
             return (
               <SpotlightCard
-                key={idx}
-                className={`relative p-8 transition-all duration-300 ${plan.highlight
+                key={plan.id}
+                className={`relative p-8 transition-all duration-300 ${isHighlight
                   ? 'border-2 border-primary shadow-2xl shadow-primary/20 scale-105 z-10'
                   : 'hover:border-gray-300 dark:hover:border-white/20'
                   }`}
-                spotlightColor={plan.highlight ? 'rgba(124, 58, 237, 0.2)' : undefined}
+                spotlightColor={isHighlight ? 'rgba(124, 58, 237, 0.2)' : undefined}
               >
-                {plan.highlight && (
+                {isHighlight && (
                   <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-primary text-white px-4 py-1 rounded-full text-xs font-bold uppercase tracking-wider shadow-lg">
                     Mais Popular
                   </div>
@@ -119,21 +130,21 @@ const Pricing: React.FC = () => {
                 <h3 className="text-xl font-black uppercase italic tracking-tight text-black dark:text-white mb-2">
                   {plan.name}
                 </h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mb-6 h-10">
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-6 h-10 line-clamp-2">
                   {plan.description}
                 </p>
 
                 <div className="flex items-baseline gap-1 mb-2">
                   <span className="text-sm font-bold text-gray-500">R$</span>
                   <span className="text-5xl font-black tracking-tighter text-black dark:text-white">
-                    {price.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    {displayPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </span>
                   <span className="text-sm font-bold text-gray-500">/mês</span>
                 </div>
 
                 {billingCycle === 'yearly' && (
                   <p className="text-xs text-green-500 font-bold mb-6">
-                    Economia de R$ {((plan.monthlyPrice * 12) - (price * 12)).toLocaleString('pt-BR', { maximumFractionDigits: 0 })}/ano
+                    Economia de R$ {((basePrice * 12) - (displayPrice * 12)).toLocaleString('pt-BR', { maximumFractionDigits: 0 })}/ano
                   </p>
                 )}
                 {billingCycle === 'monthly' && (
@@ -141,18 +152,21 @@ const Pricing: React.FC = () => {
                 )}
 
                 <ul className="space-y-4 mb-8">
-                  {plan.features.map((feature, i) => (
+                  {plan.services?.map((feature, i) => (
                     <li key={i} className="flex items-center gap-3 text-sm font-medium text-gray-600 dark:text-gray-300">
-                      <span className={`material-symbols-outlined text-lg ${plan.highlight ? 'text-primary' : 'text-gray-400'}`}>check</span>
+                      <span className={`material-symbols-outlined text-lg ${isHighlight ? 'text-primary' : 'text-gray-400'}`}>check</span>
                       {feature}
                     </li>
                   ))}
+                  {(!plan.services || plan.services.length === 0) && (
+                    <li className="text-sm text-gray-400 italic">Sem recursos listados.</li>
+                  )}
                 </ul>
 
                 <button
-                  onClick={() => handleSelectPlan(idx)}
+                  onClick={() => handleSelectPlan(plan, idx)}
                   disabled={loadingPlan !== null}
-                  className={`w-full py-4 rounded-xl text-sm font-black uppercase tracking-wide transition-all flex items-center justify-center gap-2 ${plan.highlight
+                  className={`w-full py-4 rounded-xl text-sm font-black uppercase tracking-wide transition-all flex items-center justify-center gap-2 ${isHighlight
                     ? 'bg-primary text-white hover:bg-primary-dark shadow-lg shadow-primary/25'
                     : 'bg-gray-100 dark:bg-white/10 text-black dark:text-white hover:bg-gray-200 dark:hover:bg-white/20'
                     }`}
@@ -162,7 +176,7 @@ const Pricing: React.FC = () => {
                       <span className="size-4 border-2 border-current border-t-transparent rounded-full animate-spin"></span>
                       Carregando...
                     </>
-                  ) : plan.cta}
+                  ) : (isHighlight ? 'Testar por 7 dias' : 'Começar Agora')}
                 </button>
               </SpotlightCard>
             );
