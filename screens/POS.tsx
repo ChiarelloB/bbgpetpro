@@ -29,6 +29,7 @@ export const POS: React.FC<{ initialState?: any }> = ({ initialState }) => {
     const [cart, setCart] = useState<CartItem[]>([]);
     const [search, setSearch] = useState('');
     const [categoryFilter, setCategoryFilter] = useState('Todos');
+    const [clientSearch, setClientSearch] = useState('');
     const [isClientDropdownOpen, setIsClientDropdownOpen] = useState(false);
     const [paymentMethod, setPaymentMethod] = useState<'credit' | 'debit' | 'cash' | 'pix'>('credit');
     const [discount, setDiscount] = useState(0);
@@ -266,10 +267,31 @@ export const POS: React.FC<{ initialState?: any }> = ({ initialState }) => {
                             <span className="material-symbols-outlined text-slate-300">expand_more</span>
                         </button>
                         {isClientDropdownOpen && (
-                            <div className="absolute top-full left-0 right-0 mt-3 bg-white dark:bg-[#222] rounded-2xl shadow-2xl border border-slate-100 dark:border-gray-800 z-50 p-2">
-                                {clients.map(c => (
-                                    <button key={c.id} onClick={() => { setSelectedClient(c); setIsClientDropdownOpen(false); }} className="w-full text-left p-4 hover:bg-primary/5 rounded-xl text-xs font-bold uppercase transition-colors text-slate-900 dark:text-white">{c.name}</button>
-                                ))}
+                            <div className="absolute top-full left-0 right-0 mt-3 bg-white dark:bg-[#222] rounded-2xl shadow-2xl border border-slate-100 dark:border-gray-800 z-50 p-2 flex flex-col gap-2">
+                                <div className="p-2 border-b border-slate-100 dark:border-gray-800">
+                                    <div className="relative">
+                                        <span className="absolute left-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-slate-400 text-sm">search</span>
+                                        <input
+                                            type="text"
+                                            value={clientSearch}
+                                            onChange={e => setClientSearch(e.target.value)}
+                                            placeholder="Buscar cliente..."
+                                            className="w-full pl-10 pr-4 py-2 bg-slate-50 dark:bg-[#111] border-none rounded-xl text-[10px] font-bold text-slate-900 dark:text-white focus:ring-1 focus:ring-primary/20"
+                                            autoFocus
+                                        />
+                                    </div>
+                                </div>
+                                <div className="max-h-64 overflow-y-auto nike-scroll">
+                                    <button
+                                        onClick={() => { setSelectedClient({ id: 'consumidor', name: 'Consumidor Final (PF)' }); setIsClientDropdownOpen(false); setClientSearch(''); }}
+                                        className="w-full text-left p-4 hover:bg-primary/5 rounded-xl text-xs font-bold uppercase transition-colors text-primary border border-dashed border-primary/20 mb-2"
+                                    >
+                                        + Pessoa Física (Consumidor)
+                                    </button>
+                                    {clients.filter(c => c.name.toLowerCase().includes(clientSearch.toLowerCase())).map(c => (
+                                        <button key={c.id} onClick={() => { setSelectedClient(c); setIsClientDropdownOpen(false); setClientSearch(''); }} className="w-full text-left p-4 hover:bg-primary/5 rounded-xl text-xs font-bold uppercase transition-colors text-slate-900 dark:text-white">{c.name}</button>
+                                    ))}
+                                </div>
                             </div>
                         )}
                     </div>
