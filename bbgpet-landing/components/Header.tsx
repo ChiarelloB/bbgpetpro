@@ -26,6 +26,7 @@ interface Tenant {
 interface Subscription {
   plan_name: string;
   status: string;
+  plan_id?: string;
 }
 
 const Header: React.FC<HeaderProps> = ({ isDarkMode, toggleDarkMode, onOpenAdmin, onOpenProfile }) => {
@@ -111,29 +112,43 @@ const Header: React.FC<HeaderProps> = ({ isDarkMode, toggleDarkMode, onOpenAdmin
     if (profileData?.tenant_id) {
       const { data: subData } = await supabase
         .from('subscriptions')
-        .select('plan_name, status')
+        .select('plan_name, plan_id, status')
         .eq('tenant_id', profileData.tenant_id)
         .is('client_name', null)
         .eq('status', 'active')
         .maybeSingle();
 
       if (subData) {
-        // Fetch plan info to get is_pro
-        const { data: planData } = await supabase
-          .from('subscription_plans')
-          .select('is_pro')
-          .eq('name', subData.plan_name)
-          .maybeSingle();
+        // Fetch plan info to get is_pro and real name
+        let planData = null;
+
+        if (subData.plan_id) {
+          const { data } = await supabase
+            .from('subscription_plans')
+            .select('name, is_pro')
+            .eq('id', subData.plan_id)
+            .maybeSingle();
+          planData = data;
+        }
+
+        if (!planData && subData.plan_name) {
+          const { data } = await supabase
+            .from('subscription_plans')
+            .select('name, is_pro')
+            .eq('name', subData.plan_name)
+            .maybeSingle();
+          planData = data;
+        }
 
         // Fallback: detect PRO from plan name if RLS blocks
-        const planName = subData.plan_name?.toLowerCase() || '';
+        const planName = (planData?.name || subData.plan_name || '').toLowerCase();
         const isPro = planData?.is_pro ||
           planName.includes('profissional') ||
           planName.includes('elite') ||
           planName.includes('pro');
 
         setSubscription({
-          plan_name: subData.plan_name || (isPro ? 'PRO' : 'Free'),
+          plan_name: planData?.name || subData.plan_name || (isPro ? 'PRO' : 'Free'),
           status: subData.status
         });
       } else {

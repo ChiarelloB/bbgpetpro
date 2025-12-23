@@ -158,27 +158,42 @@ export const UserProfile: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                     .maybeSingle();
 
                 if (subData) {
-                    // Fetch plan info by name (since there is no direct FK)
-                    const { data: planData } = await supabase
-                        .from('subscription_plans')
-                        .select('name, is_pro, max_users')
-                        .eq('name', subData.plan_name)
-                        .maybeSingle();
+                    // Fetch plan info by ID (Preferred) or Name (Fallback)
+                    let planData = null;
 
-                    // Fallback: If RLS blocks the query, detect PRO from plan name
-                    const planName = subData.plan_name?.toLowerCase() || '';
+                    if (subData.plan_id) {
+                        const { data } = await supabase
+                            .from('subscription_plans')
+                            .select('name, is_pro, max_users')
+                            .eq('id', subData.plan_id)
+                            .maybeSingle();
+                        planData = data;
+                    }
+
+                    if (!planData && subData.plan_name) {
+                        const { data } = await supabase
+                            .from('subscription_plans')
+                            .select('name, is_pro, max_users')
+                            .eq('name', subData.plan_name)
+                            .maybeSingle();
+                        planData = data;
+                    }
+
+                    // Determine final values
+                    const finalPlanName = planData?.name || subData.plan_name || 'Plano Personalizado';
                     const isPro = planData?.is_pro ||
-                        planName.includes('profissional') ||
-                        planName.includes('elite') ||
-                        planName.includes('pro');
+                        finalPlanName.toLowerCase().includes('profissional') ||
+                        finalPlanName.toLowerCase().includes('elite') ||
+                        finalPlanName.toLowerCase().includes('pro');
+
                     const maxUsers = planData?.max_users ||
-                        (planName.includes('elite') ? 30 :
-                            planName.includes('profissional') ? 5 :
-                                planName.includes('inicial') ? 2 : 1);
+                        (finalPlanName.toLowerCase().includes('elite') ? 30 :
+                            finalPlanName.toLowerCase().includes('profissional') ? 5 :
+                                finalPlanName.toLowerCase().includes('inicial') ? 2 : 1);
 
                     setActiveSubscription({
                         ...subData,
-                        plan_name: subData.plan_name || 'Plano Personalizado',
+                        plan_name: finalPlanName,
                         is_pro: isPro,
                         max_users: maxUsers
                     });
