@@ -1,25 +1,11 @@
 {
-  "name": "flowpet",
-  "private": true,
-  "version": "0.0.0",
-  "type": "module",
-  "scripts": {
-    "dev": "vite",
-    "build": "vite build --outDir dist/flowpetpro --base /flowpetpro/ && cd bbgpet-landing && npm install && npx vite build --outDir ../dist --base / && cd ../flowpetAPPdoCliente && npm install && npx vite build --outDir ../dist/tutor --base /tutor/ && cd ../flow-pet-pro-Super-Admin && npm install && npx vite build --outDir ../dist/admin --base /admin/",
-    "preview": "vite preview"
-  },
-  "dependencies": {
-    "@google/generative-ai": "^0.21.0",
-    "@supabase/supabase-js": "^2.89.0",
-    "react": "^19.2.3",
-    "react-dom": "^19.2.3",
-    "recharts": "^3.6.0",
-    "uuid": "^13.0.0"
-  },
-  "devDependencies": {
-    "@types/node": "^22.14.0",
-    "@vitejs/plugin-react": "^5.0.0",
-    "typescript": "~5.8.2",
-    "vite": "^6.2.0"
-  }
+    "name": "bbgpetpro-root",
+    "private": true,
+    "scripts": {
+        "build": "npm run build:landing && npm run build:crm && npm run build:tutor && npm run build:admin",
+        "build:landing": "cd bbgpet-landing && npm install && npx vite build --outDir ../dist --base / --emptyOutDir",
+        "build:crm": "cd crm && npm install && npx vite build --outDir ../dist/flowpetpro --base /flowpetpro/ --emptyOutDir false",
+        "build:tutor": "cd flowpetAPPdoCliente && npm install && npx vite build --outDir ../dist/tutor --base /tutor/ --emptyOutDir false",
+        "build:admin": "cd flow-pet-pro-Super-Admin && npm install && npx vite build --outDir ../dist/admin --base /admin/ --emptyOutDir false"
+    }
 }
