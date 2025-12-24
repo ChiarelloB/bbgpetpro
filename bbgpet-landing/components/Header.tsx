@@ -256,16 +256,7 @@ const Header: React.FC<HeaderProps> = ({ isDarkMode, toggleDarkMode, onOpenAdmin
 
             {/* Actions & Mobile Toggle */}
             <div className="flex items-center gap-4 relative z-50">
-              {onOpenAdmin && (
-                <button
-                  onClick={onOpenAdmin}
-                  className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-white/10 text-gray-600 dark:text-gray-300 transition-colors"
-                  aria-label="Admin Panel"
-                  title="Painel Admin"
-                >
-                  <span className="material-symbols-outlined block">admin_panel_settings</span>
-                </button>
-              )}
+
               <button
                 onClick={toggleDarkMode}
                 className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-white/10 text-gray-600 dark:text-gray-300 transition-colors"
