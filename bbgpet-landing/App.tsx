@@ -9,6 +9,7 @@ import Workflow from './components/Workflow';
 import Modules from './components/Modules';
 import ScreenGallery from './components/ScreenGallery';
 import MobileApp from './components/MobileApp';
+import DownloadCRM from './components/DownloadCRM';
 import Comparison from './components/Comparison';
 import OnboardingSteps from './components/OnboardingSteps';
 import ProfitCalculator from './components/ProfitCalculator';
@@ -146,6 +147,7 @@ const App: React.FC = () => {
         <Workflow />
         <Modules />
         <MobileApp />
+        <DownloadCRM />
         <Comparison />
         <CaseStudies />
         <OnboardingSteps />
