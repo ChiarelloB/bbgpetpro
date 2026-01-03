@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSecurity } from '../SecurityContext';
 import { useNotification } from '../NotificationContext';
 import { getGeminiModel } from '../src/lib/gemini';
 import { supabase } from '../src/lib/supabase';
@@ -180,6 +181,7 @@ export const Finance: React.FC = () => {
     const [chartData, setChartData] = useState<any[]>([]);
     const [timeFilter, setTimeFilter] = useState('7 Dias');
     const { showNotification } = useNotification();
+    const { tenant } = useSecurity();
     const { accentColor } = useTheme();
     const primaryColor = colors[accentColor]?.primary || colors.purple.primary;
 
@@ -303,6 +305,7 @@ export const Finance: React.FC = () => {
                 status: 'pending',
                 // For simplicity, we're putting names in description meta if needed, 
                 // but let's assume the schema has client_name/pet_name for now or just use description
+                tenant_id: tenant?.id
             }]);
 
         if (error) {
@@ -322,6 +325,7 @@ export const Finance: React.FC = () => {
                 amount: parseFloat(data.amount),
                 description: `${data.title} - ${data.category}`,
                 status: 'pending',
+                tenant_id: tenant?.id
             }]);
 
         if (error) {

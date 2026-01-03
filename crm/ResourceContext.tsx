@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { useSecurity } from './SecurityContext';
 import { supabase } from './src/lib/supabase';
 
 export interface Resource {
@@ -35,6 +36,7 @@ export const ResourceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [resources, setResources] = useState<Resource[]>([]);
   const [sizeSettings, setSizeSettings] = useState<SizeConfig[]>([]);
   const [loading, setLoading] = useState(true);
+  const { tenant } = useSecurity();
 
   const fetchResources = async () => {
     const { data, error } = await supabase.from('resources').select('*').order('created_at', { ascending: true });
@@ -70,7 +72,7 @@ export const ResourceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   }, []);
 
   const addResource = async (resource: Omit<Resource, 'id'>) => {
-    const { data, error } = await supabase.from('resources').insert([resource]).select();
+    const { data, error } = await supabase.from('resources').insert([{ ...resource, tenant_id: tenant?.id }]).select();
     if (error) {
       console.error('Error adding resource:', error);
     } else if (data) {
@@ -101,7 +103,8 @@ export const ResourceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       const { error } = await supabase.from('size_configs').upsert({
         category: setting.id,
         label: setting.label,
-        max_weight: setting.maxWeight
+        max_weight: setting.maxWeight,
+        tenant_id: tenant?.id
       }, { onConflict: 'category' });
       if (error) console.error('Error upserting size config:', error);
     }

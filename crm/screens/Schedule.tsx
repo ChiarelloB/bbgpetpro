@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useSecurity } from '../SecurityContext';
 import { useNotification } from '../NotificationContext';
 import { useResources, Resource } from '../ResourceContext';
 import { supabase } from '../src/lib/supabase';
@@ -686,6 +687,7 @@ const DayView: React.FC<{
 
 export const Schedule: React.FC<{ onNavigate: (screen: ScreenType) => void; initialDate?: Date | null }> = ({ onNavigate, initialDate }) => {
   const { showNotification } = useNotification();
+  const { tenant } = useSecurity();
   const { resources } = useResources();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [view, setView] = useState<'month' | 'day'>('month');
@@ -787,7 +789,8 @@ export const Schedule: React.FC<{ onNavigate: (screen: ScreenType) => void; init
         duration: appt.duration,
         status: appt.status || 'pending',
         notes: appt.notes,
-        professional: appt.professional
+        professional: appt.professional,
+        tenant_id: tenant?.id
       }])
       .select();
 

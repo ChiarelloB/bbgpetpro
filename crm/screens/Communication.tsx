@@ -242,7 +242,7 @@ export const Communication: React.FC<{ initialType?: 'client' | 'team'; initialC
     const [loadingSuggestions, setLoadingSuggestions] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const { showNotification } = useNotification();
-    const { user } = useSecurity();
+    const { user, tenant } = useSecurity();
 
 
     // Unified initialization logic
@@ -455,7 +455,8 @@ export const Communication: React.FC<{ initialType?: 'client' | 'team'; initialC
                 text: messageText,
                 type: 'text',
                 sender_id: user?.id, // Use authentication ID
-                sender_profile_id: user?.id
+                sender_profile_id: user?.id,
+                tenant_id: tenant?.id
             }]).select();
 
 
@@ -546,7 +547,8 @@ export const Communication: React.FC<{ initialType?: 'client' | 'team'; initialC
                     name: contact.name,
                     type: targetType,
                     img: contact.image_url || null,
-                    last_msg: ''
+                    last_msg: '',
+                    tenant_id: tenant?.id
                 }]).select().single();
 
                 if (!error && newChat) {
@@ -577,7 +579,8 @@ export const Communication: React.FC<{ initialType?: 'client' | 'team'; initialC
             channel: campData.channel,
             audience: campData.audience,
             content: campData.content,
-            status: 'Scheduled'
+            status: 'Scheduled',
+            tenant_id: tenant?.id
         }]);
 
         if (error) {

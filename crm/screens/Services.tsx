@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useSecurity } from '../SecurityContext';
 import { useNotification } from '../NotificationContext';
 import { useResources } from '../ResourceContext';
 import { supabase } from '../src/lib/supabase';
@@ -858,6 +859,7 @@ export const Services: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedService, setSelectedService] = useState<ServiceItem | null>(null);
   const { showNotification } = useNotification();
+  const { tenant } = useSecurity();
   const [isBuilderModalOpen, setIsBuilderModalOpen] = useState(false);
   const [mainAdvancedTemplates, setMainAdvancedTemplates] = useState<AdvancedChecklistTemplate[]>(loadAdvancedTemplates());
   const [editingTemplate, setEditingTemplate] = useState<AdvancedChecklistTemplate | null>(null);
@@ -940,7 +942,8 @@ export const Services: React.FC = () => {
         items_grande: service.items_grande || [],
         items_gigante: service.items_gigante || [],
         checkin_checklist: service.checkin_checklist || null,
-        checkout_checklist: service.checkout_checklist || null
+        checkout_checklist: service.checkout_checklist || null,
+        tenant_id: tenant?.id
       };
 
       const { error } = service.id && service.id !== 'undefined' && service.id !== 'null'

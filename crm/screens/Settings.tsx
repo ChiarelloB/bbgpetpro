@@ -1081,7 +1081,7 @@ export const Settings: React.FC<SettingsProps> = ({ userProfile, onUpdateProfile
         if (editingEmployee) {
             const { error } = await supabase
                 .from('team_members')
-                .update(employeeData)
+                .update({ ...employeeData, tenant_id: tenantId })
                 .eq('id', editingEmployee.id);
             if (!error) {
                 showNotification('Funcionário atualizado com sucesso!', 'success');
@@ -1092,7 +1092,7 @@ export const Settings: React.FC<SettingsProps> = ({ userProfile, onUpdateProfile
         } else {
             const { error } = await supabase
                 .from('team_members')
-                .insert([employeeData]);
+                .insert([{ ...employeeData, tenant_id: tenantId }]);
             if (!error) {
                 showNotification('Funcionário adicionado com sucesso!', 'success');
                 fetchEmployees();

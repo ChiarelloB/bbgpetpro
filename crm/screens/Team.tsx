@@ -354,7 +354,8 @@ export const Team: React.FC<{ onNavigate?: (screen: ScreenType) => void }> = ({ 
         name: data.name,
         role: data.role,
         specialty: data.specialty,
-        status: 'active'
+        status: 'active',
+        tenant_id: tenant?.id
       }]);
 
     if (error) {
@@ -456,7 +457,8 @@ export const Team: React.FC<{ onNavigate?: (screen: ScreenType) => void }> = ({ 
           role: data.role,
           specialty: data.specialty,
           status: 'offline',
-          avatar_url: `https://ui-avatars.com/api/?name=${encodeURIComponent(data.name)}&background=random`
+          avatar_url: `https://ui-avatars.com/api/?name=${encodeURIComponent(data.name)}&background=random`,
+          tenant_id: tenant?.id
         }]);
 
       if (profileError) {

@@ -384,7 +384,8 @@ export const Clients: React.FC<ClientsProps> = ({ onNavigate }) => {
         name: data.name,
         phone: data.phone,
         email: data.email,
-        img: data.img
+        img: data.img,
+        tenant_id: tenant?.id
       }])
 
       .select();
@@ -403,7 +404,8 @@ export const Clients: React.FC<ClientsProps> = ({ onNavigate }) => {
         client_id: clientId,
         name: data.pet,
         breed: data.breed,
-        species: 'Cão'
+        species: 'Cão',
+        tenant_id: tenant?.id
       }]);
 
     if (petError) {

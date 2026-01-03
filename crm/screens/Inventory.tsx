@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNotification } from '../NotificationContext';
 import { getGeminiModel } from '../src/lib/gemini';
 import { supabase } from '../src/lib/supabase';
+import { useSecurity } from '../SecurityContext';
 
 // Types
 interface Product {
@@ -210,6 +211,7 @@ export const Inventory: React.FC = () => {
   const [analysisContent, setAnalysisContent] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const { showNotification } = useNotification();
+  const { tenant } = useSecurity();
 
   const fetchProducts = async () => {
     setLoading(true);
@@ -266,7 +268,9 @@ export const Inventory: React.FC = () => {
         stock_quantity: data.stock,
         min_stock: 5,
         img: data.img || null,
-        unit_type: data.unit_type || 'unidades'
+        unit_type: data.unit_type || 'unidades',
+        sku: data.sku,
+        tenant_id: tenant?.id
       }])
       .select();
 
@@ -279,7 +283,8 @@ export const Inventory: React.FC = () => {
         item_id: itemData[0].id,
         type: 'in',
         quantity: data.stock,
-        reason: 'Estoque Inicial'
+        reason: 'Estoque Inicial',
+        tenant_id: tenant?.id
       }]);
       fetchProducts();
       showNotification('Produto cadastrado com sucesso!', 'success');
@@ -296,7 +301,8 @@ export const Inventory: React.FC = () => {
         price: parseFloat(data.price),
         stock_quantity: data.stock,
         img: data.img || null,
-        unit_type: data.unit_type || 'unidades'
+        unit_type: data.unit_type || 'unidades',
+        sku: data.sku
       })
       .eq('id', selectedProductId);
 
@@ -324,7 +330,8 @@ export const Inventory: React.FC = () => {
         item_id: selectedProduct.id,
         type,
         quantity: qty,
-        reason: 'Ajuste Manual'
+        reason: 'Ajuste Manual',
+        tenant_id: tenant?.id
       }]);
 
     if (moveError) {
