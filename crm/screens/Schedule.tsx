@@ -772,11 +772,17 @@ export const Schedule: React.FC<{ onNavigate: (screen: ScreenType) => void; init
   }, [initialDate]);
 
   const handleAdd = async (appt: any) => {
+
+    if (!tenant?.id) {
+      showNotification('Erro de Sessão: ID da loja não encontrado. Faça login novamente.', 'error');
+      return;
+    }
+
     // Keep timestamp as local time string - Supabase will store it as-is
     // Format: YYYY-MM-DDTHH:MM:SS (local time, no timezone conversion)
     const startTimestamp = `${appt.date}T${appt.startTime}:00`;
 
-    console.log('Creating appointment with timestamp:', startTimestamp);
+    console.log('Criando agendamento para tenant:', tenant.id);
 
     const { data: appointmentData, error } = await supabase
       .from('appointments')
@@ -790,7 +796,7 @@ export const Schedule: React.FC<{ onNavigate: (screen: ScreenType) => void; init
         status: appt.status || 'pending',
         notes: appt.notes,
         professional: appt.professional,
-        tenant_id: tenant?.id
+        tenant_id: tenant.id
       }])
       .select();
 

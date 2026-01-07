@@ -261,6 +261,7 @@ const AddPetModal: React.FC<{ isOpen: boolean; onClose: () => void; onSave: (p: 
 
     const [clients, setClients] = useState<any[]>([]);
     const { calculateSize } = useResources();
+    const { tenant } = useSecurity();
 
     const handleShuffle = () => {
         const type = formData.species?.toLowerCase() || 'cachorro';
@@ -290,7 +291,15 @@ const AddPetModal: React.FC<{ isOpen: boolean; onClose: () => void; onSave: (p: 
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        if (!tenant?.id) {
+            alert('Erro de Sessão: ID da loja não encontrado. Por favor, recarregue a página ow faça login novamente.');
+            return;
+        }
+
         const size = calculateSize(formData.weight);
+
+        console.log('Tentando criar pet para tenant:', tenant.id);
 
         const { data, error } = await supabase.from('pets').insert([{
             name: formData.name,
@@ -299,20 +308,19 @@ const AddPetModal: React.FC<{ isOpen: boolean; onClose: () => void; onSave: (p: 
             weight: formData.weight,
             gender: formData.gender,
             birth_date: formData.birthDate || null,
-            client_id: formData.clientId, // Ensure you select a client!
+            client_id: formData.clientId,
             size_category: size,
             notes: formData.notes,
-            img: formData.img
+            img: formData.img,
+            tenant_id: tenant.id
         }]).select();
-
-
 
         if (!error && data) {
             onSave(data[0]);
             onClose();
         } else {
-            console.error(error);
-            alert('Erro ao criar pet. Verifique se selecionou um tutor.');
+            console.error('Erro ao criar pet:', error);
+            alert(`Erro ao criar pet: ${error?.message || 'Verifique se selecionou um tutor.'}`);
         }
     };
 
