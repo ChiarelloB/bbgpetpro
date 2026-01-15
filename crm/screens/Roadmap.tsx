@@ -211,6 +211,19 @@ const roadmapData: RoadmapItem[] = [
 
 const changelogHistory: ChangelogEntry[] = [
     {
+        version: 'v4.2.0',
+        date: '15 Jan 2026',
+        type: 'minor',
+        title: 'Gestão Inteligente de Serviços & Produtos',
+        changes: [
+            'Novo controle de Duração por Porte: Defina tempos específicos (Min) para cada tamanho de pet.',
+            'Cálculo automático de duração no agendamento baseado no porte do animal.',
+            'Módulo de Consumo de Produtos: Adicione itens do estoque (shampoos, laços) diretamente na execução do serviço.',
+            'Custo extra automático: O valor dos produtos usados é somado ao total do serviço no checkout.',
+            'Melhoria visual na tela de Edição de Serviços com inputs mais claros.'
+        ]
+    },
+    {
         version: 'v4.1.0',
         date: '23 Dez 2025',
         type: 'minor',

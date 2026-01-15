@@ -28,6 +28,26 @@ export const AppointmentModal: React.FC<AppointmentModalProps> = ({
     const [calculatedPrice, setCalculatedPrice] = useState<number | null>(null);
     const [existingAppointments, setExistingAppointments] = useState<any[]>([]);
     const [availableTimeSlots, setAvailableTimeSlots] = useState<string[]>([]);
+    const [professionals, setProfessionals] = useState<any[]>([]);
+
+    // Fetch professionals
+    useEffect(() => {
+        const fetchProfessionals = async () => {
+            const { data } = await supabase
+                .from('profiles')
+                .select('id, full_name, role') // Assuming profiles table has these fields
+                .order('full_name');
+
+            if (data) {
+                setProfessionals(data.map(p => ({
+                    id: p.id,
+                    name: p.full_name || 'Sem Nome',
+                    role: p.role
+                })));
+            }
+        };
+        fetchProfessionals();
+    }, []);
 
     // Subscription detection states
     const [petSubscription, setPetSubscription] = useState<any>(null);
@@ -91,20 +111,7 @@ export const AppointmentModal: React.FC<AppointmentModalProps> = ({
         setSelectedPet(pet || null);
     }, [formData.petId, pets]);
 
-    // Calculate price when service or pet changes
-    useEffect(() => {
-        if (formData.service && selectedPet) {
-            const service = services.find(s => s.name === formData.service);
-            if (service) {
-                // Get price based on pet size
-                const sizeKey = `price_${selectedPet.size_category?.toLowerCase() || 'pequeno'}`;
-                const price = service[sizeKey] || service.price_pequeno || 0;
-                setCalculatedPrice(price);
-            }
-        } else {
-            setCalculatedPrice(null);
-        }
-    }, [formData.service, selectedPet, services]);
+
 
     // Check if pet has active subscription that covers the service
     useEffect(() => {
@@ -150,6 +157,62 @@ export const AppointmentModal: React.FC<AppointmentModalProps> = ({
 
         checkSubscription();
     }, [selectedPet, formData.service]);
+
+
+
+    useEffect(() => {
+        const calculatePriceAndDuration = async () => {
+            if (!formData.service || !formData.petId) {
+                setCalculatedPrice(null);
+                return;
+            }
+
+            // Find selected pet
+            const selectedPet = pets.find(p => p.id === formData.petId);
+
+            // Fetch full service details including price and duration tiers
+            const { data: serviceData } = await supabase
+                .from('services')
+                .select('*') // Get all fields including durations
+                .eq('name', formData.service)
+                .single();
+
+            if (selectedPet && serviceData) {
+                // Determine size key
+                let sizeKey = 'pequeno'; // default
+                const pSize = selectedPet.size_category?.toLowerCase() || '';
+
+                if (pSize.includes('mini')) sizeKey = 'mini';
+                else if (pSize.includes('pequ') || pSize === 'p') sizeKey = 'pequeno';
+                else if (pSize.includes('méd') || pSize.includes('med') || pSize === 'm') sizeKey = 'medio';
+                else if (pSize.includes('grand') || pSize === 'g') sizeKey = 'grande';
+                else if (pSize.includes('gig') || pSize.includes('gg')) sizeKey = 'gigante';
+
+                // Price logic
+                const createPriceKey = (key: string) => `price_${key}`;
+                const specificPrice = serviceData[createPriceKey(sizeKey)];
+                const finalPrice = specificPrice || serviceData.price || 0;
+                setCalculatedPrice(finalPrice);
+
+
+                // Duration logic
+                // If manual edit happens, we might not want to overwrite immediately unless service/pet changes.
+                // But for now, let's auto-update if it matches the default logic or previous value.
+                // Or just always update on change. Users can edit after.
+
+                const createDurationKey = (key: string) => `duration_${key}`;
+                const specificDuration = serviceData[createDurationKey(sizeKey)];
+                const finalDuration = specificDuration || serviceData.duration || 60;
+
+                setFormData(prev => ({
+                    ...prev,
+                    duration: finalDuration
+                }));
+            }
+        };
+
+        calculatePriceAndDuration();
+    }, [formData.service, formData.petId, pets]);
 
     // No longer restrict time slots - fetch for display only
     useEffect(() => {
@@ -328,10 +391,9 @@ export const AppointmentModal: React.FC<AppointmentModalProps> = ({
                             className="w-full rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-[#2d3748] text-slate-900 dark:text-white focus:ring-primary focus:border-primary text-sm py-2.5 px-3"
                         >
                             <option value="" disabled>Selecione o Profissional...</option>
-                            <option>Ana S. (Groomer)</option>
-                            <option>Carlos M. (Groomer)</option>
-                            <option>Dr. Helena (Vet)</option>
-                            <option>Dr. Paulo (Vet)</option>
+                            {professionals.map(p => (
+                                <option key={p.id} value={p.name}>{p.name} ({p.role})</option>
+                            ))}
                         </select>
                     </div>
 

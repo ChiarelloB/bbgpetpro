@@ -214,10 +214,12 @@ export const Inventory: React.FC = () => {
   const { tenant } = useSecurity();
 
   const fetchProducts = async () => {
+    if (!tenant?.id) return;
     setLoading(true);
     const { data, error } = await supabase
       .from('inventory_items')
-      .select('*, inventory_movements(*)');
+      .select('*, inventory_movements(*)')
+      .eq('tenant_id', tenant.id);
 
     if (error) {
       console.error('Error fetching inventory:', error);

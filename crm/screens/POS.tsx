@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNotification } from '../NotificationContext';
 import { supabase } from '../src/lib/supabase';
+import { useSecurity } from '../SecurityContext';
 
 interface CartItem {
     id: string;
@@ -37,15 +38,17 @@ export const POS: React.FC<{ initialState?: any }> = ({ initialState }) => {
     const [isCustomItemOpen, setIsCustomItemOpen] = useState(false);
     const [customItem, setCustomItem] = useState({ name: '', price: '' });
     const [loading, setLoading] = useState(true);
+    const { tenant } = useSecurity();
     const { showNotification } = useNotification();
 
     const fetchData = async () => {
         setLoading(true);
         try {
+            if (!tenant?.id) return;
             const [invRes, svcRes, clientRes] = await Promise.all([
-                supabase.from('inventory_items').select('*'),
-                supabase.from('services').select('*'),
-                supabase.from('clients').select('id, name').order('name')
+                supabase.from('inventory_items').select('*').eq('tenant_id', tenant.id),
+                supabase.from('services').select('*').eq('tenant_id', tenant.id),
+                supabase.from('clients').select('id, name').eq('tenant_id', tenant.id).order('name')
             ]);
 
             // Debug: Log the data to see field names
@@ -84,7 +87,7 @@ export const POS: React.FC<{ initialState?: any }> = ({ initialState }) => {
         }
     };
 
-    useEffect(() => { fetchData(); }, []);
+    useEffect(() => { fetchData(); }, [tenant?.id]); // Added tenant.id to dependency array
 
     useEffect(() => {
         if (initialState && products.length > 0 && clients.length > 0) {
@@ -152,7 +155,8 @@ export const POS: React.FC<{ initialState?: any }> = ({ initialState }) => {
                     status: 'pago',
                     description: `Venda para ${selectedClient?.name || 'Consumidor'} - ${paymentMethod.toUpperCase()}`,
                     client_id: selectedClient?.id,
-                    date: new Date().toISOString().split('T')[0]
+                    date: new Date().toISOString().split('T')[0],
+                    tenant_id: tenant?.id
                 }])
                 .select()
                 .single();

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNotification } from '../NotificationContext';
 import { supabase } from '../src/lib/supabase';
+import { useSecurity } from '../SecurityContext';
 import { loadAdvancedTemplates, AdvancedChecklistTemplate, TemplateSection, TemplateField } from '../components/TemplateBuilder';
 
 
@@ -36,6 +37,14 @@ interface ServiceTask {
   duration?: number;
   checkin_checklist?: AdvancedChecklistTemplate;
   checkout_checklist?: AdvancedChecklistTemplate;
+  used_products?: { id: string; name: string; quantity: number; price: number }[];
+}
+
+interface Product {
+  id: string;
+  name: string;
+  price: number;
+  stock: number;
 }
 
 // --- Timeline Details Modal (for finished services) ---
@@ -771,9 +780,10 @@ const CheckinModal: React.FC<{
 const CheckoutModal: React.FC<{
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: (checkedIds: string[], checkoutData?: any) => void;
+  onConfirm: (checkedIds: string[], checkoutData?: any, usedProducts?: any[]) => void;
   task: ServiceTask;
-}> = ({ isOpen, onClose, onConfirm, task }) => {
+  availableProducts: Product[];
+}> = ({ isOpen, onClose, onConfirm, task, availableProducts }) => {
   const { showNotification } = useNotification();
   const [checkedItems, setCheckedItems] = useState<string[]>(task.checkedItems || []);
   const [quality, setQuality] = useState({ eyes: 'Bom', skin: 'Bom', nails: 'Bom', mouth: 'Bom' });
@@ -785,6 +795,11 @@ const CheckoutModal: React.FC<{
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [photos, setPhotos] = useState<string[]>([]);
   const [dynamicValues, setDynamicValues] = useState<Record<string, any>>({});
+
+  // Used Products State
+  const [usedProducts, setUsedProducts] = useState<{ id: string; name: string; quantity: number; price: number }[]>([]);
+  const [selectedProductId, setSelectedProductId] = useState('');
+  const [productQuantity, setProductQuantity] = useState(1);
 
   useEffect(() => {
     if (task.checkout_checklist) {
@@ -829,6 +844,27 @@ const CheckoutModal: React.FC<{
     }
   };
 
+  const handleAddProduct = () => {
+    if (!selectedProductId) return;
+    const product = availableProducts.find(p => p.id === selectedProductId);
+    if (!product) return;
+
+    setUsedProducts(prev => {
+      const existing = prev.find(p => p.id === selectedProductId);
+      if (existing) {
+        return prev.map(p => p.id === selectedProductId ? { ...p, quantity: p.quantity + productQuantity } : p);
+      }
+      return [...prev, { id: product.id, name: product.name, quantity: productQuantity, price: product.price }];
+    });
+    setSelectedProductId('');
+    setProductQuantity(1);
+  };
+
+  const handleRemoveProduct = (id: string) => {
+    setUsedProducts(prev => prev.filter(p => p.id !== id));
+  };
+
+
   const handleSubmit = () => {
     const checkoutData = {
       quality,
@@ -841,7 +877,7 @@ const CheckoutModal: React.FC<{
       templateName: task.checkout_checklist?.name,
       timestamp: new Date().toISOString()
     };
-    onConfirm(checkedItems, checkoutData);
+    onConfirm(checkedItems, checkoutData, usedProducts);
   };
 
   return (
@@ -1041,6 +1077,65 @@ const CheckoutModal: React.FC<{
                 </>
               )}
             </div>
+          </section>
+
+          {/* Used Products Section */}
+          <section className="bg-white dark:bg-[#1a1a1a] rounded-2xl p-5 border border-slate-100 dark:border-gray-800 shadow-sm">
+            <div className="flex items-center gap-2 mb-4 text-emerald-500">
+              <span className="material-symbols-outlined text-xl">shopping_bag</span>
+              <h3 className="text-xs font-black uppercase italic">Consumo de Produtos</h3>
+            </div>
+
+            <div className="flex gap-2 mb-4">
+              <select
+                value={selectedProductId}
+                onChange={e => setSelectedProductId(e.target.value)}
+                className="flex-1 bg-slate-50 dark:bg-[#111] border border-slate-200 dark:border-gray-700 rounded-xl px-3 text-xs outline-none focus:ring-1 focus:ring-emerald-500"
+              >
+                <option value="">Selecione um produto...</option>
+                {availableProducts.map(p => (
+                  <option key={p.id} value={p.id}>{p.name} (Estoque: {p.stock})</option>
+                ))}
+              </select>
+              <input
+                type="number"
+                min="1"
+                value={productQuantity}
+                onChange={e => setProductQuantity(Number(e.target.value))}
+                className="w-16 bg-slate-50 dark:bg-[#111] border border-slate-200 dark:border-gray-700 rounded-xl px-2 text-center text-xs outline-none focus:ring-1 focus:ring-emerald-500"
+              />
+              <button
+                onClick={handleAddProduct}
+                disabled={!selectedProductId}
+                className="bg-emerald-500 text-white rounded-xl w-10 flex items-center justify-center disabled:opacity-50 hover:bg-emerald-600 transition-colors"
+              >
+                <span className="material-symbols-outlined text-sm">add</span>
+              </button>
+            </div>
+
+            {usedProducts.length > 0 ? (
+              <div className="space-y-2">
+                {usedProducts.map(p => (
+                  <div key={p.id} className="flex justify-between items-center bg-slate-50 dark:bg-[#111] p-3 rounded-xl border border-slate-100 dark:border-gray-800">
+                    <div className="flex flex-col">
+                      <span className="text-xs font-bold text-slate-700 dark:text-gray-300">{p.name}</span>
+                      <span className="text-[10px] text-slate-400">{p.quantity}x R$ {p.price.toFixed(2)}</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs font-black text-emerald-600 dark:text-emerald-400">R$ {(p.quantity * p.price).toFixed(2)}</span>
+                      <button onClick={() => handleRemoveProduct(p.id)} className="text-red-400 hover:text-red-600">
+                        <span className="material-symbols-outlined text-sm">delete</span>
+                      </button>
+                    </div>
+                  </div>
+                ))}
+                <div className="flex justify-end pt-2 border-t border-slate-100 dark:border-gray-800 mt-2">
+                  <p className="text-xs font-bold text-slate-500 dark:text-gray-400 uppercase">Total Adicional: <span className="text-emerald-600 dark:text-emerald-400 text-sm">R$ {usedProducts.reduce((acc, curr) => acc + (curr.price * curr.quantity), 0).toFixed(2)}</span></p>
+                </div>
+              </div>
+            ) : (
+              <p className="text-[10px] text-slate-400 italic text-center py-2">Nenhum produto adicionado.</p>
+            )}
           </section>
 
           {/* Pertences (Common) */}
@@ -1312,6 +1407,7 @@ const ExecutionTimer: React.FC<{ startTime?: string; duration?: number }> = ({ s
 
 
 export const Execution: React.FC<{ onNavigate?: (screen: any, state?: any) => void }> = ({ onNavigate }) => {
+  const { tenant } = useSecurity();
   const [tasks, setTasks] = useState<ServiceTask[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedTask, setSelectedTask] = useState<ServiceTask | null>(null);
@@ -1322,7 +1418,28 @@ export const Execution: React.FC<{ onNavigate?: (screen: any, state?: any) => vo
   const [initialPrice, setInitialPrice] = useState(0);
   const [printData, setPrintData] = useState<{ amount: number, paymentMethod: string } | null>(null);
   const [categoryFilter, setCategoryFilter] = useState('TODOS');
+  const [products, setProducts] = useState<Product[]>([]);
   const { showNotification } = useNotification();
+
+  // Fetch Products for Checkout
+  useEffect(() => {
+    const fetchProducts = async () => {
+      if (!tenant?.id) return;
+      const { data } = await supabase
+        .from('inventory_items')
+        .select('id, name, price, stock_quantity')
+        .eq('tenant_id', tenant.id);
+      if (data) {
+        setProducts(data.map(p => ({
+          id: p.id,
+          name: p.name,
+          price: p.price,
+          stock: p.stock_quantity
+        })));
+      }
+    };
+    fetchProducts();
+  }, []);
 
   // Fetch pet's last photo from gallery when opening details
   const openDetailsModal = async (task: ServiceTask) => {
@@ -1347,13 +1464,18 @@ export const Execution: React.FC<{ onNavigate?: (screen: any, state?: any) => vo
 
   const fetchTasks = async () => {
     setLoading(true);
+    if (!tenant?.id) return;
     const { data: appts, error } = await supabase
       .from('appointments')
       .select('*, pets(id, name, breed, img), clients(id, name)')
+      .eq('tenant_id', tenant.id)
       .order('start_time', { ascending: true });
 
     if (!error && appts) {
-      const { data: services } = await supabase.from('services').select('name, checklist, category, checkin_checklist, checkout_checklist');
+      const { data: services } = await supabase
+        .from('services')
+        .select('name, checklist, category, checkin_checklist, checkout_checklist')
+        .eq('tenant_id', tenant.id);
 
       const mapped: ServiceTask[] = appts.filter(a => a.status !== 'cancelled').map(a => {
         const svcInfo = services?.find(s => s.name === a.service);
@@ -1383,7 +1505,8 @@ export const Execution: React.FC<{ onNavigate?: (screen: any, state?: any) => vo
           responsible: a.professional || 'Não designado',
           responsibleAvatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(a.professional || 'NA')}&background=random`,
           checkin_checklist: svcInfo?.checkin_checklist,
-          checkout_checklist: svcInfo?.checkout_checklist
+          checkout_checklist: svcInfo?.checkout_checklist,
+          used_products: a.used_products || []
         };
       });
       setTasks(mapped);
@@ -1393,7 +1516,7 @@ export const Execution: React.FC<{ onNavigate?: (screen: any, state?: any) => vo
 
   useEffect(() => { fetchTasks(); }, []);
 
-  const handleUpdateProgress = async (checkedIds: string[], afterPhotoUrl?: any, taskOverride?: ServiceTask) => {
+  const handleUpdateProgress = async (checkedIds: string[], afterPhotoUrl?: any, usedProducts?: any[], taskOverride?: ServiceTask) => {
     const activeTask = taskOverride || selectedTask;
     if (!activeTask) return;
 
@@ -1437,7 +1560,8 @@ export const Execution: React.FC<{ onNavigate?: (screen: any, state?: any) => vo
         .update({
           checklist_state: updatedChecklist,
           current_step: nextStep,
-          status: nextStatus
+          status: nextStatus,
+          used_products: usedProducts && usedProducts.length > 0 ? usedProducts : activeTask.used_products
         })
         .eq('id', activeTask.appointmentId);
 
@@ -1494,7 +1618,11 @@ export const Execution: React.FC<{ onNavigate?: (screen: any, state?: any) => vo
           .single();
 
         const price = serviceData?.price_pequeno || serviceData?.price || 0;
-        setInitialPrice(price);
+
+        // Add used products cost to initial price if any
+        const productsCost = (usedProducts || activeTask.used_products || []).reduce((acc: number, curr: any) => acc + (curr.price * curr.quantity), 0);
+
+        setInitialPrice(price + productsCost);
         setDeliveryTask(activeTask);
         setSelectedTask(null);
         setCheckinTask(null);
@@ -1520,7 +1648,11 @@ export const Execution: React.FC<{ onNavigate?: (screen: any, state?: any) => vo
       .single();
 
     const price = serviceData?.price_pequeno || serviceData?.price || 0;
-    setInitialPrice(price);
+
+    // Add used products cost
+    const productsCost = (task.used_products || []).reduce((acc, curr) => acc + (curr.price * curr.quantity), 0);
+
+    setInitialPrice(price + productsCost);
     setDeliveryTask(task);
   };
 

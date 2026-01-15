@@ -275,11 +275,16 @@ const AddPetModal: React.FC<{ isOpen: boolean; onClose: () => void; onSave: (p: 
 
     useEffect(() => {
         const fetchClients = async () => {
-            const { data } = await supabase.from('clients').select('id, name').order('name');
+            if (!tenant?.id) return;
+            const { data } = await supabase
+                .from('clients')
+                .select('id, name')
+                .eq('tenant_id', tenant.id)
+                .order('name');
             if (data) setClients(data);
         };
         fetchClients();
-    }, []);
+    }, [tenant?.id]);
 
     useEffect(() => {
         if (isOpen && initialClientId) {
@@ -555,12 +560,12 @@ export const PetProfile: React.FC<{ onNavigate?: (screen: any) => void }> = ({ o
     }, [debouncedSearchTerm]);
 
     const fetchPets = async () => {
-
-
+        if (!tenant?.id) return;
         setLoading(true);
         const { data, error } = await supabase
             .from('pets')
             .select('*, clients(name)')
+            .eq('tenant_id', tenant.id)
             .order('name', { ascending: true });
 
         if (!error && data) {

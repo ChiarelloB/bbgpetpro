@@ -39,7 +39,13 @@ export const ResourceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const { tenant } = useSecurity();
 
   const fetchResources = async () => {
-    const { data, error } = await supabase.from('resources').select('*').order('created_at', { ascending: true });
+    if (!tenant?.id) return;
+    const { data, error } = await supabase
+      .from('resources')
+      .select('*')
+      .eq('tenant_id', tenant.id)
+      .order('created_at', { ascending: true });
+
     if (error) {
       console.error('Error fetching resources:', error);
     } else {
@@ -48,7 +54,12 @@ export const ResourceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   };
 
   const fetchSizeSettings = async () => {
-    const { data, error } = await supabase.from('size_configs').select('*');
+    if (!tenant?.id) return;
+    const { data, error } = await supabase
+      .from('size_configs')
+      .select('*')
+      .eq('tenant_id', tenant.id);
+
     if (error) {
       console.error('Error fetching size settings:', error);
     } else {
@@ -63,13 +74,17 @@ export const ResourceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   };
 
   useEffect(() => {
-    const init = async () => {
-      setLoading(true);
-      await Promise.all([fetchResources(), fetchSizeSettings()]);
+    if (tenant?.id) {
+      const init = async () => {
+        setLoading(true);
+        await Promise.all([fetchResources(), fetchSizeSettings()]);
+        setLoading(false);
+      };
+      init();
+    } else {
       setLoading(false);
-    };
-    init();
-  }, []);
+    }
+  }, [tenant?.id]);
 
   const addResource = async (resource: Omit<Resource, 'id'>) => {
     const { data, error } = await supabase.from('resources').insert([{ ...resource, tenant_id: tenant?.id }]).select();
@@ -121,11 +136,13 @@ export const ResourceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     return sizeSettings[sizeSettings.length - 1].label;
   };
 
+  const contextValue = React.useMemo(() => ({
+    resources, addResource, updateResource, deleteResource,
+    sizeSettings, updateSizeSettings, calculateSize, loading
+  }), [resources, sizeSettings, loading]);
+
   return (
-    <ResourceContext.Provider value={{
-      resources, addResource, updateResource, deleteResource,
-      sizeSettings, updateSizeSettings, calculateSize, loading
-    }}>
+    <ResourceContext.Provider value={contextValue}>
       {children}
     </ResourceContext.Provider>
   );

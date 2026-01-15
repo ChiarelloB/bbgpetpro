@@ -297,10 +297,12 @@ export const Clients: React.FC<ClientsProps> = ({ onNavigate }) => {
 
 
   const fetchClients = async () => {
+    if (!tenant?.id) return;
     setLoading(true);
     const { data: clientsData, error: clientsError } = await supabase
       .from('clients')
-      .select('*, pets(*)');
+      .select('*, pets(*)')
+      .eq('tenant_id', tenant.id);
 
     if (clientsError) {
       console.error('Error fetching clients:', clientsError);

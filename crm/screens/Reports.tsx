@@ -4,6 +4,7 @@ import { useNotification } from '../NotificationContext';
 import { getGeminiModel } from '../src/lib/gemini';
 import { supabase } from '../src/lib/supabase';
 import { useTheme, colors } from '../ThemeContext';
+import { useSecurity } from '../SecurityContext';
 
 interface Transaction {
   id: string;
@@ -16,6 +17,7 @@ interface Transaction {
 }
 
 export const Reports: React.FC = () => {
+  const { tenant } = useSecurity();
   const { accentColor } = useTheme();
   const primaryColor = colors[accentColor]?.primary || colors.purple.primary;
   const [timeFilter, setTimeFilter] = useState('Últimos 7 dias');
@@ -38,9 +40,11 @@ export const Reports: React.FC = () => {
     const sevenDaysAgoStr = sevenDaysAgo.toISOString().split('T')[0];
 
     // 1. Fetch Transactions
+    if (!tenant?.id) return;
     const { data: txs, error: txError } = await supabase
       .from('financial_transactions')
       .select('*')
+      .eq('tenant_id', tenant.id)
       .order('date', { ascending: false });
 
     if (txError) {
@@ -63,7 +67,11 @@ export const Reports: React.FC = () => {
       const ticketMedio = paidTxs.length > 0 ? totalRevenue / paidTxs.length : 0;
 
       // New Clients (count)
-      const { count: clientCount } = await supabase.from('clients').select('*', { count: 'exact', head: true }).gte('created_at', sevenDaysAgoStr);
+      const { count: clientCount } = await supabase
+        .from('clients')
+        .select('*', { count: 'exact', head: true })
+        .eq('tenant_id', tenant.id)
+        .gte('created_at', sevenDaysAgoStr);
 
       setKpis(prev => ({
         ...prev,
@@ -92,7 +100,10 @@ export const Reports: React.FC = () => {
     }
 
     // 2. Fetch Service Mix (from appointments)
-    const { data: appointments } = await supabase.from('appointments').select('service');
+    const { data: appointments } = await supabase
+      .from('appointments')
+      .select('service')
+      .eq('tenant_id', tenant.id);
     if (appointments) {
       const serviceCounts: Record<string, number> = {};
       appointments.forEach(a => {

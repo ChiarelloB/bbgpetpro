@@ -62,6 +62,12 @@ interface ServiceItem {
   price_grande: number;
   price_gigante: number;
   duration: number;
+  duration_mini?: number;
+  duration_pequeno?: number;
+  duration_medio?: number;
+  duration_grande?: number;
+  duration_gigante?: number;
+
   icon: string;
   image_url: string;
   checklist: ChecklistItem[];
@@ -86,6 +92,7 @@ const ServiceForm: React.FC<{
   title: string,
   saveLabel: string
 }> = ({ initialData, onClose, onSave, title, saveLabel }) => {
+  const { tenant } = useSecurity();
   const { sizeSettings } = useResources();
   const [products, setProducts] = useState<any[]>([]);
   const [uploadingImage, setUploadingImage] = useState(false);
@@ -99,6 +106,12 @@ const ServiceForm: React.FC<{
   const [priceGrande, setPriceGrande] = useState(initialData?.price_grande?.toString() || '');
   const [priceGigante, setPriceGigante] = useState(initialData?.price_gigante?.toString() || '');
   const [duration, setDuration] = useState(initialData?.duration?.toString() || '');
+  const [durationMini, setDurationMini] = useState(initialData?.duration_mini?.toString() || '');
+  const [durationPequeno, setDurationPequeno] = useState(initialData?.duration_pequeno?.toString() || '');
+  const [durationMedio, setDurationMedio] = useState(initialData?.duration_medio?.toString() || '');
+  const [durationGrande, setDurationGrande] = useState(initialData?.duration_grande?.toString() || '');
+  const [durationGigante, setDurationGigante] = useState(initialData?.duration_gigante?.toString() || '');
+
   const [description, setDescription] = useState(initialData?.description || '');
   const [imageUrl, setImageUrl] = useState(initialData?.image_url || '');
   const [checklist, setChecklist] = useState<ChecklistItem[]>(initialData?.checklist || []);
@@ -126,22 +139,26 @@ const ServiceForm: React.FC<{
   const [editingChecklistType, setEditingChecklistType] = useState<'checkin' | 'checkout' | null>(null);
   const [selectedPorteProductId, setSelectedPorteProductId] = useState('');
   const [selectedPorteQty, setSelectedPorteQty] = useState('1');
+  const [activeTab, setActiveTab] = useState<'info' | 'price' | 'products' | 'checklist'>('info');
 
 
 
 
   useEffect(() => {
     const fetchInv = async () => {
-      const { data } = await supabase.from('inventory_items').select('id, name, price');
+      if (!tenant?.id) return;
+      const { data } = await supabase
+        .from('inventory_items')
+        .select('id, name, price')
+        .eq('tenant_id', tenant.id);
       if (data) setProducts(data);
     };
     fetchInv();
-  }, []);
+  }, [tenant?.id]);
 
   useEffect(() => {
     if (sizeSettings.length > 0 && Object.keys(variations).length === 0) {
       const initVariations: Record<string, string> = {};
-      sizeSettings.forEach(s => { initVariations[s.id] = '0'; });
       setVariations(initVariations);
     }
   }, [sizeSettings]);
@@ -366,6 +383,11 @@ const ServiceForm: React.FC<{
       price_grande: parseFloat(priceGrande) || 0,
       price_gigante: parseFloat(priceGigante) || 0,
       duration: parseInt(duration) || 0,
+      duration_mini: parseInt(durationMini) || 0,
+      duration_pequeno: parseInt(durationPequeno) || 0,
+      duration_medio: parseInt(durationMedio) || 0,
+      duration_grande: parseInt(durationGrande) || 0,
+      duration_gigante: parseInt(durationGigante) || 0,
       variations,
       costs,
       image_url: imageUrl,
@@ -400,444 +422,489 @@ const ServiceForm: React.FC<{
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-8 grid grid-cols-1 lg:grid-cols-2 gap-12 max-h-[75vh] overflow-y-auto nike-scroll">
-          {/* Left Column */}
-          <div className="space-y-8">
-            <div>
-              <label className="block text-[10px] font-black uppercase text-white/40 mb-2 tracking-widest">Nome do Serviço</label>
-              <input type="text" value={name} onChange={e => setName(e.target.value)} required className="w-full h-14 rounded-2xl border-white/5 bg-white/5 text-white text-lg font-bold focus:ring-primary focus:border-primary px-6" />
-            </div>
+        <div className="flex border-b border-white/5 px-8">
+          {[
+            { id: 'info', label: 'Informações', icon: 'info' },
+            { id: 'price', label: 'Preços e Prazos', icon: 'payments' },
+            { id: 'products', label: 'Insumos e Custos', icon: 'inventory_2' },
+            { id: 'checklist', label: 'Checklists', icon: 'checklist' }
+          ].map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id as any)}
+              className={`flex items-center gap-2 px-6 py-4 text-xs font-black uppercase tracking-widest border-b-2 transition-all ${activeTab === tab.id ? 'border-primary text-white' : 'border-transparent text-white/40 hover:text-white'}`}
+            >
+              <span className="material-symbols-outlined text-lg">{tab.icon}</span>
+              {tab.label}
+            </button>
+          ))}
+        </div>
 
-            {/* Image Upload Section */}
-            <div>
-              <label className="block text-[10px] font-black uppercase text-white/40 mb-2 tracking-widest">Imagem do Serviço</label>
-              <div className="flex gap-4">
-                {/* Preview */}
-                <div className="w-24 h-24 rounded-2xl bg-white/5 border border-white/10 overflow-hidden flex items-center justify-center shrink-0">
-                  {imageUrl ? (
-                    <img src={imageUrl} alt="Preview" className="w-full h-full object-cover" />
-                  ) : (
-                    <span className="material-symbols-outlined text-3xl text-white/20">image</span>
-                  )}
-                </div>
-                {/* Input Options */}
-                <div className="flex-1 space-y-3">
-                  {/* URL Input */}
-                  <input
-                    type="url"
-                    value={imageUrl}
-                    onChange={e => setImageUrl(e.target.value)}
-                    placeholder="Cole a URL da imagem..."
-                    className="w-full h-12 rounded-xl border-white/5 bg-white/5 text-white text-sm font-bold focus:ring-primary px-4"
-                  />
-                  {/* File Upload */}
-                  <div className="flex gap-2">
-                    <label className="flex-1 h-12 rounded-xl bg-white/10 border border-dashed border-white/20 flex items-center justify-center gap-2 cursor-pointer hover:bg-white/20 transition-colors">
-                      <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
-                      {uploadingImage ? (
-                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      ) : (
-                        <>
-                          <span className="material-symbols-outlined text-lg text-white/60">upload</span>
-                          <span className="text-xs font-bold text-white/60">Upload</span>
-                        </>
+        <form onSubmit={handleSubmit} className="p-8 h-[60vh] overflow-y-auto nike-scroll">
+          {/* INFO TAB */}
+          {activeTab === 'info' && (
+            <div className="space-y-8 animate-in fade-in duration-300">
+              <div>
+                <label className="block text-[10px] font-black uppercase text-white/40 mb-2 tracking-widest">Nome do Serviço</label>
+                <input type="text" value={name} onChange={e => setName(e.target.value)} required className="w-full h-14 rounded-2xl border-white/5 bg-white/5 text-white text-lg font-bold focus:ring-primary focus:border-primary px-6" />
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-black uppercase text-white/40 mb-2 tracking-widest">Imagem do Serviço</label>
+                <div className="flex gap-4">
+                  <div className="w-24 h-24 rounded-2xl bg-white/5 border border-white/10 overflow-hidden flex items-center justify-center shrink-0">
+                    {imageUrl ? (
+                      <img src={imageUrl} alt="Preview" className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="material-symbols-outlined text-3xl text-white/20">image</span>
+                    )}
+                  </div>
+                  <div className="flex-1 space-y-3">
+                    <input
+                      type="url"
+                      value={imageUrl}
+                      onChange={e => setImageUrl(e.target.value)}
+                      placeholder="Cole a URL da imagem..."
+                      className="w-full h-12 rounded-xl border-white/5 bg-white/5 text-white text-sm font-bold focus:ring-primary px-4"
+                    />
+                    <div className="flex gap-2">
+                      <label className="flex-1 h-12 rounded-xl bg-white/10 border border-dashed border-white/20 flex items-center justify-center gap-2 cursor-pointer hover:bg-white/20 transition-colors">
+                        <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
+                        {uploadingImage ? (
+                          <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        ) : (
+                          <>
+                            <span className="material-symbols-outlined text-lg text-white/60">upload</span>
+                            <span className="text-xs font-bold text-white/60">Upload</span>
+                          </>
+                        )}
+                      </label>
+                      {imageUrl && (
+                        <button
+                          type="button"
+                          onClick={() => setImageUrl('')}
+                          className="w-12 h-12 rounded-xl bg-rose-500/20 text-rose-500 flex items-center justify-center hover:bg-rose-500 hover:text-white transition-all"
+                        >
+                          <span className="material-symbols-outlined">delete</span>
+                        </button>
                       )}
-                    </label>
-                    {imageUrl && (
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-black uppercase text-white/40 mb-2 tracking-widest">Categoria</label>
+                <select value={category} onChange={e => setCategory(e.target.value)} className="w-full h-14 rounded-2xl border-white/5 bg-white/5 text-white font-bold focus:ring-primary px-6">
+                  <option value="Banho">Banho</option>
+                  <option value="Estética">Estética</option>
+                  <option value="Saúde Animal">Saúde Animal</option>
+                  <option value="Hospedagem">Hospedagem</option>
+                  <option value="Outros">Outros</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-black uppercase text-white/40 mb-2 tracking-widest">Descrição Curta</label>
+                <textarea value={description} onChange={e => setDescription(e.target.value)} rows={3} className="w-full rounded-2xl border-white/5 bg-white/5 text-white text-sm font-bold focus:ring-primary p-6 resize-none" placeholder="Breve descrição para o catálogo..." />
+              </div>
+            </div>
+          )}
+
+          {/* PRICE TAB */}
+          {activeTab === 'price' && (
+            <div className="space-y-8 animate-in fade-in duration-300">
+              <div className="grid grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-[10px] font-black uppercase text-white/40 mb-2 tracking-widest">Duração Padrão (Min)</label>
+                  <input type="number" value={duration} onChange={e => setDuration(e.target.value)} required className="w-full h-14 rounded-2xl border-white/5 bg-white/5 text-white text-lg font-bold focus:ring-primary px-6" />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-black uppercase text-white/40 mb-2 tracking-widest">Preço Base (Legado)</label>
+                  <input type="number" step="0.01" value={price} onChange={e => setPrice(e.target.value)} className="w-full h-14 rounded-2xl border-white/5 bg-white/10 text-white/60 text-lg font-bold px-6" placeholder="Opcional" />
+                </div>
+              </div>
+
+              <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
+                <h3 className="text-[10px] font-black uppercase text-primary mb-4 tracking-widest">💰 Preços por Porte</h3>
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+                  {(['mini', 'pequeno', 'medio', 'grande', 'gigante'] as const).map(porte => (
+                    <div key={porte} className="bg-white/5 p-3 rounded-2xl border border-white/5 flex flex-col gap-2">
+                      <label className="block text-[10px] font-black uppercase text-white/60 tracking-widest text-center mb-1">{porte.charAt(0).toUpperCase() + porte.slice(1)}</label>
+
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
+                          <span className="text-emerald-500 text-[10px] font-bold">R$</span>
+                        </div>
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={porte === 'mini' ? priceMini : porte === 'pequeno' ? pricePequeno : porte === 'medio' ? priceMedio : porte === 'grande' ? priceGrande : priceGigante}
+                          onChange={e => {
+                            const v = e.target.value;
+                            if (porte === 'mini') setPriceMini(v);
+                            else if (porte === 'pequeno') setPricePequeno(v);
+                            else if (porte === 'medio') setPriceMedio(v);
+                            else if (porte === 'grande') setPriceGrande(v);
+                            else setPriceGigante(v);
+                          }}
+                          className="w-full h-10 rounded-xl border-white/10 bg-white/5 text-white font-black text-sm focus:ring-emerald-500/50 focus:border-emerald-500 pl-7 pr-2 text-center"
+                          placeholder="0.00"
+                        />
+                      </div>
+
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
+                          <span className="material-symbols-outlined text-white/40 text-[14px]">schedule</span>
+                        </div>
+                        <input
+                          type="number"
+                          value={porte === 'mini' ? durationMini : porte === 'pequeno' ? durationPequeno : porte === 'medio' ? durationMedio : porte === 'grande' ? durationGrande : durationGigante}
+                          onChange={e => {
+                            const v = e.target.value;
+                            if (porte === 'mini') setDurationMini(v);
+                            else if (porte === 'pequeno') setDurationPequeno(v);
+                            else if (porte === 'medio') setDurationMedio(v);
+                            else if (porte === 'grande') setDurationGrande(v);
+                            else setDurationGigante(v);
+                          }}
+                          className="w-full h-10 rounded-xl border-white/10 bg-white/5 text-white font-black text-sm focus:ring-primary focus:border-primary pl-7 pr-2 text-center"
+                          placeholder="Min"
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-xs text-white/40 mt-3 italic">O sistema calculará automaticamente o preço correto no agendamento baseado no porte do pet.</p>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-black uppercase text-white/40 mb-4 tracking-widest">Variação de Preço por Porte (Avançado)</label>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  {sizeSettings.map(size => (
+                    <div key={size.id} className="bg-white/5 p-4 rounded-2xl border border-white/5">
+                      <label className="block text-[9px] font-black uppercase text-white/40 mb-2 tracking-widest">{size.label}</label>
+                      <input type="number" value={variations[size.id] || 0} onChange={e => setVariations({ ...variations, [size.id]: e.target.value })} className="w-full h-10 rounded-xl border-white/5 bg-white/5 text-white text-center font-bold px-2 focus:ring-primary" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* PRODUCTS TAB */}
+          {activeTab === 'products' && (
+            <div className="space-y-8 animate-in fade-in duration-300">
+              <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
+                <h3 className="text-[10px] font-black uppercase text-primary mb-4 tracking-widest">📦 Itens Usados por Porte</h3>
+
+                <div className="flex gap-1 mb-4">
+                  {(['mini', 'pequeno', 'medio', 'grande', 'gigante'] as const).map(porte => (
+                    <button
+                      key={porte}
+                      type="button"
+                      onClick={() => setActivePorteTab(porte)}
+                      className={`flex-1 py-2 px-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${activePorteTab === porte
+                        ? 'bg-primary text-white'
+                        : 'bg-white/5 text-white/40 hover:bg-white/10 hover:text-white/60'
+                        }`}
+                    >
+                      {porte === 'mini' ? 'Mini' : porte === 'pequeno' ? 'Peq' : porte === 'medio' ? 'Méd' : porte === 'grande' ? 'Gra' : 'Gig'}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-2 mb-4">
+                  <select
+                    value={selectedPorteProductId}
+                    onChange={e => setSelectedPorteProductId(e.target.value)}
+                    className="flex-1 h-10 rounded-xl border-white/10 bg-white/5 text-white text-xs font-bold px-3 min-w-0"
+                  >
+                    <option value="">Selecionar produto...</option>
+                    {products.map(p => (
+                      <option key={p.id} value={p.id}>{p.name}</option>
+                    ))}
+                  </select>
+                  <div className="flex gap-2">
+                    <input
+                      type="number"
+                      min="0.1"
+                      step="0.1"
+                      value={selectedPorteQty}
+                      onChange={e => setSelectedPorteQty(e.target.value)}
+                      placeholder="Qtd"
+                      className="w-20 h-10 rounded-xl border-white/10 bg-white/5 text-white text-xs font-bold px-3 text-center"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleAddItemPorte}
+                      className="w-10 h-10 rounded-xl bg-primary text-white flex items-center justify-center hover:bg-primary-hover transition-all shrink-0"
+                    >
+                      <span className="material-symbols-outlined text-lg">add</span>
+                    </button>
+                  </div>
+                </div>
+
+                {itemsPorPorte[activePorteTab].length > 0 ? (
+                  <div className="space-y-2">
+                    {itemsPorPorte[activePorteTab].map((item, idx) => (
+                      <div key={idx} className="flex items-center justify-between p-3 bg-white/5 rounded-xl">
+                        <div className="flex items-center gap-3">
+                          <span className="text-sm font-bold text-white">{item.name}</span>
+                          <span className="text-xs text-white/40">x{item.quantity}</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveItemPorte(idx)}
+                          className="w-7 h-7 rounded-lg bg-rose-500/20 text-rose-500 flex items-center justify-center hover:bg-rose-500 hover:text-white transition-all"
+                        >
+                          <span className="material-symbols-outlined text-sm">close</span>
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-white/30 text-center py-4 italic">Nenhum item configurado para este porte</p>
+                )}
+                <p className="text-xs text-white/40 mt-3 italic">Configure os produtos do estoque que serão consumidos para cada porte.</p>
+
+                <div className="mt-4 grid grid-cols-5 gap-2">
+                  {(['mini', 'pequeno', 'medio', 'grande', 'gigante'] as const).map(porte => {
+                    const data = profitPerSize[porte];
+                    const porteName = porte === 'mini' ? 'Mini' : porte === 'pequeno' ? 'Peq' : porte === 'medio' ? 'Méd' : porte === 'grande' ? 'Gra' : 'Gig';
+                    return (
+                      <div key={porte} className={`p-2 rounded-xl ${activePorteTab === porte ? 'bg-primary/10 border border-primary/30' : 'bg-white/5 border border-white/10'}`}>
+                        <p className="text-[8px] font-black uppercase text-white/40 mb-1">{porteName}</p>
+                        <p className="text-[10px] text-white/60">
+                          <span className="text-rose-400 font-bold">R$ {data.costs.toFixed(0)}</span>
+                        </p>
+                        <p className="text-[10px] text-white/60">
+                          <span className={`font-bold ${data.profit >= 0 ? 'text-green-400' : 'text-rose-400'}`}>
+                            R$ {data.profit.toFixed(0)}
+                          </span>
+                        </p>
+                        <p className="text-[10px] text-white/60">
+                          <span className={`font-bold ${data.margin >= 20 ? 'text-green-400' : data.margin >= 0 ? 'text-yellow-400' : 'text-rose-400'}`}>
+                            {data.margin.toFixed(0)}%
+                          </span>
+                        </p>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="bg-white/5 rounded-3xl p-8 border border-white/5 space-y-6">
+                <div className="flex justify-between items-end">
+                  <h3 className="text-[10px] font-black uppercase text-white/40 tracking-widest">Composição de Custos (Geral)</h3>
+                  <p className="text-white font-black italic text-sm">Total: <span className="text-rose-500">R$ {totalCosts.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span></p>
+                </div>
+
+                <div className="flex gap-3">
+                  <select
+                    value={selectedProductId}
+                    onChange={e => setSelectedProductId(e.target.value)}
+                    className="flex-1 h-12 rounded-xl border-white/5 bg-white/10 text-white text-xs font-bold px-4 min-w-0"
+                  >
+                    <option value="">Selecione o produto...</option>
+                    {products.map(p => (
+                      <option key={p.id} value={p.id}>{p.name} (R$ {p.price})</option>
+                    ))}
+                  </select>
+                  <input type="number" value={selectedQty} onChange={e => setSelectedQty(e.target.value)} className="w-20 h-12 rounded-xl border-white/5 bg-white/10 text-white text-center font-bold px-2" />
+                  <button type="button" onClick={handleAddCost} className="bg-[#10b981] text-white w-12 h-12 rounded-xl flex items-center justify-center"><span className="material-symbols-outlined">add</span></button>
+                </div>
+
+                <div className="space-y-2 max-h-40 overflow-y-auto nike-scroll pr-2">
+                  {costs.map(item => (
+                    <div key={item.productId} className="flex justify-between items-center bg-white/5 p-3 rounded-xl border border-white/5">
+                      <div>
+                        <p className="text-xs font-bold text-white uppercase italic">{item.name}</p>
+                        <p className="text-[10px] text-white/40 font-black">{item.quantity} un x R$ {item.unitPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+                      </div>
+                      <button type="button" onClick={() => setCosts(costs.filter(c => c.productId !== item.productId))} className="text-rose-500"><span className="material-symbols-outlined text-sm">delete</span></button>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="bg-[#7c3aed30] border border-primary/20 p-6 rounded-3xl text-center relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 p-3 opacity-10"><span className="material-symbols-outlined text-4xl">savings</span></div>
+                    <p className="text-[10px] font-black uppercase text-white/40 mb-1 tracking-widest">Lucro Estimado</p>
+                    <p className="text-2xl font-black text-white italic tracking-tighter">R$ {profit.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+                  </div>
+                  <div className="bg-[#f59e0b30] border border-[#f59e0b]/20 p-6 rounded-3xl text-center relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 p-3 opacity-10"><span className="material-symbols-outlined text-4xl">trending_up</span></div>
+                    <p className="text-[10px] font-black uppercase text-white/40 mb-1 tracking-widest">Margem</p>
+                    <p className={`text-2xl font-black italic tracking-tighter ${margin > 30 ? 'text-[#f59e0b]' : 'text-rose-500'}`}>{margin.toFixed(1)}%</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* CHECKLIST TAB */}
+          {activeTab === 'checklist' && (
+            <div className="space-y-8 animate-in fade-in duration-300">
+              <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
+                <h3 className="text-[10px] font-black uppercase text-primary mb-4 tracking-widest">📋 Checklists Avançados</h3>
+                <div className="space-y-4">
+                  {/* Check-in */}
+                  <div>
+                    <label className="block text-[10px] font-black uppercase text-white/40 mb-2 tracking-widest">Checklist de Início (Check-in)</label>
+                    <div className="flex gap-2">
+                      <select
+                        value={checkinChecklist?.id || ''}
+                        onChange={(e) => {
+                          const template = advancedTemplates.find(t => t.id === e.target.value);
+                          setCheckinChecklist(template || null);
+                        }}
+                        className="flex-1 h-10 rounded-xl border-white/10 bg-white/5 text-white text-xs font-bold px-3 min-w-0"
+                      >
+                        <option value="">Nenhum (Usar Padrão)</option>
+                        {advancedTemplates.map(t => (
+                          <option key={t.id} value={t.id}>{t.name}</option>
+                        ))}
+                      </select>
                       <button
                         type="button"
-                        onClick={() => setImageUrl('')}
-                        className="w-12 h-12 rounded-xl bg-rose-500/20 text-rose-500 flex items-center justify-center hover:bg-rose-500 hover:text-white transition-all"
+                        onClick={() => {
+                          setEditingChecklistType('checkin');
+                          setIsTemplateBuilderOpen(true);
+                        }}
+                        className="w-10 h-10 rounded-xl bg-primary/20 text-primary flex items-center justify-center hover:bg-primary hover:text-white transition-all"
                       >
-                        <span className="material-symbols-outlined">delete</span>
+                        <span className="material-symbols-outlined text-sm">{checkinChecklist ? 'edit' : 'add'}</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Check-out */}
+                  <div>
+                    <label className="block text-[10px] font-black uppercase text-white/40 mb-2 tracking-widest">Checklist de Finalização (Check-out)</label>
+                    <div className="flex gap-2">
+                      <select
+                        value={checkoutChecklist?.id || ''}
+                        onChange={(e) => {
+                          const template = advancedTemplates.find(t => t.id === e.target.value);
+                          setCheckoutChecklist(template || null);
+                        }}
+                        className="flex-1 h-10 rounded-xl border-white/10 bg-white/5 text-white text-xs font-bold px-3 min-w-0"
+                      >
+                        <option value="">Nenhum (Usar Padrão)</option>
+                        {advancedTemplates.map(t => (
+                          <option key={t.id} value={t.id}>{t.name}</option>
+                        ))}
+                      </select>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditingChecklistType('checkout');
+                          setIsTemplateBuilderOpen(true);
+                        }}
+                        className="w-10 h-10 rounded-xl bg-primary/20 text-primary flex items-center justify-center hover:bg-primary hover:text-white transition-all"
+                      >
+                        <span className="material-symbols-outlined text-sm">{checkoutChecklist ? 'edit' : 'add'}</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                <p className="text-[10px] text-white/30 mt-3 italic leading-tight">Combine o Checklist de Execução com templates detalhados de entrada e saída.</p>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-black uppercase text-white/40 mb-2 tracking-widest">Checklist de Execução (Etapas)</label>
+
+                {/* Template Selector */}
+                <div className="flex gap-2 mb-4">
+                  <select
+                    value={selectedTemplateId}
+                    onChange={(e) => handleApplyTemplate(e.target.value)}
+                    className="flex-1 h-12 rounded-xl border-white/5 bg-white/10 text-white text-xs font-bold px-4 min-w-0"
+                  >
+                    <option value="">Selecionar template...</option>
+                    <optgroup label="Templates Avançados (Builder)">
+                      {advancedTemplates.map(t => (
+                        <option key={t.id} value={`advanced_${t.id}`}>{t.name} ({t.sections.length} seções)</option>
+                      ))}
+                    </optgroup>
+                    <optgroup label="Templates Simples">
+                      {templates.map(t => (
+                        <option key={t.id} value={t.id}>{t.name} ({t.items.length} itens)</option>
+                      ))}
+                    </optgroup>
+                  </select>
+
+                  <button
+                    type="button"
+                    onClick={() => setIsTemplateBuilderOpen(true)}
+                    className="h-12 px-4 rounded-xl bg-primary/20 text-primary flex items-center justify-center gap-2 hover:bg-primary hover:text-white transition-all text-xs font-bold"
+                    title="Criar novo template profissional"
+                  >
+                    <span className="material-symbols-outlined text-sm">dashboard_customize</span>
+                    Builder
+                  </button>
+
+                  {templates.length > 0 && selectedTemplateId && (
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteTemplate(selectedTemplateId)}
+                      className="w-12 h-12 rounded-xl bg-rose-500/20 text-rose-500 flex items-center justify-center hover:bg-rose-500 hover:text-white transition-all"
+                      title="Excluir template"
+                    >
+                      <span className="material-symbols-outlined text-sm">delete</span>
+                    </button>
+                  )}
+                </div>
+
+                {/* Add Item */}
+                <div className="flex gap-3 mb-4">
+                  <input type="text" value={newItemText} onChange={e => setNewItemText(e.target.value)} className="flex-1 h-12 rounded-xl border-white/5 bg-white/5 text-white text-sm px-6" placeholder="Nova etapa..." />
+                  <button type="button" onClick={handleAddChecklistItem} className="bg-[#10b981] text-white w-12 h-12 rounded-xl flex items-center justify-center hover:scale-105 transition-transform"><span className="material-symbols-outlined">add</span></button>
+                </div>
+
+                {/* Checklist Items */}
+                <div className="space-y-2 bg-white/5 rounded-2xl p-4 border border-white/5 mb-4">
+                  {checklist.length === 0 ? (
+                    <p className="text-center text-white/20 text-xs font-bold py-4 italic">Nenhuma etapa configurada.</p>
+                  ) : checklist.map((item, idx) => (
+                    <div key={item.id} className="flex justify-between items-center bg-white/5 p-4 rounded-xl text-xs font-bold">
+                      <span className="text-white">{(idx + 1).toString().padStart(2, '0')}. {item.text}</span>
+                      <button type="button" onClick={() => setChecklist(checklist.filter(i => i.id !== item.id))} className="text-rose-500 hover:scale-110"><span className="material-symbols-outlined text-sm">delete</span></button>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Save as Template */}
+                {checklist.length > 0 && (
+                  <div className="border-t border-white/10 pt-4">
+                    {showSaveTemplate ? (
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={newTemplateName}
+                          onChange={(e) => setNewTemplateName(e.target.value)}
+                          placeholder="Nome do template..."
+                          className="flex-1 h-10 rounded-xl border-white/5 bg-white/5 text-white text-xs px-4"
+                        />
+                        <button type="button" onClick={handleSaveAsTemplate} className="px-4 h-10 bg-primary text-white text-xs font-bold rounded-xl">Salvar</button>
+                        <button type="button" onClick={() => setShowSaveTemplate(false)} className="px-4 h-10 bg-white/10 text-white/60 text-xs font-bold rounded-xl">Cancelar</button>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setShowSaveTemplate(true)}
+                        className="flex items-center gap-2 text-xs font-bold text-primary hover:text-white transition-colors"
+                      >
+                        <span className="material-symbols-outlined text-sm">bookmark_add</span>
+                        Salvar como Template
                       </button>
                     )}
                   </div>
-                </div>
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-[10px] font-black uppercase text-white/40 mb-2 tracking-widest">Categoria</label>
-              <select value={category} onChange={e => setCategory(e.target.value)} className="w-full h-14 rounded-2xl border-white/5 bg-white/5 text-white font-bold focus:ring-primary px-6">
-                <option value="Banho">Banho</option>
-                <option value="Estética">Estética</option>
-                <option value="Saúde Animal">Saúde Animal</option>
-                <option value="Hospedagem">Hospedagem</option>
-                <option value="Outros">Outros</option>
-              </select>
-            </div>
-
-
-            {/* Price Tiers Section */}
-            <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
-              <h3 className="text-[10px] font-black uppercase text-primary mb-4 tracking-widest">💰 Preços por Porte</h3>
-              <div className="grid grid-cols-5 gap-3">
-                {(['mini', 'pequeno', 'medio', 'grande', 'gigante'] as const).map(porte => (
-                  <div key={porte}>
-                    <label className="block text-[10px] font-black uppercase text-white/60 mb-2 tracking-widest">{porte.charAt(0).toUpperCase() + porte.slice(1)}</label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={porte === 'mini' ? priceMini : porte === 'pequeno' ? pricePequeno : porte === 'medio' ? priceMedio : porte === 'grande' ? priceGrande : priceGigante}
-                      onChange={e => {
-                        const v = e.target.value;
-                        if (porte === 'mini') setPriceMini(v);
-                        else if (porte === 'pequeno') setPricePequeno(v);
-                        else if (porte === 'medio') setPriceMedio(v);
-                        else if (porte === 'grande') setPriceGrande(v);
-                        else setPriceGigante(v);
-                      }}
-                      className="w-full h-12 rounded-xl border-white/10 bg-white/5 text-white font-bold focus:ring-primary px-3 text-sm text-center"
-                      placeholder="0.00"
-                    />
-                  </div>
-                ))}
-              </div>
-              <p className="text-xs text-white/40 mt-3 italic">O sistema calculará automaticamente o preço correto no agendamento baseado no porte do pet.</p>
-            </div>
-
-
-            {/* Items per Size Section */}
-            <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
-              <h3 className="text-[10px] font-black uppercase text-primary mb-4 tracking-widest">📦 Itens Usados por Porte</h3>
-
-              {/* Size Tabs */}
-              <div className="flex gap-1 mb-4">
-                {(['mini', 'pequeno', 'medio', 'grande', 'gigante'] as const).map(porte => (
-                  <button
-                    key={porte}
-                    type="button"
-                    onClick={() => setActivePorteTab(porte)}
-                    className={`flex-1 py-2 px-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${activePorteTab === porte
-                      ? 'bg-primary text-white'
-                      : 'bg-white/5 text-white/40 hover:bg-white/10 hover:text-white/60'
-                      }`}
-                  >
-                    {porte === 'mini' ? 'Mini' : porte === 'pequeno' ? 'Peq' : porte === 'medio' ? 'Méd' : porte === 'grande' ? 'Gra' : 'Gig'}
-                  </button>
-
-                ))}
-              </div>
-
-              {/* Add Product */}
-              <div className="flex gap-2 mb-4">
-                <select
-                  value={selectedPorteProductId}
-                  onChange={e => setSelectedPorteProductId(e.target.value)}
-                  className="flex-1 h-10 rounded-xl border-white/10 bg-white/5 text-white text-xs font-bold px-3"
-                >
-                  <option value="">Selecionar produto...</option>
-                  {products.map(p => (
-                    <option key={p.id} value={p.id}>{p.name}</option>
-                  ))}
-                </select>
-                <input
-                  type="number"
-                  min="0.1"
-                  step="0.1"
-                  value={selectedPorteQty}
-                  onChange={e => setSelectedPorteQty(e.target.value)}
-                  placeholder="Qtd"
-                  className="w-20 h-10 rounded-xl border-white/10 bg-white/5 text-white text-xs font-bold px-3 text-center"
-                />
-                <button
-                  type="button"
-                  onClick={handleAddItemPorte}
-                  className="w-10 h-10 rounded-xl bg-primary text-white flex items-center justify-center hover:bg-primary-hover transition-all"
-                >
-                  <span className="material-symbols-outlined text-lg">add</span>
-                </button>
-              </div>
-
-              {/* Items List */}
-              {itemsPorPorte[activePorteTab].length > 0 ? (
-                <div className="space-y-2">
-                  {itemsPorPorte[activePorteTab].map((item, idx) => (
-                    <div key={idx} className="flex items-center justify-between p-3 bg-white/5 rounded-xl">
-                      <div className="flex items-center gap-3">
-                        <span className="text-sm font-bold text-white">{item.name}</span>
-                        <span className="text-xs text-white/40">x{item.quantity}</span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveItemPorte(idx)}
-                        className="w-7 h-7 rounded-lg bg-rose-500/20 text-rose-500 flex items-center justify-center hover:bg-rose-500 hover:text-white transition-all"
-                      >
-                        <span className="material-symbols-outlined text-sm">close</span>
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-xs text-white/30 text-center py-4 italic">Nenhum item configurado para este porte</p>
-              )}
-
-
-              <p className="text-xs text-white/40 mt-3 italic">Configure os produtos do estoque que serão consumidos para cada porte.</p>
-
-              {/* Profit/Margin Summary per Size */}
-              <div className="mt-4 grid grid-cols-5 gap-2">
-                {(['mini', 'pequeno', 'medio', 'grande', 'gigante'] as const).map(porte => {
-                  const data = profitPerSize[porte];
-                  const porteName = porte === 'mini' ? 'Mini' : porte === 'pequeno' ? 'Peq' : porte === 'medio' ? 'Méd' : porte === 'grande' ? 'Gra' : 'Gig';
-                  return (
-                    <div key={porte} className={`p-2 rounded-xl ${activePorteTab === porte ? 'bg-primary/10 border border-primary/30' : 'bg-white/5 border border-white/10'}`}>
-                      <p className="text-[8px] font-black uppercase text-white/40 mb-1">{porteName}</p>
-                      <p className="text-[10px] text-white/60">
-                        <span className="text-rose-400 font-bold">R$ {data.costs.toFixed(0)}</span>
-                      </p>
-                      <p className="text-[10px] text-white/60">
-                        <span className={`font-bold ${data.profit >= 0 ? 'text-green-400' : 'text-rose-400'}`}>
-                          R$ {data.profit.toFixed(0)}
-                        </span>
-                      </p>
-                      <p className="text-[10px] text-white/60">
-                        <span className={`font-bold ${data.margin >= 20 ? 'text-green-400' : data.margin >= 0 ? 'text-yellow-400' : 'text-rose-400'}`}>
-                          {data.margin.toFixed(0)}%
-                        </span>
-                      </p>
-                    </div>
-                  );
-                })}
-              </div>
-
-            </div>
-
-
-            {/* Advanced Check-in/Check-out Configuration */}
-            <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
-              <h3 className="text-[10px] font-black uppercase text-primary mb-4 tracking-widest">📋 Checklists Avançados</h3>
-              <div className="space-y-4">
-                {/* Check-in */}
-                <div>
-                  <label className="block text-[10px] font-black uppercase text-white/40 mb-2 tracking-widest">Checklist de Início (Check-in)</label>
-                  <div className="flex gap-2">
-                    <select
-                      value={checkinChecklist?.id || ''}
-                      onChange={(e) => {
-                        const template = advancedTemplates.find(t => t.id === e.target.value);
-                        setCheckinChecklist(template || null);
-                      }}
-                      className="flex-1 h-10 rounded-xl border-white/10 bg-white/5 text-white text-xs font-bold px-3"
-                    >
-                      <option value="">Nenhum (Usar Padrão)</option>
-                      {advancedTemplates.map(t => (
-                        <option key={t.id} value={t.id}>{t.name}</option>
-                      ))}
-                    </select>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setEditingChecklistType('checkin');
-                        setIsTemplateBuilderOpen(true);
-                      }}
-                      className="w-10 h-10 rounded-xl bg-primary/20 text-primary flex items-center justify-center hover:bg-primary hover:text-white transition-all"
-                    >
-                      <span className="material-symbols-outlined text-sm">{checkinChecklist ? 'edit' : 'add'}</span>
-                    </button>
-                  </div>
-                </div>
-
-                {/* Check-out */}
-                <div>
-                  <label className="block text-[10px] font-black uppercase text-white/40 mb-2 tracking-widest">Checklist de Finalização (Check-out)</label>
-                  <div className="flex gap-2">
-                    <select
-                      value={checkoutChecklist?.id || ''}
-                      onChange={(e) => {
-                        const template = advancedTemplates.find(t => t.id === e.target.value);
-                        setCheckoutChecklist(template || null);
-                      }}
-                      className="flex-1 h-10 rounded-xl border-white/10 bg-white/5 text-white text-xs font-bold px-3"
-                    >
-                      <option value="">Nenhum (Usar Padrão)</option>
-                      {advancedTemplates.map(t => (
-                        <option key={t.id} value={t.id}>{t.name}</option>
-                      ))}
-                    </select>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setEditingChecklistType('checkout');
-                        setIsTemplateBuilderOpen(true);
-                      }}
-                      className="w-10 h-10 rounded-xl bg-primary/20 text-primary flex items-center justify-center hover:bg-primary hover:text-white transition-all"
-                    >
-                      <span className="material-symbols-outlined text-sm">{checkoutChecklist ? 'edit' : 'add'}</span>
-                    </button>
-                  </div>
-                </div>
-              </div>
-              <p className="text-[10px] text-white/30 mt-3 italic leading-tight">Combine o Checklist de Execução com templates detalhados de entrada e saída.</p>
-            </div>
-
-
-            <div className="grid grid-cols-2 gap-6">
-              <div>
-                <label className="block text-[10px] font-black uppercase text-white/40 mb-2 tracking-widest">Duração (Min)</label>
-                <input type="number" value={duration} onChange={e => setDuration(e.target.value)} required className="w-full h-14 rounded-2xl border-white/5 bg-white/5 text-white text-lg font-bold focus:ring-primary px-6" />
-              </div>
-              <div>
-                <label className="block text-[10px] font-black uppercase text-white/40 mb-2 tracking-widest">Preço Base (Legado)</label>
-                <input type="number" step="0.01" value={price} onChange={e => setPrice(e.target.value)} className="w-full h-14 rounded-2xl border-white/5 bg-white/10 text-white/60 text-lg font-bold px-6" placeholder="Opcional" />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-[10px] font-black uppercase text-white/40 mb-2 tracking-widest">Descrição Curta</label>
-              <textarea value={description} onChange={e => setDescription(e.target.value)} rows={3} className="w-full rounded-2xl border-white/5 bg-white/5 text-white text-sm font-bold focus:ring-primary p-6 resize-none" placeholder="Breve descrição para o catálogo..." />
-            </div>
-          </div>
-
-          <div className="space-y-8">
-            <div>
-              <label className="block text-[10px] font-black uppercase text-white/40 mb-2 tracking-widest">Checklist de Execução</label>
-
-              {/* Template Selector */}
-              <div className="flex gap-2 mb-4">
-                <select
-                  value={selectedTemplateId}
-                  onChange={(e) => handleApplyTemplate(e.target.value)}
-                  className="flex-1 h-12 rounded-xl border-white/5 bg-white/10 text-white text-xs font-bold px-4"
-                >
-                  <option value="">Selecionar template...</option>
-                  <optgroup label="Templates Avançados (Builder)">
-                    {advancedTemplates.map(t => (
-                      <option key={t.id} value={`advanced_${t.id}`}>{t.name} ({t.sections.length} seções)</option>
-                    ))}
-                  </optgroup>
-                  <optgroup label="Templates Simples">
-                    {templates.map(t => (
-                      <option key={t.id} value={t.id}>{t.name} ({t.items.length} itens)</option>
-                    ))}
-                  </optgroup>
-                </select>
-
-                <button
-                  type="button"
-                  onClick={() => setIsTemplateBuilderOpen(true)}
-                  className="h-12 px-4 rounded-xl bg-primary/20 text-primary flex items-center justify-center gap-2 hover:bg-primary hover:text-white transition-all text-xs font-bold"
-                  title="Criar novo template profissional"
-                >
-                  <span className="material-symbols-outlined text-sm">dashboard_customize</span>
-                  Builder
-                </button>
-
-                {templates.length > 0 && selectedTemplateId && (
-                  <button
-                    type="button"
-                    onClick={() => handleDeleteTemplate(selectedTemplateId)}
-                    className="w-12 h-12 rounded-xl bg-rose-500/20 text-rose-500 flex items-center justify-center hover:bg-rose-500 hover:text-white transition-all"
-                    title="Excluir template"
-                  >
-                    <span className="material-symbols-outlined text-sm">delete</span>
-                  </button>
                 )}
               </div>
-
-              {/* Add Item */}
-              <div className="flex gap-3 mb-4">
-                <input type="text" value={newItemText} onChange={e => setNewItemText(e.target.value)} className="flex-1 h-12 rounded-xl border-white/5 bg-white/5 text-white text-sm px-6" placeholder="Nova etapa..." />
-                <button type="button" onClick={handleAddChecklistItem} className="bg-[#10b981] text-white w-12 h-12 rounded-xl flex items-center justify-center hover:scale-105 transition-transform"><span className="material-symbols-outlined">add</span></button>
-              </div>
-
-              {/* Checklist Items */}
-              <div className="space-y-2 bg-white/5 rounded-2xl p-4 border border-white/5 mb-4">
-                {checklist.length === 0 ? (
-                  <p className="text-center text-white/20 text-xs font-bold py-4 italic">Nenhuma etapa configurada.</p>
-                ) : checklist.map((item, idx) => (
-                  <div key={item.id} className="flex justify-between items-center bg-white/5 p-4 rounded-xl text-xs font-bold">
-                    <span className="text-white">{(idx + 1).toString().padStart(2, '0')}. {item.text}</span>
-                    <button type="button" onClick={() => setChecklist(checklist.filter(i => i.id !== item.id))} className="text-rose-500 hover:scale-110"><span className="material-symbols-outlined text-sm">delete</span></button>
-                  </div>
-                ))}
-              </div>
-
-              {/* Save as Template */}
-              {checklist.length > 0 && (
-                <div className="border-t border-white/10 pt-4">
-                  {showSaveTemplate ? (
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        value={newTemplateName}
-                        onChange={(e) => setNewTemplateName(e.target.value)}
-                        placeholder="Nome do template..."
-                        className="flex-1 h-10 rounded-xl border-white/5 bg-white/5 text-white text-xs px-4"
-                      />
-                      <button type="button" onClick={handleSaveAsTemplate} className="px-4 h-10 bg-primary text-white text-xs font-bold rounded-xl">Salvar</button>
-                      <button type="button" onClick={() => setShowSaveTemplate(false)} className="px-4 h-10 bg-white/10 text-white/60 text-xs font-bold rounded-xl">Cancelar</button>
-                    </div>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => setShowSaveTemplate(true)}
-                      className="flex items-center gap-2 text-xs font-bold text-primary hover:text-white transition-colors"
-                    >
-                      <span className="material-symbols-outlined text-sm">bookmark_add</span>
-                      Salvar como Template
-                    </button>
-                  )}
-                </div>
-              )}
             </div>
-
-            <div className="bg-white/5 rounded-3xl p-8 border border-white/5 space-y-6">
-              <div className="flex justify-between items-end">
-                <h3 className="text-[10px] font-black uppercase text-white/40 tracking-widest">Composição de Custos</h3>
-                <p className="text-white font-black italic text-sm">Total: <span className="text-rose-500">R$ {totalCosts.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span></p>
-              </div>
-
-              <div className="flex gap-3">
-                <select value={selectedProductId} onChange={e => setSelectedProductId(e.target.value)} className="flex-1 h-12 rounded-xl border-white/5 bg-white/10 text-white text-xs font-bold px-4">
-                  <option value="">Selecione o produto...</option>
-                  {products.map(p => (
-                    <option key={p.id} value={p.id}>{p.name} (R$ {p.price})</option>
-                  ))}
-                </select>
-                <input type="number" value={selectedQty} onChange={e => setSelectedQty(e.target.value)} className="w-20 h-12 rounded-xl border-white/5 bg-white/10 text-white text-center font-bold px-2" />
-                <button type="button" onClick={handleAddCost} className="bg-[#10b981] text-white w-12 h-12 rounded-xl flex items-center justify-center"><span className="material-symbols-outlined">add</span></button>
-              </div>
-
-              <div className="space-y-2 max-h-40 overflow-y-auto nike-scroll pr-2">
-                {costs.map(item => (
-                  <div key={item.productId} className="flex justify-between items-center bg-white/5 p-3 rounded-xl border border-white/5">
-                    <div>
-                      <p className="text-xs font-bold text-white uppercase italic">{item.name}</p>
-                      <p className="text-[10px] text-white/40 font-black">{item.quantity} un x R$ {item.unitPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
-                    </div>
-                    <button type="button" onClick={() => setCosts(costs.filter(c => c.productId !== item.productId))} className="text-rose-500"><span className="material-symbols-outlined text-sm">delete</span></button>
-                  </div>
-                ))}
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-[#7c3aed30] border border-primary/20 p-6 rounded-3xl text-center relative overflow-hidden group">
-                  <div className="absolute top-0 right-0 p-3 opacity-10"><span className="material-symbols-outlined text-4xl">savings</span></div>
-                  <p className="text-[10px] font-black uppercase text-white/40 mb-1 tracking-widest">Lucro Estimado</p>
-                  <p className="text-2xl font-black text-white italic tracking-tighter">R$ {profit.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
-                </div>
-                <div className="bg-[#f59e0b30] border border-[#f59e0b]/20 p-6 rounded-3xl text-center relative overflow-hidden group">
-                  <div className="absolute top-0 right-0 p-3 opacity-10"><span className="material-symbols-outlined text-4xl">trending_up</span></div>
-                  <p className="text-[10px] font-black uppercase text-white/40 mb-1 tracking-widest">Margem</p>
-                  <p className={`text-2xl font-black italic tracking-tighter ${margin > 30 ? 'text-[#f59e0b]' : 'text-rose-500'}`}>{margin.toFixed(1)}%</p>
-                </div>
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-[10px] font-black uppercase text-white/40 mb-4 tracking-widest">Variação de Preço por Porte</label>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                {sizeSettings.map(size => (
-                  <div key={size.id} className="bg-white/5 p-4 rounded-2xl border border-white/5">
-                    <label className="block text-[9px] font-black uppercase text-white/40 mb-2 tracking-widest">{size.label}</label>
-                    <input type="number" value={variations[size.id] || 0} onChange={e => setVariations({ ...variations, [size.id]: e.target.value })} className="w-full h-10 rounded-xl border-white/5 bg-white/5 text-white text-center font-bold px-2 focus:ring-primary" />
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
+          )}
 
           <div className="col-span-full pt-8 flex justify-end gap-6 h-auto sticky bottom-0 bg-[#111] py-8 border-t border-white/5 mt-8 z-20">
             <button type="button" onClick={onClose} className="text-white/40 hover:text-white font-black text-xs uppercase tracking-widest px-8 transition-colors">Cancelar</button>
@@ -846,6 +913,7 @@ const ServiceForm: React.FC<{
               {saveLabel}
             </button>
           </div>
+
         </form>
       </div>
     </>
@@ -894,7 +962,12 @@ export const Services: React.FC = () => {
   const fetchServices = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase.from('services').select('*').order('name');
+      if (!tenant?.id) return;
+      const { data, error } = await supabase
+        .from('services')
+        .select('*')
+        .eq('tenant_id', tenant.id)
+        .order('name');
       if (error) throw error;
       if (data) {
         setServices(data.map(s => ({
@@ -903,6 +976,16 @@ export const Services: React.FC = () => {
           ref: String(s.id).slice(0, 5).toUpperCase(),
           price: parseFloat(String(s.price)) || 0,
           duration: parseInt(String(s.duration)) || 0,
+          duration_mini: s.duration_mini || 0,
+          duration_pequeno: s.duration_pequeno || 0,
+          duration_medio: s.duration_medio || 0,
+          duration_grande: s.duration_grande || 0,
+          duration_gigante: s.duration_gigante || 0,
+          price_mini: s.price_mini || 0,
+          price_pequeno: s.price_pequeno || 0,
+          price_medio: s.price_medio || 0,
+          price_grande: s.price_grande || 0,
+          price_gigante: s.price_gigante || 0,
           image_url: s.img || s.image_url || '',
           checklist: s.checklist || [],
           variations: s.variations || {},
@@ -926,12 +1009,17 @@ export const Services: React.FC = () => {
         description: service.description || '',
         category: service.category,
         price: service.price?.toString() || '0', // Keep for backwards compatibility
-        price_mini: parseFloat(String(service.price_mini)) || 0,
-        price_pequeno: parseFloat(String(service.price_pequeno)) || 0,
-        price_medio: parseFloat(String(service.price_medio)) || 0,
-        price_grande: parseFloat(String(service.price_grande)) || 0,
-        price_gigante: parseFloat(String(service.price_gigante)) || 0,
         duration: service.duration?.toString() || '60',
+        duration_mini: Number(service.duration_mini) || 0,
+        duration_pequeno: Number(service.duration_pequeno) || 0,
+        duration_medio: Number(service.duration_medio) || 0,
+        duration_grande: Number(service.duration_grande) || 0,
+        duration_gigante: Number(service.duration_gigante) || 0,
+        price_mini: Number(service.price_mini) || 0,
+        price_pequeno: Number(service.price_pequeno) || 0,
+        price_medio: Number(service.price_medio) || 0,
+        price_grande: Number(service.price_grande) || 0,
+        price_gigante: Number(service.price_gigante) || 0,
         icon: service.icon || 'pets',
         img: service.image_url || null,
         costs: service.costs || [],
@@ -946,13 +1034,17 @@ export const Services: React.FC = () => {
         tenant_id: tenant?.id
       };
 
-      const { error } = service.id && service.id !== 'undefined' && service.id !== 'null'
-        ? await supabase.from('services').update(dbService).eq('id', service.id)
-        : await supabase.from('services').insert([dbService]);
+      const { data: result, error } = service.id && service.id !== 'undefined' && service.id !== 'null'
+        ? await supabase.from('services').update(dbService).eq('id', service.id).select()
+        : await supabase.from('services').insert([dbService]).select();
 
       if (error) {
         console.error('Database error:', error);
         throw error;
+      }
+
+      if (!result || result.length === 0) {
+        throw new Error('Permissão negada ou serviço não encontrado (RLS).');
       }
 
       showNotification(service.id ? 'Serviço atualizado!' : 'Serviço criado!', 'success');
