@@ -204,6 +204,7 @@ export const AppointmentModal: React.FC<AppointmentModalProps> = ({
         e.preventDefault();
         onSave({
             ...formData,
+            duration: Number(formData.duration) > 0 ? Number(formData.duration) : 60,
             status: initialData ? initialData.status : 'pending',
             useSubscription: useSubscription,
             subscriptionId: petSubscription?.id || null

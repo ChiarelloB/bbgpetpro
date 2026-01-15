@@ -792,7 +792,7 @@ export const Schedule: React.FC<{ onNavigate: (screen: ScreenType) => void; init
         pet_id: appt.petId || null,
         service: appt.service,
         start_time: startTimestamp,
-        duration: appt.duration,
+        duration: Number(appt.duration) > 0 ? Number(appt.duration) : 60,
         status: appt.status || 'pending',
         notes: appt.notes,
         professional: appt.professional,
