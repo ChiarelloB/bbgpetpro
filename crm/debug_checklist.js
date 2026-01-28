@@ -26,43 +26,45 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 async function testUpdate() {
     console.log('Connecting to Supabase:', supabaseUrl);
 
-    // Check column type details from information_schema
-    console.log('Querying information_schema for column details...');
+    // 1. Fetch a pending or confirmed appointment
+    const { data: appointments, error: fetchError } = await supabase
+        .from('appointments')
+        .select('*')
+        .limit(1);
 
-    // Note: accessing information_schema might be blocked by RLS for anon users in some setups,
-    // but usually it works for public tables or is at least visible.
-    // If this returns empty, we might not have permission to see schema.
-    const { data: columns, error: schemaError } = await supabase
-        .from('information_schema.columns')
-        .select('column_name, data_type, is_nullable, column_default')
-        .eq('table_name', 'appointments')
-        .in('column_name', ['checklist_data', 'status']);
+    if (fetchError) {
+        console.error('Error fetching appointments:', fetchError);
+        return;
+    }
 
-    // Wait, querying information_schema via `from()` doesn't always work with Supabase JS client depending on exposed schemas.
-    // Supabase exposes `public` schema by default. `information_schema` is a system schema.
-    // We might need to use RPC or just guess. 
-    // BUT, let's try. If it fails, I'll assume I can't check it easily.
+    if (!appointments || appointments.length === 0) {
+        console.log('No appointments found to test.');
+        return;
+    }
 
-    // Alternative: RPC to get column type?
-    // Actually, `supabase-js` usually can't query system schemas directly unless exposed.
+    const appt = appointments[0];
+    console.log('Found appointment:', { id: appt.id, status: appt.status });
 
-    // Let's rely on the previous finding: the column EXISTS.
-    // Let's try to update with a STRINGified JSON.
-    // If the column is TEXT, this update should WORK.
-    // If the column is JSONB, this update MIGHT work (auto-cast) or fail.
-    // But the APP sends an OBJECT. 
+    // 2. Try to update status ONLY (mirroring the fix in Schedule.tsx)
+    console.log('Attempting to update status to in-progress (WITHOUT checklist_data)...');
+    const { data: updateData, error: updateError } = await supabase
+        .from('appointments')
+        .update({
+            status: 'in-progress'
+            // checklist_data is excluded
+        })
+        .eq('id', appt.id)
+        .select();
 
-    // Let's try to INSERT a dummy row (if we can) to see constraints.
-    // Since we can't see rows (RLS), we can't update specific ID.
-
-    // I will try to `rpc` call if there is any debug function? No.
-
-    if (schemaError) {
-        console.log('Could not query information_schema directly (expected). Error:', schemaError.message);
-    } else if (columns && columns.length > 0) {
-        console.log('Column details:', columns);
+    if (updateError) {
+        console.error('Update FAILED!');
+        console.error('Code:', updateError.code);
+        console.error('Message:', updateError.message);
+        console.error('Details:', updateError.details);
+        console.error('Hint:', updateError.hint);
     } else {
-        console.log('No column details returned (RLS or schema access restricted).');
+        console.log('Update SUCCESSFUL!');
+        console.log('Updated data:', updateData);
     }
 }
 
