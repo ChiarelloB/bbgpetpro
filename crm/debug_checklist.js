@@ -23,49 +23,46 @@ if (!supabaseUrl || !supabaseKey) {
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-async function testUpdate() {
-    console.log('Connecting to Supabase:', supabaseUrl);
+async function testFinal() {
+    console.log('--- DB Schema Debug ---');
+    console.log('Project URL:', supabaseUrl);
 
-    // 1. Fetch a pending or confirmed appointment
-    const { data: appointments, error: fetchError } = await supabase
-        .from('appointments')
-        .select('*')
-        .limit(1);
+    // 1. Insert and Select
+    const mockTenantId = 'b6507b1b-0c93-4220-a152-bb71f141bc43';
+    console.log('Inserting test row into size_configs...');
 
-    if (fetchError) {
-        console.error('Error fetching appointments:', fetchError);
-        return;
-    }
-
-    if (!appointments || appointments.length === 0) {
-        console.log('No appointments found to test.');
-        return;
-    }
-
-    const appt = appointments[0];
-    console.log('Found appointment:', { id: appt.id, status: appt.status });
-
-    // 2. Try to update checklist_data AGAIN
-    console.log('Attempting to update checklist_data...');
-    const { data: updateData, error: updateError } = await supabase
-        .from('appointments')
-        .update({
-            status: 'in-progress',
-            checklist_data: { test: 'debug_real_submit', timestamp: new Date().toISOString() }
-        })
-        .eq('id', appt.id)
+    const { data: insData, error: insError } = await supabase
+        .from('size_configs')
+        .insert([{
+            category: 'test_cat',
+            label: 'Test Label',
+            max_weight: 10,
+            tenant_id: mockTenantId
+        }])
         .select();
 
-    if (updateError) {
-        console.error('Update FAILED!');
-        console.error('Code:', updateError.code);
-        console.error('Message:', updateError.message);
-        console.error('Details:', updateError.details);
-        console.error('Hint:', updateError.hint);
+    if (insError) {
+        console.error('Insert FAILED!');
+        console.error('Message:', insError.message);
+        console.error('Details:', insError.details);
     } else {
-        console.log('Update SUCCESSFUL!');
-        console.log('Updated data:', updateData);
+        console.log('Insert SUCCESSFUL.');
+        console.log('Inserted Data:', insData[0]);
+    }
+
+    // 2. Test appointments checklist_data
+    console.log('\nChecking appointments checklist_data column...');
+    const { data: apptData, error: apptError } = await supabase
+        .from('appointments')
+        .select('id, checklist_data')
+        .limit(1);
+
+    if (apptError) {
+        console.error('appointments.checklist_data check FAILED!');
+        console.error('Message:', apptError.message);
+    } else {
+        console.log('appointments.checklist_data check PASSED.');
     }
 }
 
-testUpdate();
+testFinal();
