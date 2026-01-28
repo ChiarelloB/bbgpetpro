@@ -45,13 +45,13 @@ async function testUpdate() {
     const appt = appointments[0];
     console.log('Found appointment:', { id: appt.id, status: appt.status });
 
-    // 2. Try to update status ONLY (mirroring the fix in Schedule.tsx)
-    console.log('Attempting to update status to in-progress (WITHOUT checklist_data)...');
+    // 2. Try to update checklist_data AGAIN
+    console.log('Attempting to update checklist_data...');
     const { data: updateData, error: updateError } = await supabase
         .from('appointments')
         .update({
-            status: 'in-progress'
-            // checklist_data is excluded
+            status: 'in-progress',
+            checklist_data: { test: 'debug_real_submit', timestamp: new Date().toISOString() }
         })
         .eq('id', appt.id)
         .select();

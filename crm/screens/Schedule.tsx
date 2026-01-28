@@ -890,7 +890,7 @@ export const Schedule: React.FC<{ onNavigate: (screen: ScreenType) => void; init
       .from('appointments')
       .update({
         status: 'in-progress',
-        // checklist_data: checklistData
+        checklist_data: checklistData
       })
       .eq('id', selectedAppointmentForChecklist.id);
 
