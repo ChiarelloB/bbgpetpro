@@ -23,46 +23,39 @@ if (!supabaseUrl || !supabaseKey) {
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-async function testFinal() {
-    console.log('--- DB Schema Debug ---');
-    console.log('Project URL:', supabaseUrl);
+async function finalAudit() {
+    console.log('--- DB Schema AUDIT (Detailed) ---');
+    console.log('Project:', supabaseUrl);
 
-    // 1. Insert and Select
-    const mockTenantId = 'b6507b1b-0c93-4220-a152-bb71f141bc43';
-    console.log('Inserting test row into size_configs...');
+    // 1. Check all plans
+    console.log('Fetching all subscription_plans...');
+    const { data: subPlans, error: subErr } = await supabase
+        .from('subscription_plans')
+        .select('id, name');
 
-    const { data: insData, error: insError } = await supabase
-        .from('size_configs')
-        .insert([{
-            category: 'test_cat',
-            label: 'Test Label',
-            max_weight: 10,
-            tenant_id: mockTenantId
-        }])
-        .select();
-
-    if (insError) {
-        console.error('Insert FAILED!');
-        console.error('Message:', insError.message);
-        console.error('Details:', insError.details);
+    if (subErr) {
+        console.error('subscription_plans check FAILED:', subErr.message);
     } else {
-        console.log('Insert SUCCESSFUL.');
-        console.log('Inserted Data:', insData[0]);
+        console.log('Plan Names:', subPlans.map(p => p.name).join(', '));
+        console.log('Total Plans:', subPlans.length);
     }
 
-    // 2. Test appointments checklist_data
-    console.log('\nChecking appointments checklist_data column...');
-    const { data: apptData, error: apptError } = await supabase
-        .from('appointments')
-        .select('id, checklist_data')
-        .limit(1);
+    // 2. Check current user's profile and tenant
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+        console.log('\nChecking profile for user:', user.email);
+        const { data: profile, error: profErr } = await supabase
+            .from('profiles')
+            .select('id, email, tenant_id')
+            .eq('id', user.id)
+            .single();
 
-    if (apptError) {
-        console.error('appointments.checklist_data check FAILED!');
-        console.error('Message:', apptError.message);
-    } else {
-        console.log('appointments.checklist_data check PASSED.');
+        if (profErr) {
+            console.error('Profile fetch FAILED:', profErr.message);
+        } else {
+            console.log('User Profile tenant_id:', profile.tenant_id);
+        }
     }
 }
 
-testFinal();
+finalAudit();

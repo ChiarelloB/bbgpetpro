@@ -27,7 +27,7 @@ const DownloadCRM: React.FC = () => {
                                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
                                 <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
                             </span>
-                            <span className="text-xs font-bold uppercase tracking-widest text-white/90">Versão v4.1.0 Estável</span>
+                            <span className="text-xs font-bold uppercase tracking-widest text-white/90">Versão v4.1.1 Estável</span>
                         </div>
 
                         <h2 className="text-4xl md:text-5xl lg:text-6xl font-black italic tracking-tighter leading-tight">
@@ -40,8 +40,9 @@ const DownloadCRM: React.FC = () => {
 
                         <div className="flex flex-col sm:flex-row gap-4">
                             <a
-                                href="/downloads/Flow-Pet-PRO-Setup-4.1.0.exe"
-                                download="Flow-Pet-PRO-Setup.exe"
+                                href="https://drive.google.com/file/d/1tXssbtWkIlew2N9OuVe3cWrVXWYEs4B9/view?usp=sharing"
+                                target="_blank"
+                                rel="noopener noreferrer"
                                 onClick={handleDownload}
                                 className="group relative flex items-center justify-center gap-4 bg-white text-black px-8 py-5 rounded-2xl font-black uppercase tracking-wider hover:bg-gray-100 transition-all active:scale-95 shadow-[0_0_40px_-10px_rgba(255,255,255,0.3)] hover:shadow-[0_0_60px_-15px_rgba(255,255,255,0.5)]"
                             >
