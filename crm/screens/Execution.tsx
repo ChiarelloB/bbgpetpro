@@ -1677,7 +1677,8 @@ export const Execution: React.FC<{ onNavigate?: (screen: any, state?: any) => vo
           description: `Serviço: ${deliveryTask.serviceType} - Pet: ${deliveryTask.petName}`,
           status: data.status,
           client_id: deliveryTask.clientId,
-          date: new Date().toISOString().split('T')[0]
+          date: new Date().toISOString().split('T')[0],
+          tenant_id: tenant?.id
         }]);
 
       if (txError) throw txError;
