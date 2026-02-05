@@ -686,6 +686,7 @@ const DayView: React.FC<{
 };
 
 export const Schedule: React.FC<{ onNavigate: (screen: ScreenType) => void; initialDate?: Date | null }> = ({ onNavigate, initialDate }) => {
+
   const { showNotification } = useNotification();
   const { tenant } = useSecurity();
   const { resources } = useResources();
@@ -884,22 +885,49 @@ export const Schedule: React.FC<{ onNavigate: (screen: ScreenType) => void; init
   };
 
   const handleChecklistComplete = async (checklistData: Record<string, any>) => {
-    if (!selectedAppointmentForChecklist) return;
+    try {
+      console.log('handleChecklistComplete STARTS', checklistData);
+      window.alert('Debug: handleChecklistComplete chamado!');
 
-    const { error } = await supabase
-      .from('appointments')
-      .update({
-        status: 'in-progress',
-        checklist_data: checklistData
-      })
-      .eq('id', selectedAppointmentForChecklist.id);
+      if (!selectedAppointmentForChecklist) {
+        window.alert('Erro: Nenhum agendamento selecionado.');
+        return;
+      }
 
-    if (!error) {
-      fetchAppointments();
-      showNotification(`Iniciando atendimento para ${selectedAppointmentForChecklist.petName}...`, 'success');
-      setChecklistModalOpen(false);
-      setSelectedAppointmentForChecklist(null);
-      onNavigate('execution');
+      await supabase.auth.getSession();
+      const { data: { session } } = await supabase.auth.getSession();
+
+      if (!session) {
+        window.alert('Sessão inválida.');
+        onNavigate('login');
+        return;
+      }
+
+      const checkinString = `CHECKIN:${JSON.stringify(checklistData)}`;
+
+      const { error } = await supabase
+        .from('appointments')
+        .update({
+          status: 'in-progress',
+          checklist_data: checklistData,
+          checklist_state: [checkinString],
+          current_step: 1
+        })
+        .eq('id', selectedAppointmentForChecklist.id);
+
+      if (error) {
+        window.alert('Erro ao atualizar: ' + error.message);
+        console.error(error);
+      } else {
+        window.alert('Checklist salvo! Iniciando serviço...');
+        await fetchAppointments();
+        setChecklistModalOpen(false);
+        setSelectedAppointmentForChecklist(null);
+        onNavigate('execution');
+      }
+    } catch (err: any) {
+      console.error('Crash in handleChecklistComplete:', err);
+      window.alert('Erro fatal: ' + (err.message || String(err)));
     }
   };
 

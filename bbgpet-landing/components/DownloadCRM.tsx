@@ -27,7 +27,7 @@ const DownloadCRM: React.FC = () => {
                                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
                                 <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
                             </span>
-                            <span className="text-xs font-bold uppercase tracking-widest text-white/90">Versão v4.1.1 Estável</span>
+                            <span className="text-xs font-bold uppercase tracking-widest text-white/90">Versão v4.2.0 Estável</span>
                         </div>
 
                         <h2 className="text-4xl md:text-5xl lg:text-6xl font-black italic tracking-tighter leading-tight">

@@ -54,11 +54,22 @@ export const SecurityProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     });
 
     // Listen for changes on auth state (sign in, sign out, etc.)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-      if (session?.user) {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('Auth state change:', event, session?.user?.email);
+
+      if (event === 'SIGNED_OUT') {
+        setUser(null);
+        setTenant(null);
+        setTenantId(null);
+        setLoading(false);
+        // Clear anything that might be stuck
+        localStorage.removeItem('sb-ljtxdwishwopggrrxada-auth-token');
+      } else if (session?.user) {
+        setUser(session.user);
         fetchTenantInfo(session.user.id);
       } else {
+        // Fallback for other states where session is null
+        setUser(null);
         setTenant(null);
         setTenantId(null);
         setLoading(false);

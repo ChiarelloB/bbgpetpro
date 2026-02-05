@@ -22,6 +22,12 @@ export const ExecutionChecklistModal: React.FC<ExecutionChecklistModalProps> = (
     const [formData, setFormData] = useState<Record<string, any>>({});
 
     React.useEffect(() => {
+        console.log('ExecutionChecklistModal MOUNTED');
+        console.log('Props:', { isOpen, template, petName, hasOnSave: !!onSave });
+        return () => console.log('ExecutionChecklistModal UNMOUNTED');
+    }, [isOpen, template, petName, onSave]);
+
+    React.useEffect(() => {
         // Initialize all sections as expanded
         if (template) {
             setExpandedSections(new Set(template.sections.map(s => s.id)));
@@ -42,7 +48,11 @@ export const ExecutionChecklistModal: React.FC<ExecutionChecklistModalProps> = (
         setFormData({ ...formData, [fieldId]: value });
     };
 
-    const handleSubmit = () => {
+    const handleSubmit = (e?: React.MouseEvent) => {
+        if (e) e.preventDefault();
+        window.alert('DEBUG: Botão clicado (ExecutionChecklistModal)');
+        console.log('ExecutionChecklistModal: handleSubmit triggered');
+        console.log('FormData:', formData);
         onSave(formData);
         onClose();
     };
@@ -141,9 +151,9 @@ export const ExecutionChecklistModal: React.FC<ExecutionChecklistModalProps> = (
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose}></div>
-            <div className="bg-white dark:bg-[#1a1a1a] rounded-2xl shadow-2xl w-full max-w-md relative z-10 flex flex-col max-h-[90vh]">
+            <div className="bg-white dark:bg-[#1a1a1a] rounded-2xl shadow-2xl w-full max-w-md relative z-10 flex flex-col max-h-[90vh] pointer-events-auto">
 
                 {/* Header */}
                 <div className="p-5 border-b border-slate-100 dark:border-gray-800 flex justify-between items-start">
@@ -195,13 +205,19 @@ export const ExecutionChecklistModal: React.FC<ExecutionChecklistModalProps> = (
                         Cancelar
                     </button>
                     <button
-                        onClick={handleSubmit}
-                        className="px-6 py-2.5 bg-primary text-white font-bold text-sm rounded-xl hover:bg-primary-hover shadow-lg shadow-primary/30 transition-all"
+                        onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            window.alert('CLIQUE DE TESTE DIRETO');
+                            handleSubmit(e);
+                        }}
+                        style={{ backgroundColor: 'red', color: 'white', fontWeight: 'bold', padding: '15px', borderRadius: '10px', fontSize: '16px', zIndex: 999999, position: 'relative', border: '5px solid yellow' }}
                     >
-                        Salvar e Iniciar Serviço
+                        BOTÃO DE TESTE DE DEBUG
                     </button>
                 </div>
             </div>
+            <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '20px', background: 'red', zIndex: 999999, pointerEvents: 'none', content: '"TEST MODE ACTIVE"' }}></div>
         </div>
     );
 };

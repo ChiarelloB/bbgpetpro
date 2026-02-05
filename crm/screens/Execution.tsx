@@ -60,7 +60,7 @@ const TimelineDetailsModal: React.FC<{
 
   const stageConfig = [
     { icon: 'login', label: 'Check-in', gradient: 'from-sky-400 to-blue-500', bgLight: 'bg-sky-50 dark:bg-sky-900/20', textColor: 'text-sky-600 dark:text-sky-400', borderColor: 'border-sky-200 dark:border-sky-800' },
-    { icon: 'play_arrow', label: 'Execução', gradient: 'from-violet-400 to-purple-500', bgLight: 'bg-violet-50 dark:bg-violet-900/20', textColor: 'text-violet-600 dark:text-violet-400', borderColor: 'border-violet-200 dark:border-violet-800' },
+    { icon: 'play_arrow', label: 'Execução', gradient: 'from-indigo-400 to-violet-600', bgLight: 'bg-violet-50 dark:bg-violet-900/20', textColor: 'text-violet-600 dark:text-violet-400', borderColor: 'border-violet-200 dark:border-violet-800' },
     { icon: 'check_circle', label: 'Finalizado', gradient: 'from-emerald-400 to-teal-500', bgLight: 'bg-emerald-50 dark:bg-emerald-900/20', textColor: 'text-emerald-600 dark:text-emerald-400', borderColor: 'border-emerald-200 dark:border-emerald-800' }
   ];
 
@@ -1718,7 +1718,7 @@ export const Execution: React.FC<{ onNavigate?: (screen: any, state?: any) => vo
 
   const getBorderColor = (category: string) => {
     switch (category) {
-      case 'Banho & Tosa': return 'border-l-purple-500';
+      case 'Banho & Tosa': return 'border-l-indigo-600';
       case 'Veterinário': return 'border-l-amber-500';
       case 'Tosa Higiênica': return 'border-l-emerald-500';
       default: return 'border-l-primary';
@@ -1727,7 +1727,7 @@ export const Execution: React.FC<{ onNavigate?: (screen: any, state?: any) => vo
 
   const getButtonColor = (category: string) => {
     switch (category) {
-      case 'Banho & Tosa': return 'bg-purple-500 hover:bg-purple-600';
+      case 'Banho & Tosa': return 'bg-indigo-600 hover:bg-indigo-700';
       case 'Veterinário': return 'bg-amber-500 hover:bg-amber-600';
       case 'Tosa Higiênica': return 'bg-emerald-500 hover:bg-emerald-600';
       default: return 'bg-primary hover:bg-primary-hover';
@@ -1752,8 +1752,8 @@ export const Execution: React.FC<{ onNavigate?: (screen: any, state?: any) => vo
         }
       `}</style>
 
-      {selectedTask && <CheckoutModal isOpen={!!selectedTask} onClose={() => setSelectedTask(null)} onConfirm={handleUpdateProgress} task={selectedTask} />}
-      {checkinTask && <CheckinModal isOpen={!!checkinTask} onClose={() => setCheckinTask(null)} onConfirm={(checkedIds, data) => handleUpdateProgress(checkedIds, data, checkinTask)} task={checkinTask} />}
+      {selectedTask && <CheckoutModal isOpen={!!selectedTask} onClose={() => setSelectedTask(null)} onConfirm={handleUpdateProgress} task={selectedTask} availableProducts={products} />}
+      {checkinTask && <CheckinModal isOpen={!!checkinTask} onClose={() => setCheckinTask(null)} onConfirm={(checkedIds, data) => handleUpdateProgress(checkedIds, data, undefined, checkinTask)} task={checkinTask} />}
       {detailsTask && <TimelineDetailsModal isOpen={!!detailsTask} onClose={() => { setDetailsTask(null); setDetailsPhoto(undefined); }} task={detailsTask} finalPhoto={detailsPhoto} />}
       {deliveryTask && (
         <DeliveryModal
@@ -1782,7 +1782,7 @@ export const Execution: React.FC<{ onNavigate?: (screen: any, state?: any) => vo
               <p className="text-3xl font-black text-white mb-1">{tasks.length}</p>
               <p className="text-[9px] font-bold uppercase text-gray-500 tracking-wider">Total</p>
             </div>
-            <div className="text-center px-6 py-4 bg-purple-500 rounded-2xl">
+            <div className="text-center px-6 py-4 bg-indigo-600 rounded-2xl">
               <p className="text-3xl font-black text-white mb-1">{inProgressCount}</p>
               <p className="text-[9px] font-bold uppercase text-purple-200 tracking-wider">Andamento</p>
             </div>
@@ -1804,7 +1804,7 @@ export const Execution: React.FC<{ onNavigate?: (screen: any, state?: any) => vo
             >
               {cat}
               {categoryFilter === cat && (
-                <div className={`absolute bottom-0 left-0 right-0 h-0.5 ${cat === 'BANHO & TOSA' ? 'bg-purple-500' : cat === 'VETERINÁRIO' ? 'bg-amber-500' : cat === 'DAY CARE' ? 'bg-emerald-500' : cat === 'PRONTOS' ? 'bg-emerald-400' : 'bg-gradient-to-r from-purple-500 to-blue-500'}`}></div>
+                <div className={`absolute bottom-0 left-0 right-0 h-0.5 ${cat === 'BANHO & TOSA' ? 'bg-indigo-600' : cat === 'VETERINÁRIO' ? 'bg-amber-500' : cat === 'DAY CARE' ? 'bg-emerald-500' : cat === 'PRONTOS' ? 'bg-emerald-400' : 'bg-gradient-to-r from-indigo-600 to-blue-500'}`}></div>
               )}
             </button>
           ))}
@@ -1829,7 +1829,7 @@ export const Execution: React.FC<{ onNavigate?: (screen: any, state?: any) => vo
                   <p className="text-xs uppercase font-bold mb-1 text-emerald-400">SERVIÇO FINALIZADO</p>
                 ) : (
                   <div className="flex items-center gap-3 mb-1">
-                    <p className="text-xs uppercase font-bold" style={{ color: task.category === 'Banho & Tosa' ? '#a855f7' : task.category === 'Veterinário' ? '#f59e0b' : '#10b981' }}>EM ANDAMENTO</p>
+                    <p className="text-xs uppercase font-bold" style={{ color: task.category === 'Banho & Tosa' ? '#7c3aed' : task.category === 'Veterinário' ? '#f59e0b' : '#10b981' }}>EM ANDAMENTO</p>
                     {task.status === 'in-progress' && <ExecutionTimer startTime={task.execution_started_at} duration={task.duration} />}
                   </div>
                 )}
