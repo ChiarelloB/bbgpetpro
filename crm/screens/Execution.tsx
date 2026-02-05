@@ -1407,7 +1407,7 @@ const ExecutionTimer: React.FC<{ startTime?: string; duration?: number }> = ({ s
 
 
 export const Execution: React.FC<{ onNavigate?: (screen: any, state?: any) => void }> = ({ onNavigate }) => {
-  const { tenant } = useSecurity();
+  const { tenant, tenantId } = useSecurity();
   const [tasks, setTasks] = useState<ServiceTask[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedTask, setSelectedTask] = useState<ServiceTask | null>(null);
@@ -1678,7 +1678,7 @@ export const Execution: React.FC<{ onNavigate?: (screen: any, state?: any) => vo
           status: data.status,
           client_id: deliveryTask.clientId,
           date: new Date().toISOString().split('T')[0],
-          tenant_id: tenant?.id
+          tenant_id: tenant?.id || tenantId
         }]);
 
       if (txError) throw txError;

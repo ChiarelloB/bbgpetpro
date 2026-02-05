@@ -181,7 +181,7 @@ export const Finance: React.FC = () => {
     const [chartData, setChartData] = useState<any[]>([]);
     const [timeFilter, setTimeFilter] = useState('7 Dias');
     const { showNotification } = useNotification();
-    const { tenant } = useSecurity();
+    const { tenant, tenantId } = useSecurity();
     const { accentColor } = useTheme();
     const primaryColor = colors[accentColor]?.primary || colors.purple.primary;
 
@@ -305,7 +305,7 @@ export const Finance: React.FC = () => {
                 status: 'pending',
                 // For simplicity, we're putting names in description meta if needed, 
                 // but let's assume the schema has client_name/pet_name for now or just use description
-                tenant_id: tenant?.id
+                tenant_id: tenant?.id || tenantId
             }]);
 
         if (error) {
@@ -325,7 +325,7 @@ export const Finance: React.FC = () => {
                 amount: parseFloat(data.amount),
                 description: `${data.title} - ${data.category}`,
                 status: 'pending',
-                tenant_id: tenant?.id
+                tenant_id: tenant?.id || tenantId
             }]);
 
         if (error) {
